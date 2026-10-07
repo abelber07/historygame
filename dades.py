@@ -1,9 +1,10 @@
 """
-Dades del joc: armes, enemics, nivells, història, millores i passi de batalla.
-Aquest mòdul no depèn de pygame, així es pot llegir i equilibrar fàcilment.
+Datos del juego: armas, enemigos, niveles, historia, mejoras y Battle Pass.
+Este módulo no depende de pygame, así se puede leer y equilibrar fácilmente.
+(Los nombres de las variables siguen en catalán, como en el resto del código.)
 
-Els requisits d'història ("req") són l'índex de l'escenari que cal haver completat:
-0 = 1-1, 1 = 1-2, 2 = 1-3, 3 = 2-1 ... 14 = 5-3. El valor -1 vol dir sense requisit.
+Los requisitos de historia ("req") son el índice del escenario que hay que haber completado:
+0 = 1-1, 1 = 1-2, 2 = 1-3, 3 = 2-1 ... 14 = 5-3. El valor -1 significa sin requisito.
 """
 
 NUM_SECTORS = 5
@@ -14,33 +15,33 @@ def nom_escenari(index):
 
 
 # ---------------------------------------------------------------------------
-# Armes. "potencia" (1-5) decideix en quins escenaris es poden fer servir.
+# Armas. "potencia" (1-5) decide en qué escenarios se pueden usar.
 # ---------------------------------------------------------------------------
 ARMES = [
     {"id": "pistola", "nom": "Pistola", "dany": 5, "bales_max": 20, "cost": 0, "req": -1, "potencia": 1,
      "cadencia": 10, "auto": False, "vel": 12, "dispersio": 1.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "pistola", "estil": "pistola",
-     "desc": "Lleugera i fiable."},
+     "desc": "Ligera y fiable."},
     {"id": "escopeta", "nom": "Escopeta", "dany": 6, "bales_max": 12, "cost": 500, "req": 1, "potencia": 2,
      "cadencia": 34, "auto": False, "vel": 12, "dispersio": 3.0, "perdigons": 6, "obertura": 26,
      "vida_bala": 30, "perfora": False, "so": "escopeta", "estil": "escopeta",
-     "desc": "Sis perdigons. Devastadora a prop."},
-    {"id": "fusell", "nom": "Fusell", "dany": 15, "bales_max": 30, "cost": 900, "req": 2, "potencia": 3,
+     "desc": "Seis perdigones. Devastadora de cerca."},
+    {"id": "fusell", "nom": "Fusil", "dany": 15, "bales_max": 30, "cost": 900, "req": 2, "potencia": 3,
      "cadencia": 9, "auto": True, "vel": 15, "dispersio": 2.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "fusell", "estil": "fusell",
-     "desc": "Automàtic i precís."},
+     "desc": "Automático y preciso."},
     {"id": "minigun", "nom": "Minigun", "dany": 25, "bales_max": None, "cost": 1800, "req": 6, "potencia": 4,
      "cadencia": 6, "auto": True, "vel": 14, "dispersio": 5.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "minigun", "estil": "minigun",
-     "desc": "Munició infinita. Arma pesada."},
-    {"id": "plasma", "nom": "Canó de plasma", "dany": 40, "bales_max": 24, "cost": 3000, "req": 10, "potencia": 5,
+     "desc": "Munición infinita. Arma pesada."},
+    {"id": "plasma", "nom": "Cañón de plasma", "dany": 40, "bales_max": 24, "cost": 3000, "req": 10, "potencia": 5,
      "cadencia": 16, "auto": True, "vel": 16, "dispersio": 0.5, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": True, "so": "plasma", "estil": "plasma",
-     "desc": "Travessa els enemics. Tecnologia Xylothian."},
+     "desc": "Atraviesa a los enemigos. Tecnología Xylothian."},
 ]
 ARMA_PER_ID = {a["id"]: i for i, a in enumerate(ARMES)}
 
-# Potència màxima permesa a cada escenari i el motiu (si n'hi ha) que es mostra al jugador
+# Potencia máxima permitida en cada escenario y el motivo (si lo hay) que se muestra al jugador
 POTENCIA_MAX = {
     (0, 0): 2, (0, 1): 2, (0, 2): 3,
     (1, 0): 3, (1, 1): 2, (1, 2): 3,
@@ -49,15 +50,15 @@ POTENCIA_MAX = {
     (4, 0): 5, (4, 1): 3, (4, 2): 5,
 }
 MOTIUS_RESTRICCIO = {
-    (0, 0): "Ruïnes inestables: les armes pesades farien caure els edificis.",
-    (0, 1): "Ruïnes inestables: les armes pesades farien caure els edificis.",
-    (1, 1): "Gas inflamable al laboratori: res més potent que l'escopeta.",
-    (2, 1): "Infiltració: cal avançar sense fer soroll.",
-    (4, 1): "Camp supressor del rusc: les armes pesades no funcionen.",
+    (0, 0): "Ruinas inestables: las armas pesadas derrumbarían los edificios.",
+    (0, 1): "Ruinas inestables: las armas pesadas derrumbarían los edificios.",
+    (1, 1): "Gas inflamable en el laboratorio: nada más potente que la escopeta.",
+    (2, 1): "Infiltración: hay que avanzar sin hacer ruido.",
+    (4, 1): "Campo supresor de la colmena: las armas pesadas no funcionan.",
 }
 
 # ---------------------------------------------------------------------------
-# Enemics
+# Enemigos
 # ---------------------------------------------------------------------------
 TIPUS_ENEMIC = {
     "dron":            {"cadencia": 100, "dany": 5, "dany_nivell": 2, "vel_bala": 6.5, "monedes": 50, "vel": 2.6, "xp": 10},
@@ -69,19 +70,19 @@ TIPUS_ENEMIC = {
     "final_nucli":     {"cadencia": 7, "dany": 14, "dany_nivell": 0, "vel_bala": 3.6, "monedes": 1200, "vel": 0, "xp": 300},
 }
 
-NOMS_SECTORS = ["Ruïnes Urbanes", "Selva Tecnològica", "Fortalesa Xylothian",
-                "Òrbita: la Nau Mare", "Xylos, el Món Rusc"]
+NOMS_SECTORS = ["Ruinas Urbanas", "Selva Tecnológica", "Fortaleza Xylothian",
+                "Órbita: la Nave Nodriza", "Xylos, el Mundo Colmena"]
 NOMS_CAPS = {
     (0, 2): "GENERAL XYLOTHIAN",
-    (1, 2): "MESTRE DE LA SELVA",
-    (2, 1): "COMANDANT D'ELIT",
-    (2, 2): "COMANDANT SUPREM",
-    (3, 2): "NAU MARE XYLOTHIAN",
-    (4, 1): "GUARDIÀ DEL RUSC",
-    (4, 2): "NUCLI DE XYLOS",
+    (1, 2): "MAESTRO DE LA SELVA",
+    (2, 1): "COMANDANTE DE ÉLITE",
+    (2, 2): "COMANDANTE SUPREMO",
+    (3, 2): "NAVE NODRIZA XYLOTHIAN",
+    (4, 1): "GUARDIÁN DE LA COLMENA",
+    (4, 2): "NÚCLEO DE XYLOS",
 }
 
-# Plataformes: (x, y_superior, amplada). Enemics: (tipus, vida)
+# Plataformas: (x, y_superior, anchura). Enemigos: (tipo, vida)
 _P1 = [(100, 450, 150), (300, 350, 150), (500, 250, 150)]
 _P2 = [(150, 450, 150), (350, 350, 150), (550, 250, 150)]
 _P_ORBITA = [(70, 440, 140), (260, 360, 120), (440, 290, 140), (630, 420, 120)]
@@ -111,122 +112,135 @@ MUSICA_SECTOR = ["menu", "sector2", "sector3", "sector3", "sector2"]
 CAPS_FINALS = {(2, 2), (3, 2), (4, 2)}
 
 # ---------------------------------------------------------------------------
-# Història
+# Historia
 # ---------------------------------------------------------------------------
-TEXTOS_NARRATIVA = {
-    (0, 0): "Any 2147. Els Xylothians han envaït la Terra, deixant només ruïnes. Ets Nexus, l'últim soldat "
-            "cibernètic. La teva missió: infiltrar-te a les bases alienígenes. Comences a les ruïnes urbanes. Sobreviu.",
-    (0, 1): "Has destruït una base Xylothian, però n'hi ha més. Els aliens reforcen les seves defenses. "
-            "Avances per les ruïnes, on els drons patrullen. Troba i elimina els seus lloctinents.",
-    (0, 2): "Un General Xylothian guarda l'última base urbana. La seva derrota obrirà el camí al següent sector. "
-            "Les teves armes són limitades, però la teva determinació és infinita. Endavant, Nexus.",
-    (1, 0): "Has sortit de les ruïnes i entres a la Selva Tecnològica, un bioma alienígena ple de màquines "
-            "orgàniques. Els Xylothians experimenten aquí. Descobreix els seus secrets i destrueix-los.",
-    (1, 1): "La selva és viva, amb trampes biològiques i criatures Xylothians. Has trobat un laboratori alienígena. "
-            "Destrueix les seves creacions abans que siguin alliberades contra la humanitat.",
-    (1, 2): "El Mestre de la Selva, un bio-constructor Xylothian, controla aquest sector. "
-            "Derrota'l per desactivar les defenses de la selva i apropar-te al bastió final.",
-    (2, 0): "La Fortalesa Xylothian és el bastió final. Muralles d'energia i legions d'elit et barraran el pas. "
-            "Infiltra't i debilita les seves defenses. El temps s'acaba, Nexus.",
-    (2, 1): "Has trencat les defenses externes, però els Xylothians es reagrupen. Un comandant d'elit lidera "
-            "la segona línia. Elimina'l per accedir al cor de la fortalesa.",
-    (2, 2): "El Comandant Suprem Xylothian protegeix el cor de la fortalesa. Derrota'l per salvar la Terra. "
-            "Aquest és l'últim enfrontament, Nexus. La humanitat depèn de tu... o això creus.",
-    (3, 0): "El Comandant Suprem ha caigut, però abans de morir ha enviat un senyal a l'òrbita. Sobre la Terra "
-            "s'ha obert una ombra immensa: la Nau Mare Xylothian. Amb una llançadora robada de la fortalesa, "
-            "Nexus s'enlaira cap a les estrelles.",
-    (3, 1): "Els hangars de la Nau Mare bullen de caçadors, drons que ataquen en picat. Els enginyers Xylothians "
-            "preparen un raig capaç de convertir ciutats senceres en cendra. Atura'ls abans que estigui carregat.",
-    (3, 2): "Al pont de comandament t'espera la Nau Mare en persona: una consciència viva fusionada amb el metall. "
-            "Si cau, la flota quedarà sense ordres... i el camí cap al seu món quedarà obert.",
-    (4, 0): "Les restes de la Nau Mare revelen la veritat: tots els Xylothians obeeixen una sola ment, el Nucli de "
-            "Xylos. Nexus creua l'últim portal i arriba a un planeta de cel violeta i dos sols moribunds.",
-    (4, 1): "Al cor del rusc, un camp supressor bloqueja les armes més potents. El Guardià del Rusc vigila "
-            "l'entrada a la cambra del Nucli. Només els teus reflexos et poden portar més enllà.",
-    (4, 2): "El Nucli de Xylos obre el seu ull immens. Milers d'anys de conquestes, centenars de mons absorbits. "
-            "Avui, per primera vegada, algú ha arribat fins aquí. Acaba-ho, Nexus.",
-}
-TEXT_VICTORIA = ("El Nucli de Xylos s'apaga i el rusc sencer cau en silenci. Sense la seva ment, els Xylothians de "
-                 "tota la galàxia deixen de lluitar. Nexus torna a la Terra a bord d'una nau alienígena: l'heroi que "
-                 "va tancar els portals per sempre. La humanitat pot reconstruir-se... i, aquesta vegada, mirar les "
-                 "estrelles sense por.")
-TEXT_DERROTA = "Has caigut en combat. Els Xylothians avancen. Què faràs, Nexus?"
+# Animación inicial: (escena, texto). Las escenas se dibujan en main.py (clase Intro).
+INTRO = [
+    ("terra", "Año 2139. Una noche, el cielo de la Tierra se abre: decenas de portales de luz violeta aparecen "
+              "sobre las ciudades."),
+    ("invasio", "De ellos salen los Xylothians, una especie que no piensa: obedece. Todos sus soldados son "
+                "extensiones de una sola mente."),
+    ("ruines", "Ocho años de guerra. Las capitales caen una tras otra y los supervivientes se esconden "
+               "bajo los escombros."),
+    ("nexus", "El ejército crea su última arma: el Proyecto NEXUS. Un soldado con implantes que lo hacen "
+              "inmune a la señal mental alienígena."),
+    ("despertar", "Año 2147. Nexus despierta en un búnker bajo la ciudad. La humanidad ya no tiene a nadie más. "
+                  "Su misión: llegar hasta el corazón de la invasión."),
+]
 
-# Arxiu: una entrada per sector, es desbloqueja en completar-lo
+TEXTOS_NARRATIVA = {
+    (0, 0): "Nexus sale del búnker a una ciudad que ya no reconoce. Los drones Xylothian patrullan las "
+            "ruinas buscando supervivientes. Primera misión: destruir el puesto de vigilancia del barrio norte.",
+    (0, 1): "La alarma ha corrido entre los aliens. Bajo la lluvia, los drones refuerzan las ruinas y sus "
+            "lugartenientes dirigen la búsqueda. Elimínalos antes de que localicen el búnker.",
+    (0, 2): "Un General Xylothian ha levantado una base sobre el antiguo centro de la ciudad. Desde allí "
+            "controla todo el sector. Derríbalo y el camino hacia el sur quedará abierto.",
+    (1, 0): "Al sur, donde había bosques, ahora crece la Selva Tecnológica: plantas y máquinas fusionadas. "
+            "Los Xylothians no construyen, cultivan. Y están cultivando la Tierra.",
+    (1, 1): "En medio de la selva se esconde un laboratorio alienígena lleno de criaturas en tanques. "
+            "El aire está cargado de gas inflamable: cuidado con lo que disparas.",
+    (1, 2): "El Maestro de la Selva, el bio-constructor que hace crecer esta jungla, protege su corazón. "
+            "Si cae, la selva dejará de avanzar y la fortaleza quedará al descubierto.",
+    (2, 0): "La Fortaleza Xylothian se alza sobre las montañas: murallas de energía, reflectores y "
+            "legiones de élite. Desde aquí se dirige toda la invasión del continente.",
+    (2, 1): "Has entrado por las cloacas. Para cruzar el patio interior tendrás que moverte en silencio "
+            "y eliminar al Comandante de Élite que vigila la segunda línea.",
+    (2, 2): "En la cima de la fortaleza espera el Comandante Supremo, la voz del enemigo en la Tierra. "
+            "Si cae, los Xylothians quedarán sin líder... o eso cree Nexus.",
+    (3, 0): "Antes de morir, el Comandante Supremo envió una señal al espacio. Sobre la Tierra aparece una "
+            "sombra inmensa: la Nave Nodriza. Nexus roba una lanzadera de la fortaleza y despega.",
+    (3, 1): "Los hangares de la Nave Nodriza están llenos de cazadores, drones que atacan en picado. "
+            "Los ingenieros cargan un rayo capaz de arrasar ciudades enteras. Hay que detenerlos.",
+    (3, 2): "En el puente de mando te espera la Nave Nodriza en persona: una conciencia viva fundida con "
+            "el metal. Si cae, la flota se quedará sin órdenes y el portal hacia su mundo quedará abierto.",
+    (4, 0): "Los restos de la Nave Nodriza revelan la verdad: todos los Xylothians obedecen a una sola mente, "
+            "el Núcleo de Xylos. Nexus cruza el último portal y llega a un planeta de cielo violeta.",
+    (4, 1): "En el corazón de la colmena, un campo supresor bloquea las armas pesadas. El Guardián de la "
+            "Colmena vigila la entrada a la cámara del Núcleo. Solo tus reflejos te llevarán más allá.",
+    (4, 2): "El Núcleo de Xylos abre su ojo inmenso. Miles de años de conquistas, cientos de mundos "
+            "absorbidos. Hoy, por primera vez, alguien ha llegado hasta aquí. Acaba con esto, Nexus.",
+}
+TEXT_VICTORIA = ("El Núcleo de Xylos se apaga y la colmena entera queda en silencio. Sin su mente, los "
+                 "Xylothians de toda la galaxia dejan de luchar y los portales se cierran para siempre. "
+                 "Nexus vuelve a la Tierra a bordo de una nave alienígena. La humanidad puede reconstruirse... "
+                 "y, esta vez, mirar las estrellas sin miedo.")
+TEXT_DERROTA = "Has caído en combate. Los Xylothians avanzan. ¿Qué harás, Nexus?"
+
+# Historia: un expediente por sector, se desbloquea al completarlo
 ARXIU = [
-    ("Els Xylothians",
-     "Espècie col·lectiva originària del planeta Xylos. Cap individu pensa per si mateix: tots són extensions "
-     "d'una sola ment. Van arribar a la Terra l'any 2139 a través de portals de plegament i en vuit anys van "
-     "fer caure totes les capitals."),
-    ("La tecnologia viva",
-     "Els Xylothians no construeixen: fan créixer. Les seves màquines són organismes modificats que s'alimenten "
-     "de la biosfera dels mons que envaeixen. La Selva Tecnològica era una granja: estaven convertint la Terra "
-     "en una peça més del rusc."),
-    ("Projecte NEXUS",
-     "Última iniciativa de l'Exèrcit Unificat. Un soldat voluntari amb implants que el fan immune al senyal "
-     "mental Xylothian. Era l'únic que podia acostar-se als seus caps sense ser dominat. Ningú no esperava que "
-     "tornés."),
-    ("La Nau Mare",
-     "Vaixell-ciutat de dotze quilòmetres que fa de pont entre el Nucli i les colònies. Sense ella, els "
-     "Xylothians de la Terra no podien rebre ordres: per això el Comandant Suprem la va cridar quan es va "
-     "veure perdut."),
-    ("El Nucli de Xylos",
-     "Una consciència nascuda fa milers d'anys que ha absorbit centenars de civilitzacions. Cada món conquerit "
-     "li afegia milions de veus. La Terra havia de ser la següent. Ara només en queda el silenci."),
+    ("Los Xylothians",
+     "Especie colectiva originaria del planeta Xylos. Ningún individuo piensa por sí mismo: todos son "
+     "extensiones de una sola mente. Llegaron a la Tierra en 2139 a través de portales y en ocho años "
+     "hicieron caer todas las capitales."),
+    ("La tecnología viva",
+     "Los Xylothians no construyen: hacen crecer. Sus máquinas son organismos modificados que se alimentan "
+     "de la biosfera de los mundos que invaden. La Selva Tecnológica era una granja: estaban convirtiendo "
+     "la Tierra en una pieza más de la colmena."),
+    ("Proyecto NEXUS",
+     "Última iniciativa del Ejército Unificado. Un soldado voluntario con implantes que lo hacen inmune a la "
+     "señal mental Xylothian. Era el único que podía acercarse a sus líderes sin ser dominado. Nadie esperaba "
+     "que volviera."),
+    ("La Nave Nodriza",
+     "Nave-ciudad de doce kilómetros que hace de puente entre el Núcleo y sus colonias. Sin ella, los "
+     "Xylothians de la Tierra no podían recibir órdenes: por eso el Comandante Supremo la llamó cuando se "
+     "vio perdido."),
+    ("El Núcleo de Xylos",
+     "Una conciencia nacida hace miles de años que ha absorbido cientos de civilizaciones. Cada mundo "
+     "conquistado le añadía millones de voces. La Tierra iba a ser la siguiente. Ahora solo queda el silencio."),
 ]
 
 # ---------------------------------------------------------------------------
-# Millores de la botiga (cada nivell té un cost i un requisit d'història)
+# Mejoras de la tienda (cada nivel tiene un coste y un requisito de historia)
 # ---------------------------------------------------------------------------
 MILLORES = [
-    {"id": "blindatge", "nom": "Blindatge", "desc": "+20 de vida màxima per nivell",
+    {"id": "blindatge", "nom": "Blindaje", "desc": "+20 de vida máxima por nivel",
      "costos": [300, 700, 1400], "req": [0, 4, 9]},
-    {"id": "potencia", "nom": "Potència", "desc": "+15% de dany amb totes les armes",
+    {"id": "potencia", "nom": "Potencia", "desc": "+15% de daño con todas las armas",
      "costos": [400, 900, 1600], "req": [1, 5, 10]},
-    {"id": "carregadors", "nom": "Carregadors", "desc": "+30% de munició màxima",
+    {"id": "carregadors", "nom": "Cargadores", "desc": "+30% de munición máxima",
      "costos": [250, 600, 1200], "req": [0, 3, 8]},
-    {"id": "iman", "nom": "Imant", "desc": "Atrau els ítems des de més lluny",
+    {"id": "iman", "nom": "Imán", "desc": "Atrae los objetos desde más lejos",
      "costos": [200, 500, 1000], "req": [2, 5, 8]},
-    {"id": "reflexos", "nom": "Reflexos", "desc": "Més velocitat i invulnerabilitat",
+    {"id": "reflexos", "nom": "Reflejos", "desc": "Más velocidad e invulnerabilidad",
      "costos": [300, 700, 1300], "req": [2, 6, 11]},
-    {"id": "doble_salt", "nom": "Propulsors", "desc": "Permet fer un doble salt a l'aire",
+    {"id": "doble_salt", "nom": "Propulsores", "desc": "Permite hacer un doble salto en el aire",
      "costos": [1500], "req": [8]},
 ]
 
 # ---------------------------------------------------------------------------
-# Aparença (cosmètics) i passi de batalla
+# Aspecto (cosméticos) y Battle Pass
 # ---------------------------------------------------------------------------
-# Uniformes: colors que substitueixen els tres verds oliva de l'uniforme original
+# Uniformes: colores que sustituyen a los tres verdes oliva del uniforme original
 UNIFORMES = {
-    "classic": {"nom": "Clàssic", "colors": None},
-    "desert": {"nom": "Desert", "colors": ((170, 140, 90), (210, 184, 124), (150, 120, 80))},
-    "artic": {"nom": "Àrtic", "colors": ((196, 202, 214), (236, 240, 248), (160, 172, 190))},
-    "nocturn": {"nom": "Operacions nocturnes", "colors": ((46, 52, 64), (74, 80, 98), (36, 40, 52))},
-    "elit": {"nom": "Elit vermell", "colors": ((150, 30, 34), (204, 52, 44), (110, 22, 28))},
-    "ciber": {"nom": "Cibernètic", "colors": ((28, 118, 150), (64, 220, 255), (20, 80, 110))},
-    "daurat": {"nom": "Daurat", "colors": ((190, 148, 30), (255, 214, 64), (160, 118, 20))},
+    "classic": {"nom": "Clásico", "colors": None},
+    "desert": {"nom": "Desierto", "colors": ((170, 140, 90), (210, 184, 124), (150, 120, 80))},
+    "artic": {"nom": "Ártico", "colors": ((196, 202, 214), (236, 240, 248), (160, 172, 190))},
+    "nocturn": {"nom": "Nocturno", "colors": ((46, 52, 64), (74, 80, 98), (36, 40, 52))},
+    "elit": {"nom": "Élite roja", "colors": ((150, 30, 34), (204, 52, 44), (110, 22, 28))},
+    "ciber": {"nom": "Cibernético", "colors": ((28, 118, 150), (64, 220, 255), (20, 80, 110))},
+    "daurat": {"nom": "Dorado", "colors": ((190, 148, 30), (255, 214, 64), (160, 118, 20))},
 }
-# Aparences d'arma: tint del metall i color de les bales ("arc" = arc de Sant Martí)
+# Aspectos de arma: tinte del metal y color de las balas ("arc" = arcoíris)
 APARENCES_ARMA = {
-    "estandard": {"nom": "Estàndard", "tint": None, "bala": None},
-    "toxic": {"nom": "Tòxic", "tint": (90, 220, 90), "bala": (130, 255, 90)},
-    "plasma": {"nom": "Plasma blau", "tint": (90, 170, 255), "bala": (110, 200, 255)},
-    "infern": {"nom": "Infern", "tint": (230, 90, 40), "bala": (255, 110, 40)},
-    "arc": {"nom": "Arc de Sant Martí", "tint": (200, 120, 255), "bala": "arc"},
-    "daurat": {"nom": "Daurat", "tint": (255, 200, 60), "bala": (255, 220, 80)},
+    "estandard": {"nom": "Estándar", "tint": None, "bala": None},
+    "toxic": {"nom": "Tóxico", "tint": (90, 220, 90), "bala": (130, 255, 90)},
+    "plasma": {"nom": "Plasma azul", "tint": (90, 170, 255), "bala": (110, 200, 255)},
+    "infern": {"nom": "Infierno", "tint": (230, 90, 40), "bala": (255, 110, 40)},
+    "arc": {"nom": "Arcoíris", "tint": (200, 120, 255), "bala": "arc"},
+    "daurat": {"nom": "Dorado", "tint": (255, 200, 60), "bala": (255, 220, 80)},
 }
 TITOLS = {
     "recluta": "Recluta",
-    "vetera": "Veterà",
-    "cacador": "Caçador d'aliens",
-    "heroi": "Heroi de la Terra",
-    "llegenda": "Llegenda de Xylos",
+    "vetera": "Veterano",
+    "cacador": "Cazador de aliens",
+    "heroi": "Héroe de la Tierra",
+    "llegenda": "Leyenda de Xylos",
 }
 
 XP_PER_NIVELL = 200
 XP_ESCENARI = 40
 XP_PRIMERA_VEGADA = 60
-# Cada nivell del passi: llista de recompenses (tipus, valor)
+# Cada nivel del Battle Pass: lista de recompensas (tipo, valor)
 PASSI = [
     [("monedes", 100)],
     [("uniforme", "desert")],
@@ -253,9 +267,9 @@ PASSI = [
 
 def nom_recompensa(tipus, valor):
     if tipus == "monedes":
-        return f"{valor} monedes"
+        return f"{valor} monedas"
     if tipus == "uniforme":
         return f"Uniforme {UNIFORMES[valor]['nom']}"
     if tipus == "arma":
-        return f"Aparença d'arma {APARENCES_ARMA[valor]['nom']}"
-    return f"Títol: {TITOLS[valor]}"
+        return f"Aspecto de arma {APARENCES_ARMA[valor]['nom']}"
+    return f"Título: {TITOLS[valor]}"

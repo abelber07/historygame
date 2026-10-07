@@ -1,137 +1,125 @@
-# Joc Militar: Invasió Alienígena
+# Juego Militar: Invasión Alienígena
 
-![Invasió Alienígena](logo.png)
+![Invasión Alienígena](logo.png)
 
-**Juga-hi al navegador:** https://abelber07.github.io/historygame/
+**Juega en el navegador:** https://abelber07.github.io/historygame/
 
-Versió millorada i adaptada a web del joc original [`Joc_final`](https://github.com/abelber07/Joc_final), fet per Nacho i Abel amb Python i Pygame.
+Versión mejorada y adaptada a la web del juego original [`Joc_final`](https://github.com/abelber07/Joc_final), hecho por Nacho y Abel con Python y Pygame.
 
-## Història
+## Historia
 
-Any 2147. Els Xylothians, una espècie que comparteix una sola ment, han devastat la Terra. Nexus, un soldat cibernètic immune al seu senyal mental, és l'última esperança de la humanitat.
+Año 2139. Sobre la Tierra se abren decenas de portales y por ellos llegan los Xylothians, una especie que no piensa por sí misma: todos sus soldados obedecen a una sola mente. Tras ocho años de guerra, las capitales han caído.
 
-Nexus travessa les ruïnes, la selva tecnològica i la fortalesa alienígena fins a derrotar el Comandant Suprem. Però abans de caure, el Comandant crida la **Nau Mare** que orbita la Terra, i les seves restes revelen la veritat: tots els Xylothians obeeixen el **Nucli de Xylos**, al seu món d'origen. Nexus haurà de pujar a l'òrbita i creuar l'últim portal per acabar la guerra per sempre.
+El ejército crea su última arma, el **Proyecto NEXUS**: un soldado con implantes que lo hacen inmune a la señal mental alienígena. En 2147 Nexus despierta en un búnker bajo la ciudad en ruinas y empieza su misión.
 
-## Sectors
+Nexus cruza las ruinas, la selva tecnológica y la fortaleza alienígena hasta derrotar al Comandante Supremo. Pero antes de caer, el Comandante llama a la **Nave Nodriza** que orbita la Tierra, y sus restos revelan la verdad: todos los Xylothians obedecen al **Núcleo de Xylos**, en su mundo de origen. Nexus tendrá que subir a la órbita y cruzar el último portal para acabar la guerra para siempre.
 
-| Sector | Escenaris | Cap |
+La primera vez que se abre el juego se ve una **animación inicial** que cuenta todo esto (se puede saltar con ESC y volver a ver desde *Historia*).
+
+## Sectores
+
+| Sector | Escenarios | Jefe |
 |---|---|---|
-| 1. Ruïnes Urbanes | 1-1 a 1-3 | General Xylothian |
-| 2. Selva Tecnològica | 2-1 a 2-3 | Mestre de la Selva |
-| 3. Fortalesa Xylothian | 3-1 a 3-3 | Comandant d'Elit i **Comandant Suprem** (cap final) |
-| 4. Òrbita: la Nau Mare | 4-1 a 4-3 | **Nau Mare Xylothian** (cap final) |
-| 5. Xylos, el Món Rusc | 5-1 a 5-3 | Guardià del Rusc i **Nucli de Xylos** (cap final) |
+| 1. Ruinas Urbanas | 1-1 a 1-3 | General Xylothian |
+| 2. Selva Tecnológica | 2-1 a 2-3 | Maestro de la Selva |
+| 3. Fortaleza Xylothian | 3-1 a 3-3 | Comandante de Élite y **Comandante Supremo** (jefe final) |
+| 4. Órbita: la Nave Nodriza | 4-1 a 4-3 | **Nave Nodriza Xylothian** (jefe final) |
+| 5. Xylos, el Mundo Colmena | 5-1 a 5-3 | Guardián de la Colmena y **Núcleo de Xylos** (jefe final) |
 
-Cada cap final té el seu patró: el Comandant Suprem llança anells que giren, la Nau Mare deixa caure cortines de bales i crida reforços, i el Nucli de Xylos dispara espirals, anells amb un buit per esquivar i una mirada que t'apunta.
+Cada jefe final tiene su propio patrón: el Comandante Supremo lanza anillos que giran, la Nave Nodriza deja caer cortinas de balas y llama refuerzos, y el Núcleo de Xylos dispara espirales, anillos con un hueco para esquivar y una mirada que te apunta.
 
-Quan completes un sector desbloqueges una entrada de l'**Arxiu**, amb el lore dels Xylothians.
+Al completar un sector se desbloquea un expediente en **Historia**, con el trasfondo de los Xylothians.
 
-## Controls
+## Controles
 
-| Tecla | Acció |
+| Tecla | Acción |
 |---|---|
-| A / D o fletxes | Moure's |
-| ESPAI / W / fletxa amunt | Saltar (mantén premut per saltar més alt; doble salt amb els Propulsors) |
-| S / fletxa avall | Baixar d'una plataforma |
-| Clic esquerre | Disparar (mantén premut amb les armes automàtiques) |
-| 1-5 / Q / roda del ratolí | Canviar d'arma |
+| A / D o flechas | Moverse |
+| ESPACIO / W / flecha arriba | Saltar (mantén pulsado para saltar más; doble salto con los Propulsores) |
+| S / flecha abajo | Bajar de una plataforma |
+| Clic izquierdo | Disparar (mantén pulsado con las armas automáticas) |
+| 1-5 / Q / rueda del ratón | Cambiar de arma |
 | P / ESC | Pausa |
-| G | Tornar al menú |
-| M | Activar / silenciar el so |
+| G | Volver al menú |
+| M | Activar / silenciar el sonido |
 
-## Armes i potència
+## Armas y potencia
 
-| Arma | Dany | Bales | Tirs/s | Potència | Cost | Disponible després de |
+| Arma | Daño | Balas | Disparos/s | Potencia | Coste | Disponible tras |
 |---|---|---|---|---|---|---|
 | Pistola | 5 | 20 | 6 | 1 | Inicial | — |
-| Escopeta | 6 × 6 perdigons | 12 | 1,8 | 2 | 500 | 1-2 |
-| Fusell | 15 | 30 | 6,7 | 3 | 900 | 1-3 |
+| Escopeta | 6 × 6 perdigones | 12 | 1,8 | 2 | 500 | 1-2 |
+| Fusil | 15 | 30 | 6,7 | 3 | 900 | 1-3 |
 | Minigun | 25 | ∞ | 10 | 4 | 1800 | 3-1 |
-| Canó de plasma | 40 (travessa enemics) | 24 | 3,8 | 5 | 3000 | 4-2 |
+| Cañón de plasma | 40 (atraviesa enemigos) | 24 | 3,8 | 5 | 3000 | 4-2 |
 
-Cada escenari té una **potència màxima**: les armes més potents s'hi bloquegen (per exemple, a les ruïnes inestables del sector 1, al laboratori amb gas inflamable de la selva o al camp supressor del rusc). Si l'arma equipada no està permesa, el joc tria la millor que sí que ho està. El selector de nivells mostra la potència màxima de cada escenari.
+Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquean (por ejemplo, en las ruinas inestables del sector 1, en el laboratorio con gas inflamable de la selva o en el campo supresor de la colmena). Si el arma equipada no está permitida, el juego elige la mejor que sí lo está. El selector de niveles muestra la potencia máxima de cada escenario.
 
-## Botiga
+## Tienda
 
-- **Armes**: compra i equipa les cinc armes. Algunes no es poden comprar fins que avances en la història.
-- **Millores** (cada nivell també té un requisit d'història): Blindatge (+20 de vida), Potència (+15% de dany), Carregadors (+30% de munició), Imant (atrau els ítems), Reflexos (velocitat i invulnerabilitat) i Propulsors (doble salt).
-- **Aparença**: uniformes, aparences d'arma (canvien el color del metall i de les bales) i títols.
+- **Armas**: compra y equipa las cinco armas. Algunas no se pueden comprar hasta que avanzas en la historia.
+- **Mejoras** (cada nivel también tiene un requisito de historia): Blindaje (+20 de vida), Potencia (+15% de daño), Cargadores (+30% de munición), Imán (atrae los objetos), Reflejos (velocidad e invulnerabilidad) y Propulsores (doble salto).
+- **Aspecto**: uniformes, aspectos de arma (cambian el color del metal y de las balas) y títulos.
 
-## Passi de batalla
+## Battle Pass
 
-Guanyes XP eliminant enemics i completant escenaris (més XP la primera vegada). Cada 200 XP puges un nivell del passi, fins a 20, i desbloqueges monedes i cosmètics exclusius: uniformes Desert, Àrtic, Operacions nocturnes, Elit vermell, Cibernètic i Daurat; aparences d'arma Tòxic, Plasma blau, Infern, Arc de Sant Martí i Daurat; i títols com «Caçador d'aliens» o «Llegenda de Xylos».
+Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
-## Novetats d'aquesta versió
+## Novedades
 
-**Versió 2.0**
-- Dos sectors nous (6 escenaris) amb fons nous, dos caps finals nous (Nau Mare i Nucli de Xylos), un cap nou (Guardià del Rusc) i un enemic nou: el caçador, que es carrega i envesteix.
-- Història ampliada i coherent amb el final, i Arxiu de lore.
-- Dues armes noves (escopeta i canó de plasma), potència d'arma per escenari i canvi d'arma durant la partida.
-- Botiga amb pestanyes d'armes, millores i aparença, amb compres que depenen de l'avanç en la història.
-- Passi de batalla de 20 nivells amb aparences exclusives per al soldat i les armes.
-- Animacions dels enemics: inclinació en moure's, propulsors, avís lluminós abans d'atacar, restes que cauen en morir i seqüències de mort dels caps amb explosions encadenades. El Comandant Suprem mou els tentacles i té una fase de fúria, la Nau Mare té llums i canons que s'il·luminen, i l'ull del Nucli segueix el jugador i parpelleja.
-- Els desats de la versió anterior es migren automàticament.
+**Versión 2.1**
+- Todo el juego en español.
+- Animación inicial que cuenta la historia en cinco escenas (portales, invasión, ocho años de guerra, Proyecto NEXUS y el despertar de Nexus).
+- Fondos nuevos para los nueve escenarios de los sectores 1, 2 y 3, redibujados con más detalle a partir de la idea original: la torre de vigilancia alienígena en la ciudad, la lluvia con neones, la base del General con su cúpula, la pagoda devorada por la selva, el laboratorio con tanques de criaturas, el árbol-máquina en llamas, las murallas con el cohete, el patio interior con suelo de baldosas y la cima nevada con el portal tras el trono.
+- Historia revisada para que todo encaje: por qué Nexus es inmune, de dónde vienen los portales y por qué el Comandante Supremo llama a la Nave Nodriza.
+- «Battle Pass» e «Historia» en el menú.
 
+**Versión 2.0**
+- Dos sectores nuevos (6 escenarios), dos jefes finales nuevos (Nave Nodriza y Núcleo de Xylos), un jefe nuevo (Guardián de la Colmena) y un enemigo nuevo: el cazador, que se carga y embiste.
+- Dos armas nuevas (escopeta y cañón de plasma), potencia de arma por escenario y cambio de arma durante la partida.
+- Tienda con pestañas de armas, mejoras y aspecto, con compras que dependen del avance en la historia.
+- Battle Pass de 20 niveles con aspectos exclusivos para el soldado y las armas.
+- Animaciones de los enemigos: inclinación al moverse, propulsores, aviso luminoso antes de atacar, restos que caen al morir y secuencias de muerte de los jefes con explosiones encadenadas. El Comandante Supremo mueve los tentáculos y tiene una fase de furia, la Nave Nodriza tiene luces y cañones que se iluminan, y el ojo del Núcleo sigue al jugador y parpadea.
 
-**Errors corregits**
-- El bucle principal no cedia el control (`await asyncio.sleep(0)`), cosa que bloquejava la pestanya al navegador.
-- Els esdeveniments es llegien dues vegades per fotograma: es perdien clics i tecles, i prémer G durant la partida tornava al menú amb la música del nivell encara sonant.
-- El botó «Continuar» de la pantalla de victòria reiniciava el combat contra el cap final.
-- La barra de vida del cap del sector 2 tornava a omplir-se a mitja lluita.
-- Els enemics podien quedar-se fora de la pantalla, on les bales no hi arribaven.
-- Es podia saltar a l'aire després de caure d'una plataforma, i en saltar per sota d'una plataforma el jugador s'hi «enganxava».
-- El jugador sempre mirava a la dreta quan estava quiet; els sprites es veien deformats.
-- La música es carregava sencera a memòria (`Sound` amb MP3 de 8 MB); ara es reprodueix en streaming.
-- El text de la narrativa «saltava» mentre s'escrivia i trigava més de 20 segons a aparèixer.
-- La pantalla de càrrega durava 10 segons obligatoris; el botó «Sortir» deixava la pantalla en negre al navegador.
-- S'ha eliminat un fitxer que no era del joc (`assets/get_attachment_url`) i la música duplicada.
+**Versión 1.1**
+- Animaciones del soldado: correr, reposo, salto, caída, aterrizaje, retroceso, fogonazo, casquillos, polvo y caída al morir. Las balas salen de la punta del arma y la sombra se proyecta sobre la plataforma de debajo.
+- Fondos con paralaje y ambiente animado en cada escenario, logotipo nuevo animado e icono nuevo.
 
-**Animacions i gràfics (versió 1.1)**
-- El soldat ara té animacions: córrer (6 fotogrames amb les cames en moviment), respiració en repòs, salt, caiguda, aixafament en aterrar, retrocés i flamarada del canó, beines que salten, pols als peus i caiguda en morir.
-- Les bales surten de la punta real de cada arma.
-- L'ombra del jugador es projecta sobre la plataforma de sota i es fa petita i transparent en saltar (abans es quedava enganxada als peus).
-- Fons amb paral·laxi i ambient animat a cada escenari: cendra i platets llunyans a la ciutat, pluja, guspires i resplendor de foc, espores lluminoses i fulles a la selva, reflectors a la fortalesa, interferències d'energia, neu i llamps al combat final.
-- Logotip nou animat (platet volant amb raig tractor sobre la Terra) a la pantalla de càrrega i al menú, i icona nova per a la pestanya del navegador.
+**Versión 1.0 (errores corregidos del juego original)**
+- El bucle principal no cedía el control (`await asyncio.sleep(0)`) y bloqueaba la pestaña del navegador.
+- Los eventos se leían dos veces por fotograma: se perdían clics y teclas.
+- El botón «Continuar» de la victoria reiniciaba el combate contra el jefe final.
+- La barra de vida del jefe del sector 2 se rellenaba a mitad de combate.
+- Los enemigos podían quedarse fuera de la pantalla, donde las balas no llegaban.
+- Se podía saltar en el aire después de caer de una plataforma.
+- La música se cargaba entera en memoria; ahora se reproduce en streaming (OGG).
+- Recursos optimizados de 46 MB a unos 10 MB y guardado automático del progreso.
 
-**Millores**
-- Funciona al navegador (pygbag / WebAssembly) i es publica sol a GitHub Pages amb GitHub Actions.
-- Assets optimitzats: de 46 MB a uns 10 MB (música en OGG amb volum normalitzat, efectes retallats).
-- El progrés (monedes, armes i nivells) es desa automàticament (localStorage al navegador, `partida.json` a l'escriptori).
-- Armes automàtiques (fusell i minigun en mantenir el clic), cadència per arma i dispersió.
-- Salt més precís: salt variable, marge per saltar just després de sortir d'una plataforma i baixar de plataformes.
-- Invulnerabilitat breu després de rebre un impacte, tremolor de pantalla i parpelleig dels enemics ferits.
-- Bales del jugador i dels enemics amb colors diferents; punt de mira.
-- Nous enemics: lloctinents (sector 1 i 2) i un comandant d'elit al sector 3, tal com explica la narrativa. Cada cap té un color i un patró d'atac propis.
-- Els enemics deixen ítems de vegades i els ítems apareixen segons el que necessites (vida o munició).
-- HUD nou: cors amb mitges vides, munició, monedes, enemics restants i barra de vida del cap amb el seu nom.
-- Pausa (també automàtica en canviar de finestra), so on/off, botiga amb estadístiques de cada arma, selector de nivells amb escenaris completats.
-- Tipografies pixel art incloses (Press Start 2P i VT323, llicència SIL OFL).
-
-## Executar-lo a l'ordinador
+## Ejecutarlo en el ordenador
 
 ```bash
 pip install -r requirements.txt
 python main.py
 ```
 
-Per provar la versió web en local:
+Para probar la versión web en local:
 
 ```bash
 pip install pygbag
 pygbag .
-# i obre http://localhost:8000
+# y abre http://localhost:8000
 ```
 
-## Publicació
+## Publicación
 
-GitHub Pages publica l'arrel de la branca `main` (**Settings → Pages → Deploy from a branch: main / root**). La versió web compilada són els fitxers `index.html`, `historygame.tar.gz` i `historygame.apk` de l'arrel.
+GitHub Pages publica la raíz de la rama `main` (**Settings → Pages → Deploy from a branch: main / root**). La versión web compilada son los archivos `index.html`, `historygame.tar.gz` y `historygame.apk` de la raíz.
 
-Quan es puja un canvi a `main.py`, `dades.py` o `assets/`, el workflow `.github/workflows/pages.yml` recompila el joc amb pygbag, actualitza aquests fitxers i torna a publicar la pàgina.
+Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.github/workflows/pages.yml` recompila el juego con pygbag, actualiza esos archivos y vuelve a publicar la página.
 
-## Eines
+## Herramientas
 
-- Python i Pygame (pygame-ce), amb asyncio per al bucle principal.
-- pygbag per executar-lo al navegador amb WebAssembly.
-- Assets propis (imatges, fons) i música i efectes lliures de drets.
-- L'art dels sectors 4 i 5, els caps finals nous, el caçador i les armes noves es generen amb `tools/generar_assets.py`.
-- Les dades del joc (armes, nivells, història, millores i passi) són a `dades.py`, per equilibrar-lo fàcilment.
+- Python y Pygame (pygame-ce), con asyncio para el bucle principal.
+- pygbag para ejecutarlo en el navegador con WebAssembly.
+- Gráficos originales de Nacho y Abel (soldado y enemigos), música y efectos libres de derechos.
+- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`.
+- Los datos del juego (armas, niveles, historia, mejoras y Battle Pass) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.
