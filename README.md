@@ -4,7 +4,7 @@
 
 **Juega en el navegador:** https://abelber07.github.io/historygame/
 
-Versión mejorada y adaptada a la web del juego original [`Joc_final`](https://github.com/abelber07/Joc_final), hecho por Nacho y Abel con Python y Pygame.
+Un juego de **Abel**, hecho con Python y Pygame. Es la versión mejorada y adaptada a la web de su juego original [`Joc_final`](https://github.com/abelber07/Joc_final).
 
 ## Historia
 
@@ -72,8 +72,8 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 | Pistola | 5 | 20 | 6 | 1 | Inicial | — |
 | Escopeta | 6 × 6 perdigones | 12 | 1,8 | 2 | 500 | 1-2 |
 | Fusil | 15 | 30 | 6,7 | 3 | 900 | 1-3 |
-| Minigun | 25 | ∞ | 10 | 4 | 1800 | 3-1 |
-| Cañón de plasma | 40 (atraviesa enemigos) | 24 | 3,8 | 5 | 3000 | 4-2 |
+| Minigun | 9 (se calienta) | ∞ | hasta 12 | 4 | 1800 | 3-1 |
+| Cañón de plasma | 45 (atraviesa enemigos y escudos) | 30 | 3,8 | 5 | 3000 | 4-2 |
 
 Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquean (por ejemplo, en las ruinas inestables del sector 1, en el laboratorio con gas inflamable de la selva o en el campo supresor de la colmena). Si el arma equipada no está permitida, el juego elige la mejor que sí lo está. El selector de niveles muestra la potencia máxima de cada escenario.
 
@@ -94,6 +94,11 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 3.2**
+- La primera vez que se abre el juego: selector de idioma con banderas, la intro, un **entrenamiento jugable** con los controles (moverse, saltar, bajar, voltereta, disparar, cambiar de arma y recoger objetos) y unas páginas que explican el Battle Pass, las mejoras, las armas, las estrellas y los logros. Todo se puede repetir desde la Guía («Tutorial» y «Cómo funciona»).
+- Minigun reequilibrada: 9 de daño (unos 110 por segundo en lugar de 250), no gasta munición pero **se calienta** y se bloquea si no sueltas el gatillo, tarda en arrancar y te frena mientras disparas. El cañón de plasma pasa a 45 de daño y 30 cargas: ahora sí es el arma más potente.
+- Créditos nuevos con desplazamiento animado y pantalla de carga: un juego de Abel.
 
 **Versión 3.1**
 - Sistema de logros (28, con secretos, placas escondidas y platino) y avisos de logro desbloqueado.
@@ -175,7 +180,7 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 
 - Python y Pygame (pygame-ce), con asyncio para el bucle principal.
 - pygbag para ejecutarlo en el navegador con WebAssembly.
-- Gráficos originales de Nacho y Abel (soldado y enemigos), música y efectos libres de derechos.
+- Gráficos originales del soldado y los enemigos de Abel; efectos de sonido y parte de la música libres de derechos.
 - Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, y las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy).
 - Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
 - Los datos del juego (armas, niveles, historia, mejoras y Battle Pass) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.

@@ -32,16 +32,21 @@ ARMES = [
      "cadencia": 9, "auto": True, "vel": 15, "dispersio": 2.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "fusell", "estil": "fusell",
      "desc": "Automático y preciso."},
-    {"id": "minigun", "nom": "Minigun", "dany": 25, "bales_max": None, "cost": 1800, "req": 6, "potencia": 4,
-     "cadencia": 6, "auto": True, "vel": 14, "dispersio": 5.0, "perdigons": 1, "obertura": 0,
+    # minigun: no gasta munición, pero se calienta (CALOR_DISPAR por tiro, se bloquea al llegar a 100),
+    # tarda ARRENCADA fotogramas en llegar a su cadencia máxima y frena al soldado mientras dispara
+    {"id": "minigun", "nom": "Minigun", "dany": 9, "bales_max": None, "cost": 1800, "req": 6, "potencia": 4,
+     "cadencia": 5, "auto": True, "vel": 14, "dispersio": 7.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "minigun", "estil": "minigun",
-     "desc": "Munición infinita. Arma pesada."},
-    {"id": "plasma", "nom": "Cañón de plasma", "dany": 40, "bales_max": 24, "cost": 3000, "req": 10, "potencia": 5,
+     "desc": "Sin munición, pero se calienta. Tarda en arrancar y pesa."},
+    {"id": "plasma", "nom": "Cañón de plasma", "dany": 45, "bales_max": 30, "cost": 3000, "req": 10, "potencia": 5,
      "cadencia": 16, "auto": True, "vel": 16, "dispersio": 0.5, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": True, "so": "plasma", "estil": "plasma",
      "desc": "Atraviesa a los enemigos. Tecnología Xylothian."},
 ]
 ARMA_PER_ID = {a["id"]: i for i, a in enumerate(ARMES)}
+CALOR_DISPAR = 2.4          # minigun: calor que suma cada tiro (100 = sobrecalentada)
+ARRENCADA = 30              # minigun: fotogramas que tarda en girar a tope
+FRE_MINIGUN = 0.65          # minigun: velocidad del soldado mientras dispara
 
 # Potencia máxima permitida en cada escenario y el motivo (si lo hay) que se muestra al jugador
 POTENCIA_MAX = {
@@ -460,4 +465,34 @@ PLAQUES = {
     (2, 0): (872, 108),      # muy arriba, a la derecha de la plataforma más alta
     (3, 1): (40, 462),       # entre los contenedores, sobre el suelo electrificado
     (4, 0): (760, 120),      # encima de una plataforma que se rompe
+}
+
+# Entrenamiento (tutorial de la primera partida): mismo fondo que el 1-1, sin enemigos al principio
+NIVELL_TUTORIAL = {"plataformes": [(300, 390, 220), (620, 290, 200)], "onades": [[]], "temps": 999}
+PASSOS_TUTORIAL = [
+    ("moure", "Muévete con A y D (o con las flechas)."),
+    ("saltar", "Salta con ESPACIO o W (mantén pulsado para saltar más alto) y sube a la plataforma."),
+    ("alt", "Ahora salta a la plataforma más alta."),
+    ("baixar", "Baja de la plataforma pulsando S (o la flecha abajo)."),
+    ("voltereta", "Haz dos volteretas con MAYÚS o clic derecho: mientras ruedas no te hacen daño."),
+    ("disparar", "Apunta con el ratón y dispara con clic izquierdo. Destruye los tres blancos."),
+    ("arma", "Cambia al fusil con la tecla 3 (o con Q o la rueda del ratón) y dispara."),
+    ("items", "Recoge el corazón (vida) y la caja (munición)."),
+    ("fi", "¡Entrenamiento completado! Con P o ESC puedes pausar cuando quieras."),
+]
+# Detalle de cada mejora para la pantalla "Cómo funciona"
+DETALL_MILLORES = {
+    "blindatge": "+20 de vida máxima por nivel (hasta 160).",
+    "potencia": "+15% de daño con todas las armas por nivel.",
+    "carregadors": "+30% de munición máxima por nivel (la minigun no gasta munición).",
+    "iman": "Atrae desde lejos la vida y la munición que te falten.",
+    "reflexos": "Corres un 6% más rápido y eres invulnerable más rato tras un golpe.",
+    "doble_salt": "Un segundo salto en el aire. Imprescindible para algún secreto...",
+}
+DETALL_ARMES = {
+    "pistola": "Fiable y precisa. La única que se puede usar en todas partes.",
+    "escopeta": "Seis perdigones: devastadora de cerca, floja de lejos.",
+    "fusell": "Automático y preciso: el arma de todo el juego.",
+    "minigun": "No gasta munición, pero se calienta: suelta el gatillo antes de que se bloquee.",
+    "plasma": "La más potente: atraviesa a los enemigos y también los escudos.",
 }
