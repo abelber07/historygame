@@ -436,15 +436,42 @@ def recolorar_soldat(img, colors_uniforme, tint_arma):
     return s
 
 
-def sprites_jugador(arma_id, uniforme="classic", aparenca="estandard"):
+ACER = {"f": (58, 66, 88), "m": (112, 124, 150), "l": (182, 194, 216)}
+# plaques de blindatge (millora «Blindaje») per nivell: (fila, x_inici, x_final, to) sobre el sprite retallat
+PLAQUES_BLINDATGE = {
+    1: [(11, 1, 4, "f"), (12, 0, 4, "l"), (13, 0, 4, "m"), (14, 0, 3, "f")],              # musclera
+    2: [(12, 5, 10, "l"), (13, 5, 10, "m"), (14, 5, 10, "m"), (15, 5, 10, "m"), (16, 5, 10, "f")],   # pitet
+    3: [(0, 1, 11, "l"), (1, 1, 11, "m"), (22, 2, 4, "m"), (22, 8, 10, "m")],              # casc i genolleres
+}
+
+
+def blindar(img, nivell):
+    """Pinta plaques d'acer sobre el soldat segons el nivell de blindatge (només on hi ha píxels)."""
+    if not nivell:
+        return img
+    s = img.copy()
+    w, h = s.get_size()
+    for n in range(1, min(3, nivell) + 1):
+        for y, x0, x1, to in PLAQUES_BLINDATGE[n]:
+            for x in range(x0, x1 + 1):
+                if 0 <= x < w and 0 <= y < h:
+                    c = s.get_at((x, y))
+                    pell = c.r > 200 and c.g > 140 and c.b > 100           # cara i mans: no es tapen
+                    if c.a and not pell and c.r + c.g + c.b > 90:
+                        s.set_at((x, y), ACER[to])
+    return s
+
+
+def sprites_jugador(arma_id, uniforme="classic", aparenca="estandard", blindatge=0):
     """Fotogrames del soldat amb l'arma i l'aparença triades (es generen un cop i es guarden)."""
-    clau = (arma_id, uniforme, aparenca)
+    clau = (arma_id, uniforme, aparenca, blindatge)
     spr = SPR_JUGADOR_CACHE.get(clau)
     if spr is None:
         base = BASE_JUGADOR.get(arma_id) or BASE_JUGADOR.get("pistola")
         if base is None:
             return None
-        img = recolorar_soldat(base, UNIFORMES[uniforme]["colors"], APARENCES_ARMA[aparenca]["tint"])
+        img = blindar(recolorar_soldat(base, UNIFORMES[uniforme]["colors"], APARENCES_ARMA[aparenca]["tint"]),
+                      blindatge)
         spr = SPR_JUGADOR_CACHE[clau] = SpritesJugador(img, CAMES_JUGADOR.get(arma_id, CAMES_JUGADOR["pistola"]))
     return spr
 
@@ -543,7 +570,7 @@ class Audio:
         "click": 0.6, "pistola": 0.55, "fusell": 0.5, "minigun": 0.35, "enemic": 0.45,
         "boss": 0.5, "impacte": 0.45, "eliminat": 0.8, "item": 0.6, "moneda": 0.5,
         "buit": 0.7, "ferit": 0.7, "escopeta": 0.6, "plasma": 0.5, "envestida": 0.5, "explosio": 0.8,
-        "passi": 0.6,
+        "passi": 0.6, "latido": 0.75, "ting": 0.45, "marca": 0.3,
     }
     def __init__(self, vol_musica=0.3, vol_efectes=0.8):
         self.sons = {}
@@ -727,14 +754,19 @@ def aclarir(color, q=40):
     return tuple(min(255, c + q) for c in color[:3])
 
 
-def dibuixar_cor(surf, x, y, mida, fraccio):
-    """Dibuixa un cor (fraccio 1 = ple, 0.5 = mig, 0 = buit)."""
+def dibuixar_cor(surf, x, y, mida, fraccio, perduda=0.0):
+    """Dibuixa un cor (fraccio 1 = ple, 0.5 = mig, 0 = buit). `perduda`: vida que s'acaba de perdre (en blanc)."""
     r = mida // 4
     def forma(color, gruix=0):
         pygame.draw.circle(surf, color, (x + r, y + r), r, gruix)
         pygame.draw.circle(surf, color, (x + 3 * r, y + r), r, gruix)
         pygame.draw.polygon(surf, color, [(x, y + r + 1), (x + mida, y + r + 1), (x + mida // 2, y + mida)], gruix)
     forma(GRIS_FOSC)
+    if perduda > fraccio:
+        clip = surf.get_clip()
+        surf.set_clip(pygame.Rect(x, y, int(mida * perduda), mida + 1).clip(clip) if clip else None)
+        forma((255, 236, 236))
+        surf.set_clip(clip)
     if fraccio > 0:
         clip = surf.get_clip()
         surf.set_clip(pygame.Rect(x, y, int(mida * fraccio), mida + 1))
@@ -793,7 +825,7 @@ class Anell:
 class TextFlotant:
     def __init__(self, x, y, txt, color, font=F_HUD):
         self.x, self.y, self.t, self.vida = x, y, 0, 50
-        self.img = render(T(txt), font, color).copy()
+        self.img = text_contorn(T(txt), font, color)
 
     def actualitzar(self):
         self.y -= 0.8
@@ -801,8 +833,13 @@ class TextFlotant:
         return self.t >= self.vida
 
     def dibuixar(self, surf):
-        self.img.set_alpha(int(255 * min(1.0, 2 * (1 - self.t / self.vida))))
-        surf.blit(self.img, self.img.get_rect(center=(int(self.x), int(self.y))))
+        img = self.img
+        if self.t < 6:                                   # «pop» en aparèixer
+            k = 1.45 - 0.075 * self.t
+            img = pygame.transform.scale(img, (int(img.get_width() * k), int(img.get_height() * k)))
+        else:
+            img.set_alpha(int(255 * min(1.0, 2 * (1 - self.t / self.vida))))
+        surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
 
 
 def esclat(efectes, x, y, n, colors, vel=(2, 6), mida=(3, 6), vida=(15, 35), gravetat=0.0):
@@ -811,6 +848,266 @@ def esclat(efectes, x, y, n, colors, vel=(2, 6), mida=(3, 6), vida=(15, 35), gra
         v = random.uniform(*vel)
         efectes.append(Particula(x, y, math.cos(a) * v, math.sin(a) * v, random.choice(colors),
                                  random.randint(*vida), random.uniform(*mida), gravetat))
+
+
+def espurnes(efectes, x, y, angle, n, colors, obertura=0.9, vel=(2, 5), vida=(7, 14)):
+    """Espurnes dirigides (p. ex. cap enrere des d'on ha impactat una bala)."""
+    for _ in range(n):
+        a = angle + random.uniform(-obertura, obertura)
+        v = random.uniform(*vel)
+        efectes.append(Particula(x, y, math.cos(a) * v, math.sin(a) * v, random.choice(colors),
+                                 random.randint(*vida), random.uniform(1.5, 2.8), 0.15))
+
+
+class Beina:
+    """Beina expulsada per l'arma: gira, rebota un parell de cops a terra i s'esvaeix."""
+    __slots__ = ("x", "y", "vx", "vy", "rot", "vrot", "color", "punta", "llarg", "t", "terra", "bots")
+
+    def __init__(self, x, y, vx, vy, terra, color=(230, 190, 70), punta=(150, 110, 40), llarg=2.5):
+        self.x, self.y, self.vx, self.vy, self.terra = x, y, vx, vy, terra
+        self.rot = random.uniform(0, math.tau)
+        self.vrot = random.uniform(0.25, 0.5) * (1 if vx > 0 else -1)
+        self.color, self.punta, self.llarg = color, punta, llarg
+        self.t = 0
+        self.bots = 0
+
+    def actualitzar(self):
+        self.t += 1
+        self.vy = min(self.vy + 0.35, 9)
+        self.x += self.vx
+        self.y += self.vy
+        self.rot += self.vrot
+        if self.y >= self.terra - 2 and self.vy > 0:
+            self.y = self.terra - 2
+            if self.bots < 2 and self.vy > 1.5:
+                self.vy *= -0.42
+                self.vx *= 0.6
+                self.vrot *= 0.6
+                self.bots += 1
+            else:
+                self.vy, self.vrot = 0.0, 0.0
+                self.vx *= 0.75
+                self.rot = 0.0
+        return self.t >= 75
+
+    def dibuixar(self, surf):
+        if self.t > 58 and self.t % 4 < 2:
+            return
+        dx, dy = math.cos(self.rot) * self.llarg, math.sin(self.rot) * self.llarg
+        a, b = (self.x - dx, self.y - dy), (self.x + dx, self.y + dy)
+        pygame.draw.line(surf, self.color, a, b, 2)
+        pygame.draw.line(surf, self.punta, b, (self.x + dx * 1.3, self.y + dy * 1.3), 2)
+
+
+class NumDany:
+    """Número de dany que surt d'un enemic. Els cops seguits al mateix enemic se sumen."""
+
+    def __init__(self, x, y, valor):
+        self.x, self.y, self.valor, self.t, self.vida = x, y, valor, 0, 42
+        self.desv = random.uniform(-0.5, 0.5)
+        self.img = None
+        self._preparar()
+
+    def sumar(self, valor, x, y):
+        self.valor += valor
+        self.x, self.y = x, y
+        self.t = min(self.t, 4)
+        self._preparar()
+
+    def _preparar(self):
+        gran = self.valor >= 40
+        self.img = text_contorn(str(self.valor), F_HUD if gran else F_MINI, (255, 230, 90) if gran else BLANC)
+
+    def actualitzar(self):
+        self.t += 1
+        self.y -= 1.4 * max(0.0, 1 - self.t / 24)
+        self.x += self.desv
+        return self.t >= self.vida
+
+    def dibuixar(self, surf):
+        img = self.img
+        if self.t < 5:                                   # «pop» en aparèixer
+            k = 1.5 - 0.1 * self.t
+            img = pygame.transform.scale(img, (int(img.get_width() * k), int(img.get_height() * k)))
+        elif self.t > self.vida - 12:
+            img.set_alpha(int(255 * (self.vida - self.t) / 12))
+        surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
+
+
+def text_contorn(txt, font, color, vora=NEGRE):
+    """Text amb contorn negre d'1 píxel (llegible sobre qualsevol fons)."""
+    base = render(txt, font, vora)
+    davant = render(txt, font, color)
+    s = pygame.Surface((base.get_width() + 2, base.get_height() + 2), pygame.SRCALPHA)
+    for dx, dy in ((0, 1), (2, 1), (1, 0), (1, 2), (0, 0), (2, 2), (0, 2), (2, 0)):
+        s.blit(base, (dx, dy))
+    s.blit(davant, (1, 1))
+    return s
+
+
+# ---------------------------------------------------------------------------
+# HUD: icones pixel art (armes i millores) i panells
+# ---------------------------------------------------------------------------
+PALETA_ICONA = {"k": (14, 14, 22), "d": (70, 74, 92), "m": (132, 138, 158), "l": (214, 220, 234),
+                "w": (120, 74, 40), "W": (166, 108, 60), "g": (54, 44, 40), "r": (214, 52, 52),
+                "R": (255, 120, 110), "o": (255, 150, 40), "y": (255, 214, 64), "c": (90, 230, 255)}
+DIBUIX_ARMES = {
+    "pistola": [
+        "..kkkkkkkkkkkkkk",
+        ".kllllllllllllak",
+        ".kmmmmmmmmmmmmmk",
+        ".kddddddddkkkkk.",
+        ".kdggkkdk.......",
+        "..kggk.kk.......",
+        "..kggkkk........",
+        ".kgggk..........",
+        ".kgggk..........",
+        ".kkkkk..........",
+    ],
+    "escopeta": [
+        "........................kk",
+        "kkkk.....kkkkkkkkkkkkkkkkk",
+        "kWWWkkkkkmmmmmmmmmmmmmmmlk",
+        "kwwwwwwwkddddddddddddddddk",
+        "kwwwwwwwkkkkkWWWWWWWWkkkk.",
+        ".kwwwkkgkk..kwwwwwwwwk....",
+        "..kwwk.kk...kkkkkkkkkk....",
+        "...kkk....................",
+    ],
+    "fusell": [
+        "...........kkkkkk.........",
+        "..........kdaaaadk........",
+        "kkkkk.....kkkkkkkk........",
+        "kWWWWkkkkkmmmmmmmmmmmmmmlk",
+        "kwwwwwwwwkddddddddddkkkkk.",
+        "kwwwwkkkkkdkkkkkkkkk......",
+        "kkkkk..kgk.kdk............",
+        ".......kgk..kdk...........",
+        ".......kkk...kkk..........",
+    ],
+    "minigun": [
+        "..kkkkkk..................",
+        ".kddddddkkkkkkkkkkkkkkkkk.",
+        "kdmmmmmdkmmmmmmmmmmmmmmllk",
+        "kdddddddkkkkkkkkkkkkkkkkk.",
+        "kdmmmmmdkmmmmmmmmmmmmmmllk",
+        "kdddddddkkkkkkkkkkkkkkkkk.",
+        "kdmmmmmdkmmmmmmmmmmmmmmllk",
+        ".kddaaddkkkkkkkkkkkkkkkkk.",
+        "..kkkgk...................",
+        "....kgk...................",
+        "....kkk...................",
+    ],
+    "plasma": [
+        "......kkkkkkkkkk..........",
+        "....kkmmmmmmmmmmkkkk......",
+        "..kkddaaaaaaaaaaddmmkkkk..",
+        "kkdddalllllllllladdmmmmlk.",
+        "kddddaaaaaaaaaaaaddmmmmlk.",
+        ".kkddddddddddddddddkkkk...",
+        "...kkgkk.kkkkkkk..........",
+        "....kgk...................",
+        "....kkk...................",
+    ],
+}
+COLOR_ARMA = {"pistola": GROC, "escopeta": (255, 190, 90), "fusell": CIAN, "minigun": TARONJA,
+              "plasma": (120, 240, 255)}
+DIBUIX_MILLORES = {
+    "blindatge": ((110, 170, 255), [
+        "kkkkkkkkk", "kllllllmk", "klmmmmmdk", "klmmmmmdk", "klmmmmmdk",
+        ".kmmmmmk.", ".kdmmmdk.", "..kdddk..", "...kkk..."]),
+    "potencia": (GROC, [
+        "....kkkk.", "...kllk..", "..kllk...", ".kllkkkk.", "kllllllk.",
+        "kkkkmlk..", "...kmk...", "..kmk....", "..kk....."]),
+    "carregadors": ((230, 190, 70), [
+        ".k.k.k...", "klklklk..", "kmkmkmk..", "kkkkkkkk.", "kdddddddk",
+        "kdlllddk.", "kdddddk..", "kdddddk..", "kkkkkkk.."]),
+    "iman": ((214, 52, 52), [
+        "kkk...kkk", "klk...klk", "kmk...kmk", "kmk...kmk", "kmmk.kmmk",
+        "kmmmkmmmk", ".kmmmmmk.", "..kkkkk..", "........."]),
+    "reflexos": (CIAN, [
+        "kk..kk...", "klk.klk..", ".klk.klk.", "..klk.klk", "..klk.klk",
+        ".klk.klk.", "klk.klk..", "kk..kk...", "........."]),
+    "doble_salt": ((170, 176, 196), [
+        "..kkkk...", "..kmmk...", "..kmmk...", "..kmmkkk.", ".kmmmmmmk",
+        ".kkkkkkkk", "..kokok..", "...kok...", "....k...."]),
+}
+
+
+def pixmap(files, paleta, escala=1):
+    w, h = max(len(f) for f in files), len(files)
+    s = pygame.Surface((w, h), pygame.SRCALPHA)
+    for y, f in enumerate(files):
+        for x, ch in enumerate(f):
+            if ch in paleta:
+                s.set_at((x, y), paleta[ch])
+    return pygame.transform.scale(s, (w * escala, h * escala)) if escala != 1 else s
+
+
+def apagar(img, alfa=110, gris=True):
+    """Còpia apagada d'una icona (arma bloquejada, millora gastada)."""
+    s = img.copy()
+    if gris:
+        s.fill((90, 90, 110, 255), special_flags=pygame.BLEND_RGBA_MULT)
+    s.set_alpha(alfa)
+    return s
+
+
+def crear_icones():
+    armes, millores = {}, {}
+    for ident, files in DIBUIX_ARMES.items():
+        paleta = dict(PALETA_ICONA, a=COLOR_ARMA[ident])
+        armes[ident] = {1: pixmap(files, paleta, 1), 2: pixmap(files, paleta, 2)}
+        armes[ident]["off"] = apagar(armes[ident][1], 150)
+        armes[ident]["blanc"] = silueta_blanca(armes[ident][2])
+    for ident, (color, files) in DIBUIX_MILLORES.items():
+        paleta = dict(PALETA_ICONA, m=color, l=aclarir(color, 80), d=tuple(c * 6 // 10 for c in color))
+        img = pixmap(files, paleta, 2)
+        millores[ident] = {"on": img, "off": apagar(img, 120)}
+    return armes, millores
+
+
+_CACHE_PANELL = {}
+
+
+def panell_hud(surf, rect, vora=(90, 120, 190), alfa=165):
+    """Panell semitransparent amb vora pixelada i cantonades marcades (es guarda per mida)."""
+    r = pygame.Rect(rect)
+    clau = (r.w, r.h, vora, alfa)
+    s = _CACHE_PANELL.get(clau)
+    if s is None:
+        s = pygame.Surface(r.size, pygame.SRCALPHA)
+        s.fill((8, 10, 24, alfa))
+        fosc = tuple(c // 2 for c in vora)
+        pygame.draw.rect(s, (*fosc, 230), s.get_rect(), 1)
+        for cx, cy, sx, sy in ((0, 0, 1, 1), (r.w - 1, 0, -1, 1), (0, r.h - 1, 1, -1), (r.w - 1, r.h - 1, -1, -1)):
+            pygame.draw.line(s, (*vora, 255), (cx, cy), (cx + sx * 5, cy), 1)
+            pygame.draw.line(s, (*vora, 255), (cx, cy), (cx, cy + sy * 5), 1)
+        s.fill((0, 0, 0, 0), (0, 0, 1, 1))
+        _CACHE_PANELL[clau] = s
+    surf.blit(s, r)
+    return r
+
+
+def dibuixar_cadenat(surf, cx, cy, color=(230, 90, 90)):
+    pygame.draw.rect(surf, NEGRE, (cx - 5, cy - 2, 11, 9), border_radius=1)
+    pygame.draw.rect(surf, color, (cx - 4, cy - 1, 9, 7), border_radius=1)
+    pygame.draw.arc(surf, NEGRE, (cx - 4, cy - 8, 9, 10), 0, math.pi, 3)
+    pygame.draw.arc(surf, color, (cx - 3, cy - 7, 7, 8), 0, math.pi, 1)
+    pygame.draw.rect(surf, NEGRE, (cx, cy + 1, 1, 3))
+
+
+def fogonazo(surf, x, y, a, llarg, ample, color, nucli=BLANC):
+    """Flamarada del canó orientada cap on apunta l'arma."""
+    ux, uy = math.cos(a), math.sin(a)
+    px, py = -uy, ux
+    punts = [(x + ux * llarg, y + uy * llarg), (x + ux * llarg * 0.35 + px * ample, y + uy * llarg * 0.35 + py * ample),
+             (x - ux * 2, y - uy * 2), (x + ux * llarg * 0.35 - px * ample, y + uy * llarg * 0.35 - py * ample)]
+    pygame.draw.polygon(surf, color, punts)
+    pygame.draw.circle(surf, nucli, (int(x + ux * llarg * 0.25), int(y + uy * llarg * 0.25)), max(1, int(ample * 0.6)))
+
+
+ICONES_ARMA, ICONES_MILLORA = crear_icones()
 
 
 class FonsAnimat:
@@ -1552,6 +1849,8 @@ class Jugador:
         self.empenta = 0.0       # retrocés de les armes pesades
         self.factor_vel = 1.0    # la minigun alenteix el soldat mentre dispara
         self.fantasmes = []      # estela de la voltereta
+        self.reflexos = vel_mult > 1.0      # millora «Reflejos»: estela en córrer
+        self.flash_arma, self.angle_tret, self.flash_max = "pistola", 0.0, 3
 
     @property
     def rect(self):
@@ -1572,9 +1871,12 @@ class Jugador:
     def intocable(self):
         return self.invulnerable > 0 or self.esquiva > 0
 
-    def disparat(self, empenta=0.0):
+    def disparat(self, empenta=0.0, arma="pistola", angle=None):
         self.retroces = 4 + (2 if empenta > 1 else 0)
-        self.flash_cano = 3
+        self.flash_max = 5 if arma in ("escopeta", "plasma") else 3
+        self.flash_cano = self.flash_max
+        self.flash_arma = arma
+        self.angle_tret = angle if angle is not None else (0.0 if self.direccio > 0 else math.pi)
         self.empenta -= self.direccio * empenta
 
     def esquivar(self, sentit):
@@ -1743,16 +2045,42 @@ class Jugador:
             surf.blit(ferit, pos)
         else:
             surf.blit(img, pos)
+        if self.salts_extra and not self.terra and self.salts_restants > 0:     # propulsors a punt
+            for s in (-5, 5):
+                fx, fy = self.x + self.W / 2 + s, self.y + self.H + 1
+                llarg = 4 + (self.temps % 3)
+                pygame.draw.polygon(surf, (120, 220, 255), [(fx - 2, fy), (fx + 2, fy), (fx, fy + llarg)])
+                pygame.draw.line(surf, BLANC, (fx, fy), (fx, fy + llarg // 2))
+        if self.reflexos and self.terra and abs(self.vx) > 3.5 and self.temps % 4 == 0:     # estela dels reflexos
+            fantasma = silueta_blanca(img)
+            fantasma.fill((90, 200, 255, 120), special_flags=pygame.BLEND_RGBA_MULT)
+            self.fantasmes.append((fantasma, (pos[0] + img.get_width() // 2, pos[1] + img.get_height() // 2), 4))
         if self.flash_cano:
-            tx, ty = self.canons(spr)
-            r = 4 + self.flash_cano * 2
-            punts = []
-            for i in range(8):
-                a = i * math.tau / 8 + self.temps
-                rr = r if i % 2 == 0 else r * 0.45
-                punts.append((tx + self.direccio * r * 0.6 + math.cos(a) * rr, ty + math.sin(a) * rr))
-            pygame.draw.polygon(surf, (255, 200, 60), punts)
-            pygame.draw.circle(surf, BLANC, (int(tx + self.direccio * r * 0.6), int(ty)), max(2, r // 3))
+            self.dibuixar_fogonazo(surf, *self.canons(spr))
+
+    def dibuixar_fogonazo(self, surf, tx, ty):
+        k = self.flash_cano / self.flash_max
+        a = self.angle_tret
+        arma = self.flash_arma
+        if arma == "escopeta":
+            l = llum(18, (255, 160, 60))
+            surf.blit(l, l.get_rect(center=(int(tx + math.cos(a) * 8), int(ty + math.sin(a) * 8))))
+            for d in (-0.38, 0.0, 0.38):
+                fogonazo(surf, tx, ty, a + d, 18 * k + 4, 4 * k + 1, (255, 170, 60) if d else (255, 220, 120))
+        elif arma == "fusell":
+            fogonazo(surf, tx, ty, a, 24 * k + 4, 3, (170, 240, 255))
+            fogonazo(surf, tx + math.cos(a) * 6, ty + math.sin(a) * 6, a + math.pi / 2, 6 * k + 2, 1.5, BLANC)
+            fogonazo(surf, tx + math.cos(a) * 6, ty + math.sin(a) * 6, a - math.pi / 2, 6 * k + 2, 1.5, BLANC)
+        elif arma == "minigun":
+            fogonazo(surf, tx, ty, a + random.uniform(-0.15, 0.15), random.uniform(10, 18), random.uniform(3, 5),
+                     (255, 170, 50))
+        elif arma == "plasma":
+            l = llum(16, (120, 240, 255))
+            surf.blit(l, l.get_rect(center=(int(tx), int(ty))))
+            pygame.draw.circle(surf, (170, 250, 255), (int(tx), int(ty)), int(5 + (1 - k) * 10), 2)
+            pygame.draw.circle(surf, BLANC, (int(tx), int(ty)), max(2, int(5 * k)))
+        else:
+            fogonazo(surf, tx, ty, a, 12 * k + 3, 4 * k + 1, (255, 210, 70))
 
     def dibuixar_mort(self, surf, spr):
         """El soldat cau d'esquena i s'esvaeix."""
@@ -1780,15 +2108,18 @@ class Bala:
         "nucli": (6, (230, 90, 255)),
     }
 
-    __slots__ = ("x", "y", "vx", "vy", "dany", "radi", "color", "vida", "perfora", "tocats")
+    __slots__ = ("x", "y", "vx", "vy", "dany", "radi", "color", "vida", "perfora", "tocats", "estil", "t", "k")
 
-    def __init__(self, x, y, vx, vy, dany, estil, color=None, vida=None, perfora=False):
+    def __init__(self, x, y, vx, vy, dany, estil, color=None, vida=None, perfora=False, k=0):
         self.x, self.y, self.vx, self.vy, self.dany = x, y, vx, vy, dany
         self.radi, c = self.ESTILS[estil]
         self.color = color or c
         self.vida = vida
         self.perfora = perfora
         self.tocats = set() if perfora else None
+        self.estil = estil
+        self.t = 0
+        self.k = k                 # número de tret (la minigun fa un traçador més brillant cada tres)
 
     @property
     def rect(self):
@@ -1797,6 +2128,7 @@ class Bala:
     def actualitzar(self):
         self.x += self.vx
         self.y += self.vy
+        self.t += 1
         if self.vida is not None:
             self.vida -= 1
             if self.vida <= 0:
@@ -1804,15 +2136,76 @@ class Bala:
         return self.x < -20 or self.x > WIDTH + 20 or self.y < -20 or self.y > HEIGHT + 20
 
     def dibuixar(self, surf):
-        cua = (self.x - self.vx * 1.6, self.y - self.vy * 1.6)
-        fosc = tuple(c // 2 for c in self.color)
-        if self.perfora:
-            l = llum(self.radi * 3, self.color[:3])
-            surf.blit(l, (int(self.x) - self.radi * 3, int(self.y) - self.radi * 3))
-        pygame.draw.line(surf, fosc, cua, (self.x, self.y), self.radi * 2)
-        pygame.draw.circle(surf, NEGRE, (int(self.x), int(self.y)), self.radi + 1)
-        pygame.draw.circle(surf, self.color, (int(self.x), int(self.y)), self.radi)
-        pygame.draw.circle(surf, BLANC, (int(self.x), int(self.y)), max(1, self.radi // 2))
+        x, y, c, e = self.x, self.y, self.color, self.estil
+        v = math.hypot(self.vx, self.vy) or 1.0
+        ux, uy = self.vx / v, self.vy / v
+        ix, iy = int(x), int(y)
+        fosc = tuple(q // 2 for q in c[:3])
+        if e in ("pistola", "fusell", "minigun"):              # traçadors
+            if e == "pistola":
+                llarg, gruix = 12, 4
+            elif e == "fusell":
+                llarg, gruix = 26, 3
+            else:
+                brillant = self.k % 3 == 0
+                llarg, gruix = (22, 3) if brillant else (13, 2)
+                if brillant:
+                    c = aclarir(c, 70)
+            cua = (x - ux * llarg, y - uy * llarg)
+            pygame.draw.line(surf, fosc, cua, (x, y), gruix + 2)
+            pygame.draw.line(surf, c, (x - ux * llarg * 0.7, y - uy * llarg * 0.7), (x, y), gruix)
+            pygame.draw.line(surf, BLANC, (x - ux * llarg * 0.35, y - uy * llarg * 0.35), (x, y), 1)
+            pygame.draw.circle(surf, BLANC, (ix, iy), 2 if e == "pistola" else 1)
+        elif e == "escopeta":                                  # perdigons que s'apaguen
+            k = min(1.0, (self.vida or 30) / 12)
+            pygame.draw.line(surf, fosc, (x - self.vx * 0.9, y - self.vy * 0.9), (x, y), 2)
+            pygame.draw.circle(surf, c, (ix, iy), max(1, round(3 * k)))
+            if k > 0.5:
+                pygame.draw.circle(surf, BLANC, (ix, iy), 1)
+        elif e == "plasma":                                    # bola que batega amb llampecs
+            pols = 1 + 0.18 * math.sin(self.t * 0.6)
+            l = llum(20, c[:3])
+            surf.blit(l, (ix - 20, iy - 20))
+            pygame.draw.line(surf, fosc, (x - ux * 16, y - uy * 16), (x, y), 6)
+            pygame.draw.circle(surf, c, (ix, iy), int(7 * pols))
+            pygame.draw.circle(surf, BLANC, (ix, iy), int(4 * pols))
+            for _ in range(2):
+                a = random.uniform(0, math.tau)
+                punts = [(x, y)]
+                for r in (5, 8, 12):
+                    a += random.uniform(-0.5, 0.5)
+                    punts.append((x + math.cos(a) * r, y + math.sin(a) * r))
+                pygame.draw.lines(surf, (200, 250, 255), False, punts, 1)
+        else:                                                  # bales enemigues: vora fosca i pols
+            r = self.radi
+            pols = (self.t // 4) % 2
+            l = llum(r + 6, c[:3])
+            surf.blit(l, (ix - r - 6, iy - r - 6))
+            pygame.draw.line(surf, fosc, (x - ux * r * 2.2, y - uy * r * 2.2), (x, y), r)
+            if e == "boss":                                    # rombe que gira
+                a = self.t * 0.25
+                punts = [(x + math.cos(a + i * math.pi / 2) * (r + 2), y + math.sin(a + i * math.pi / 2) * (r + 2))
+                         for i in range(4)]
+                pygame.draw.polygon(surf, NEGRE, [(px + (px - x) * 0.25, py + (py - y) * 0.25) for px, py in punts])
+                pygame.draw.polygon(surf, c, punts)
+                pygame.draw.circle(surf, BLANC, (ix, iy), 2)
+            elif e == "final":                                 # anell buit
+                pygame.draw.circle(surf, NEGRE, (ix, iy), r + 2)
+                pygame.draw.circle(surf, c, (ix, iy), r + 1, 3)
+                pygame.draw.circle(surf, BLANC if pols else aclarir(c, 60), (ix, iy), 2)
+            elif e == "nucli":                                 # estrella de quatre puntes
+                a = -self.t * 0.2
+                punts = []
+                for i in range(8):
+                    rr = (r + 3) if i % 2 == 0 else r * 0.45
+                    punts.append((x + math.cos(a + i * math.pi / 4) * rr, y + math.sin(a + i * math.pi / 4) * rr))
+                pygame.draw.polygon(surf, NEGRE, punts, 3)
+                pygame.draw.polygon(surf, c, punts)
+                pygame.draw.circle(surf, BLANC, (ix, iy), 2)
+            else:
+                pygame.draw.circle(surf, NEGRE, (ix, iy), r + 2)
+                pygame.draw.circle(surf, c, (ix, iy), r)
+                pygame.draw.circle(surf, (255, 210, 210) if pols else BLANC, (ix, iy), max(1, r // 2))
 
 
 def ventall(cx, cy, angle, n, obertura, vel, dany, estil):
@@ -3637,6 +4030,7 @@ class Game:
             if isinstance(recs, list) else []
         opcions = d.get("opcions") if isinstance(d.get("opcions"), dict) else {}
         self.nivell_dificultat = opcions.get("dificultat") if opcions.get("dificultat") in DIFICULTATS else "normal"
+        self.numeros_dany = bool(opcions.get("numeros", True))
         self.arena = 0
         self.nivell_enemics = 0
         self.logros = {x for x in d.get("logros", []) if isinstance(x, str)} if isinstance(d.get("logros"), list) else set()
@@ -3670,7 +4064,7 @@ class Game:
             "plaques": sorted(self.plaques),
             "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
                         "completa": PANTALLA.completa, "suau": PANTALLA.suau,
-                        "dificultat": self.nivell_dificultat, "idioma": idioma()},
+                        "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany},
         })
 
     def esborrar_progres(self):
@@ -3730,7 +4124,8 @@ class Game:
         return [i for i, a in enumerate(ARMES) if a["id"] in self.armes_propies and a["potencia"] <= pm]
 
     def spr_jugador(self, i=None):
-        return sprites_jugador(ARMES[self.arma_actual if i is None else i]["id"], self.uniforme, self.aparenca)
+        return sprites_jugador(ARMES[self.arma_actual if i is None else i]["id"], self.uniforme, self.aparenca,
+                               self.nivell_millora("blindatge"))
 
     def nivell_passi(self):
         return min(len(PASSI), self.xp // XP_PER_NIVELL)
@@ -4050,9 +4445,17 @@ class Game:
         for k, (ident, nom) in enumerate(IDIOMES.items()):
             b.append(Boto((400 + k * 110, 352, 100, 40), nom, lambda i=ident: self.posar_idioma(i),
                           VERD if idioma() == ident else BLAU, font=F_HUD))
+        for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
+            b.append(Boto((450 + k * 110, 406, 100, 34), nom, lambda v=valor: self.posar_numeros(v),
+                          VERD if self.numeros_dany == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
         self.botons = b
         self.canviar_estat("opcions")
+
+    def posar_numeros(self, valor):
+        self.numeros_dany = valor
+        self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
 
     def posar_pantalla(self, completa):
         if PANTALLA.completa != completa:
@@ -4071,7 +4474,7 @@ class Game:
         self.fons_menu.dibuixar(surf)
         text(surf, T("OPCIONES"), F_SUBTITOL, BLANC, (WIDTH // 2, 46))
         files = [("Música", 112), ("Efectos", 164), ("Pantalla", 216), ("Escalado", 268), ("Dificultad", 320),
-                 ("Idioma", 372)]
+                 ("Idioma", 372), ("Números de daño", 423)]
         for nom, y in files:
             text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft")
         for l in self.lliscadors:
@@ -4082,8 +4485,8 @@ class Game:
             detall = T("escala x{n}, píxel perfecto").format(n=int(PANTALLA.escala))
         else:
             detall = T("suavizado") if PANTALLA.suau else T("píxeles nítidos")
-        text(surf, T("Resolución actual: {w}x{h} ({d})").format(w=w, h=h, d=detall), F_TEXT_P, GRIS, (WIDTH // 2, 418))
-        text(surf, T("La dificultad se aplica al empezar el siguiente escenario."), F_TEXT_PP, GRIS, (WIDTH // 2, 444))
+        text(surf, T("Resolución actual: {w}x{h} ({d})").format(w=w, h=h, d=detall), F_TEXT_P, GRIS, (WIDTH // 2, 458))
+        text(surf, T("La dificultad se aplica al empezar el siguiente escenario."), F_TEXT_PP, GRIS, (WIDTH // 2, 479))
         text(surf, T("F11: pantalla completa  ·  M: silenciar"), F_TEXT_PP, GRIS, (WIDTH // 2 + 80, 499))
 
     def reprendre(self):
@@ -4109,6 +4512,7 @@ class Game:
         self.ultima_aturada = 0
         self.onades, self.onada, self.espera_onada = [], 0, 0
         self.cap = None
+        self.reiniciar_hud()
 
     def iniciar_joc(self):
         if self.mode == "supervivencia":
@@ -4178,6 +4582,7 @@ class Game:
         self.monedes_nivell = 0
         self.xp_nivell = 0
         self.flaix = 0
+        self.reiniciar_hud()
         if self.mode == "supervivencia":
             self.onades = None
             self.punts = 0
@@ -4209,6 +4614,7 @@ class Game:
         if i in usables and i != self.arma_actual:
             self.arma_actual = i
             self.cooldown = max(self.cooldown, 12)
+            self.canvi_arma_t = 12
             AUDIO.so("click")
         elif ARMES[i]["id"] in self.armes_propies and i not in usables:
             self.avis(T("{a}: demasiado potente para este escenario").format(a=T(ARMES[i]['nom'])), VERMELL, 120)
@@ -4267,7 +4673,10 @@ class Game:
             angle = base + desv + math.radians(random.uniform(-arma["dispersio"], arma["dispersio"]))
             vel = arma["vel"] * (random.uniform(0.85, 1.1) if arma["perdigons"] > 1 else 1)
             self.bales.append(Bala(cx, cy, math.cos(angle) * vel, math.sin(angle) * vel, dany, arma["estil"],
-                                   color=color, vida=arma["vida_bala"], perfora=arma["perfora"]))
+                                   color=color, vida=arma["vida_bala"], perfora=arma["perfora"], k=self.n_tret))
+        self.n_tret += 1
+        self.mira_obertura = min(14.0, self.mira_obertura + {"pistola": 4, "escopeta": 9, "fusell": 3, "minigun": 1.2,
+                                                              "plasma": 8}.get(arma["id"], 3))
         if arma["bales_max"] is not None:
             self.bales_armes[i] -= 1
         self.armes_usades.add(arma["id"])
@@ -4281,16 +4690,28 @@ class Game:
                 self.avis("¡Minigun sobrecalentada! Espera a que se enfríe o cambia de arma.", TARONJA, 120)
         esclat(self.efectes, cx + math.cos(base) * 8, cy + math.sin(base) * 8, 4 + 4 * (arma["perdigons"] > 1),
                [color or GROC, BLANC, TARONJA], vel=(1, 3), mida=(2, 3), vida=(5, 10))
-        jx = self.jugador.x + self.jugador.W / 2
-        if arma["id"] != "plasma":                    # beina expulsada cap enrere
-            self.efectes.append(Particula(jx, cy + 2, -self.jugador.direccio * random.uniform(1.5, 3),
-                                          random.uniform(-4, -2.5), (230, 190, 70) if arma["id"] != "escopeta"
-                                          else (200, 50, 40), vida=28, mida=2.2, gravetat=0.35))
+        j = self.jugador
+        jx = j.x + j.W / 2
+        if arma["id"] == "escopeta":                  # cartutx vermell i fum
+            self.efectes.append(Beina(jx, cy + 2, -j.direccio * random.uniform(1.5, 2.5), random.uniform(-4.5, -3),
+                                      j.ombra_y, (200, 50, 40), (230, 190, 70), 3.5))
+        elif arma["id"] == "plasma":                  # el canó deixa anar vapor
+            for _ in range(4):
+                self.efectes.append(Particula(jx - j.direccio * 4, cy - 4, random.uniform(-0.6, 0.6), random.uniform(-1.6, -0.6),
+                                              random.choice(((170, 240, 255), (210, 230, 240))), vida=22, mida=3.5))
+        elif arma["id"] != "minigun" or self.n_tret % 2:      # beina expulsada cap enrere
+            self.efectes.append(Beina(jx, cy + 2, -j.direccio * random.uniform(1.5, 3), random.uniform(-4, -2.5),
+                                      j.ombra_y))
+        if arma["id"] in ("escopeta", "plasma"):
+            for _ in range(3):
+                self.efectes.append(Particula(cx + math.cos(base) * 10, cy + math.sin(base) * 10, random.uniform(-0.4, 0.4),
+                                              random.uniform(-0.9, -0.3), random.choice(((120, 120, 130), (90, 90, 100))),
+                                              vida=30, mida=random.uniform(3, 5)))
         # retrocés: les armes pesades empenyen el soldat i sacsegen la pantalla
         empenta, sacseig = {"escopeta": (4.5, 4), "plasma": (2.4, 3), "minigun": (0.35, 1.2),
                             "fusell": (0.25, 0)}.get(arma["id"], (0.0, 0))
         self.tremolor = max(self.tremolor, sacseig)
-        self.jugador.disparat(empenta)
+        self.jugador.disparat(empenta, arma["id"], base)
         AUDIO.tret(arma["so"])
 
     def pols_jugador(self):
@@ -4327,6 +4748,9 @@ class Game:
         j.vida -= dany
         j.invulnerable = j.temps_invulnerable
         self.dany_rebut += dany
+        self.cop_hud = 14
+        if self.nivell_millora("blindatge"):
+            self.escut_t = 12
         self.tremolor = max(self.tremolor, 7)
         self.aturada = max(self.aturada, 3)
         jx, jy = j.centre
@@ -4336,6 +4760,7 @@ class Game:
 
     def matar_enemic(self, e):
         self.enemics.remove(e)
+        self.marca_mort_t = 14
         cx, cy = e.centre
         if self.mode == "tutorial":                     # els blancs de l'entrenament no donen premis
             self.restes.append(Resta(e))
@@ -4372,6 +4797,7 @@ class Game:
 
     def actualitzar_joc(self):
         self.tremolor *= 0.85
+        self.actualitzar_hud()
         if self.aturada > 0:                  # pausa d'impacte: tot es congela un instant
             self.aturada -= 1
             return
@@ -4486,6 +4912,10 @@ class Game:
             if b.actualitzar():
                 self.bales.remove(b)
                 continue
+            if b.y >= TERRA_Y + 2 and b.vy > 0:          # la bala toca el terra: pols i espurnes
+                self.pols_impacte(b)
+                self.bales.remove(b)
+                continue
             if self.tocar_secrets(b):
                 self.bales.remove(b)
                 continue
@@ -4494,15 +4924,21 @@ class Game:
                 if b.perfora and id(e) in b.tocats:
                     continue
                 if e.hitbox.colliderect(rb):
-                    if e.bloqueja(b):
-                        esclat(self.efectes, b.x, b.y, 8, [CIAN, BLANC], vel=(1, 4), mida=(2, 3), vida=(6, 14))
-                        AUDIO.so("impacte", 90)
+                    rebot = math.atan2(-b.vy, -b.vx)
+                    if e.bloqueja(b):               # l'escut fa rebotar la bala: «ting»
+                        espurnes(self.efectes, b.x, b.y, rebot, 9, [CIAN, BLANC, (180, 240, 255)], 0.7, (3, 6))
+                        self.efectes.append(Anell(b.x, b.y, CIAN, r=3, creix=2, vida=7))
+                        AUDIO.so("ting", 90)
                         self.bales.remove(b)
                         break
                     e.ferir(b.dany)
                     e.cop_esquena = (b.x - (e.x + e.w / 2)) * e.dir < 0
-                    esclat(self.efectes, b.x, b.y, 6, [b.color, BLANC], vel=(1, 4), mida=(2, 4), vida=(8, 16))
+                    espurnes(self.efectes, b.x, b.y, rebot, 6, [b.color[:3], BLANC, GROC])
+                    self.efectes.append(Anell(b.x, b.y, BLANC, r=2, creix=1.6, vida=5))
+                    self.marca_t = 8
+                    self.mostrar_dany(e, b.dany)
                     AUDIO.so("impacte", 70)
+                    AUDIO.so("marca", 70)
                     if e.es_boss and pesada and self.t_global - self.ultima_aturada > 14:
                         self.aturada = max(self.aturada, 2)       # els trets pesats "pesen"
                         self.ultima_aturada = self.t_global
@@ -4522,6 +4958,10 @@ class Game:
         # Bales enemigues
         for b in self.bales_enemics[:]:
             if b.actualitzar():
+                self.bales_enemics.remove(b)
+                continue
+            if b.y >= TERRA_Y + 2 and b.vy > 0:
+                self.pols_impacte(b)
                 self.bales_enemics.remove(b)
                 continue
             if self.fase == "jugant" and not j.intocable and rj.colliderect(b.rect):
@@ -4544,11 +4984,14 @@ class Game:
             agafat = False
             bmax = self.bales_max(i)
             if it.tipus == "vida" and j.vida < j.vida_max:
+                guany = min(20, j.vida_max - j.vida)
                 j.vida = min(j.vida_max, j.vida + 20)
-                agafat, etiqueta, color = True, "+20 VIDA", VERD
+                agafat, etiqueta, color = True, T("+{n} VIDA").format(n=guany), VERD
             elif it.tipus == "bales" and bmax is not None and self.bales_armes[i] < bmax:
+                guany = bmax - self.bales_armes[i]
                 self.bales_armes[i] = bmax
-                agafat, etiqueta, color = True, "¡Munición!", GROC
+                self.municio_t = 30
+                agafat, etiqueta, color = True, T("+{n} BALAS").format(n=guany), GROC
             if agafat:
                 self.items.remove(it)
                 esclat(self.efectes, it.x + 12, it.y + 12, 12, [color, BLANC], vel=(1, 4), vida=(10, 25))
@@ -5069,7 +5512,7 @@ class Game:
             ("seccio", "TIPOGRAFÍAS"), ("text", "Press Start 2P · VT323 (SIL Open Font License)"),
             ("seccio", "HECHO CON"), ("text", "Python · pygame-ce · pygbag"),
             ("seccio", "AGRADECIMIENTOS"), ("text", "A todos los que juegan y prueban el juego"),
-            ("espai", 70), ("gracies", "¡Gracias por jugar!"), ("text", "Versión 3.2"), ("espai", 60),
+            ("espai", 70), ("gracies", "¡Gracias por jugar!"), ("text", "Versión 3.4"), ("espai", 60),
         ]
 
     def entrar_idioma_inicial(self):
@@ -5583,6 +6026,401 @@ class Game:
         surf.blit(img, (int(x - spr.ancoratge(direccio)), int(peus - img.get_height())))
         return x + direccio * spr.cano_dx, peus + spr.cano_dy
 
+    def reiniciar_hud(self):
+        j = getattr(self, "jugador", None)
+        self.vida_mostrada = float(j.vida) if j else 0.0
+        self.cop_hud = 0
+        self.canvi_arma_t = 0
+        self.cap_mostrada = None
+        self.mira_obertura = 0.0
+        self.gir_mira = 0.0
+        self.marca_t = 0
+        self.marca_mort_t = 0
+        self.batec_t = 0
+        self.escut_t = 0
+        self.esquiva_llesta_t = 0
+        self.recarrega_abans = 0
+        self.doble_salt_t = 0
+        self.municio_t = 0
+        self.nums_dany = {}
+        self.n_tret = 0
+        self.monedes_mostrades = getattr(self, "monedes", 0)
+
+    def actualitzar_hud(self):
+        j = self.jugador
+        if j.vida > self.vida_mostrada:
+            self.vida_mostrada = float(j.vida)
+        elif self.cop_hud <= 4:                         # la vida perduda es buida a poc a poc
+            self.vida_mostrada = max(float(j.vida), self.vida_mostrada - 0.7)
+        if self.cap and self.cap in self.enemics:
+            v = float(max(0, self.cap.vida))
+            if self.cap_mostrada is None or v > self.cap_mostrada:
+                self.cap_mostrada = v
+            else:
+                self.cap_mostrada = max(v, self.cap_mostrada - self.cap.vida_max * 0.004)
+        for nom in ("cop_hud", "canvi_arma_t", "marca_t", "marca_mort_t", "escut_t", "esquiva_llesta_t",
+                    "doble_salt_t", "municio_t"):
+            setattr(self, nom, max(0, getattr(self, nom) - 1))
+        if self.recarrega_abans and not j.recarrega_esquiva:
+            self.esquiva_llesta_t = 12
+        self.recarrega_abans = j.recarrega_esquiva
+        if "doble_salt" in j.events:
+            self.doble_salt_t = 14
+        self.mira_obertura *= 0.82
+        self.gir_mira += 0.04 + 0.35 * self.gir
+        dif = self.monedes - self.monedes_mostrades
+        if dif:
+            self.monedes_mostrades += max(1, abs(dif) // 8) * (1 if dif > 0 else -1)
+        poca = 0 < j.vida <= max(20, j.vida_max * 0.25) and self.fase == "jugant" and self.mode != "tutorial"
+        if poca:
+            if self.batec_t % 60 == 0:
+                AUDIO.so("latido")
+            self.batec_t += 1
+        else:
+            self.batec_t = 0
+
+    def mostrar_dany(self, e, dany):
+        """Números de dany (es poden apagar a Opciones); els cops seguits al mateix enemic se sumen."""
+        if not self.numeros_dany:
+            return
+        x, y = e.x + e.w / 2, e.y - 6
+        n = self.nums_dany.get(id(e))
+        if n is not None and n.t < 16 and n in self.textos:
+            n.sumar(dany, x, y)
+            return
+        if len(self.nums_dany) > 30:
+            self.nums_dany = {k: v for k, v in self.nums_dany.items() if v in self.textos}
+        n = NumDany(x + random.uniform(-6, 6), y, dany)
+        self.nums_dany[id(e)] = n
+        self.textos.append(n)
+
+    def _hud_vida(self, surf, j):
+        """Panell de dalt a l'esquerra: cors, voltereta, millores actives i Battle Pass."""
+        cors = j.vida_max // 20
+        ample = max(206, 18 + cors * 28)
+        panell_hud(surf, (6, 6, ample, 66))
+        ultim = max(0, math.ceil(j.vida / 20) - 1)
+        p = self.batec_t % 60
+        batec = self.batec_t > 0 and (p < 8 or 12 <= p < 20)
+        for i in range(cors):
+            fr = math.ceil(max(0.0, min(1.0, (j.vida - i * 20) / 20)) * 2) / 2
+            fb = max(0.0, min(1.0, (self.vida_mostrada - i * 20) / 20))
+            x, y, mida = 14 + i * 28, 12, 22
+            if self.cop_hud:                                  # els cors tremolen amb el cop
+                a = self.cop_hud / 4
+                x += random.uniform(-a, a)
+                y += random.uniform(-a, a)
+            if batec and i == ultim and j.vida > 0:
+                x, y, mida = x - 2, y - 2, 26
+            dibuixar_cor(surf, int(x), int(y), mida, fr, fb)
+        # voltereta: es recarrega com un rellotge
+        cx, cy = 22, 46
+        fr = 1 - j.recarrega_esquiva / j.RECARREGA_ESQUIVA
+        pygame.draw.circle(surf, NEGRE, (cx, cy), 11)
+        llesta = fr >= 1 and not j.esquiva
+        pygame.draw.circle(surf, (36, 130, 170) if llesta else (24, 34, 52), (cx, cy), 10)
+        if not llesta:
+            pygame.draw.arc(surf, CIAN, (cx - 10, cy - 10, 20, 20), math.pi / 2, math.pi / 2 + math.tau * fr, 3)
+        else:
+            pygame.draw.circle(surf, CIAN, (cx, cy), 10, 2)
+        col = BLANC if llesta else GRIS
+        pygame.draw.arc(surf, col, (cx - 5, cy - 5, 11, 11), 0.7, 5.4, 2)
+        pygame.draw.polygon(surf, col, [(cx + 2, cy - 7), (cx + 7, cy - 4), (cx + 2, cy - 1)])
+        if self.esquiva_llesta_t:
+            r = int(11 + (12 - self.esquiva_llesta_t) * 1.3)
+            pygame.draw.circle(surf, BLANC, (cx, cy), r, 1)
+        # millores actives
+        x = 40
+        atret = any(getattr(it, "atret", False) for it in self.items)
+        for m in MILLORES:
+            n = self.nivell_millora(m["id"])
+            if not n:
+                continue
+            ident = m["id"]
+            actiu = {"iman": atret, "doble_salt": self.doble_salt_t > 0, "blindatge": self.cop_hud > 0,
+                     "reflexos": j.invulnerable > 0 or (j.terra and abs(j.vx) > 3.5),
+                     "potencia": self.marca_t > 0, "carregadors": self.municio_t > 0}[ident]
+            apagat = ident == "doble_salt" and not j.terra and j.salts_restants == 0
+            ic = ICONES_MILLORA[ident]
+            if actiu:
+                l = llum(14, DIBUIX_MILLORES[ident][0])
+                surf.blit(l, (x + 9 - 14, 46 - 14))
+            surf.blit(ic["off" if apagat else "on"], (x, 37))
+            if len(m["costos"]) > 1:
+                for k in range(len(m["costos"])):
+                    pygame.draw.rect(surf, GROC if k < n else GRIS_FOSC, (x + 2 + k * 5, 57, 4, 2))
+            x += 22
+        # Battle Pass
+        nivell = self.nivell_passi()
+        fr = 1.0 if nivell >= len(PASSI) else (self.xp % XP_PER_NIVELL) / XP_PER_NIVELL
+        amp = ample - 62
+        pygame.draw.rect(surf, NEGRE, (13, 63, amp + 2, 5))
+        pygame.draw.rect(surf, GRIS_FOSC, (14, 64, amp, 3))
+        pygame.draw.rect(surf, (255, 150, 255), (14, 64, int(amp * fr), 3))
+        text(surf, f"BP{nivell}", F_MINI, (255, 200, 255), (amp + 22, 66), ancora="midleft")
+
+    def _hud_info(self, surf):
+        """Panell de dalt a la dreta: monedes, sector i onada, enemics i cronòmetre."""
+        if self.mode == "tutorial":
+            linia1, linia2 = T("ENTRENAMIENTO"), ""
+        elif self.mode == "supervivencia":
+            linia1 = T("SUPERVIVENCIA · OLEADA {o}").format(o=self.onada)
+            linia2 = T("PUNTOS: {p}").format(p=self.punts)
+        else:
+            linia1 = T("SECTOR {s} · OLEADA {o}/{n}").format(s=f"{self.nivell_actual + 1}-{self.escenari_actual + 1}",
+                                                            o=self.onada + 1, n=len(self.onades))
+            linia2 = T("ENEMIGOS: {n}").format(n=len(self.enemics))
+        rellotge = None
+        if self.mode == "historia" and self.fase == "jugant":
+            segons = self.temps_joc // FPS
+            rellotge = f"{segons // 60}:{segons % 60:02d}"
+        w1 = render(linia1, F_MINI, BLANC).get_width()
+        w2 = render(linia2, F_MINI, BLANC).get_width() + (render(rellotge, F_MINI, BLANC).get_width() + 52 if rellotge else 0)
+        ample = max(150, w1, w2) + 22
+        r = panell_hud(surf, (WIDTH - 6 - ample, 6, ample, 66))
+        puja = self.monedes_mostrades != self.monedes
+        rm = text(surf, str(self.monedes_mostrades), F_UI, GROC if not puja else (255, 245, 170),
+                  (r.right - 10, 19 - (1 if puja and self.t_global % 4 < 2 else 0)), ancora="midright")
+        dibuixar_moneda(surf, rm.left - 14, 19, 8 if puja else 7)
+        text(surf, linia1, F_MINI, BLANC, (r.right - 10, 40), ancora="midright")
+        if linia2:
+            text(surf, linia2, F_MINI, (200, 205, 225), (r.x + 10, 58), ancora="midleft")
+        if rellotge:
+            limit = TEMPS_ESTRELLA[(self.nivell_actual, self.escenari_actual)]
+            a_temps = self.temps_joc // FPS <= limit
+            r2 = text(surf, rellotge, F_MINI, (255, 220, 120) if a_temps else GRIS, (r.right - 10, 58), ancora="midright")
+            dibuixar_estrella(surf, r2.left - 10, 58, 6, a_temps)
+            dibuixar_estrella(surf, r2.left - 26, 58, 6, self.dany_rebut == 0, (255, 140, 140))
+
+    def _hud_arma(self, surf):
+        """Panell de baix a l'esquerra: icona de l'arma, munició en bales o barra de calor."""
+        i = self.arma_actual
+        arma = ARMES[i]
+        ident = arma["id"]
+        color = COLOR_ARMA[ident]
+        r = panell_hud(surf, (6, HEIGHT - 46, 274, 40), color)
+        ic = ICONES_ARMA[ident]
+        t = self.canvi_arma_t
+        ix, iy = r.x + 8 - t * 2, r.centery - ic[2].get_height() // 2
+        surf.blit(ic[2], (ix, iy))
+        if t > 6:                                           # canvi d'arma: entra amb un flaix blanc
+            b = ic["blanc"]
+            b.set_alpha(int(255 * (t - 6) / 6))
+            surf.blit(b, (ix, iy))
+        x0, x1 = r.x + 68, r.right - 8
+        text(surf, T(arma["nom"]).upper(), F_MINI, color, (x0, r.y + 10), ancora="midleft")
+        if ident == "minigun":
+            calent = self.sobreescalfat and (self.t_global // 8) % 2 == 0
+            text(surf, "¡CALOR!" if self.sobreescalfat else "CALOR", F_MINI, VERMELL if calent else BLANC,
+                 (x1, r.y + 10), ancora="midright")
+            barra = pygame.Rect(x0, r.y + 21, x1 - x0, 10)
+            pygame.draw.rect(surf, NEGRE, barra.inflate(4, 4))
+            pygame.draw.rect(surf, (36, 38, 56), barra)
+            fr = self.calor / 100
+            for sx in range(0, int(barra.w * fr), 3):
+                q = sx / barra.w
+                if self.sobreescalfat:
+                    c = VERMELL if calent else (255, 120, 90)
+                elif q < 0.5:
+                    c = tuple(int(GROC[k] + (TARONJA[k] - GROC[k]) * q * 2) for k in range(3))
+                else:
+                    c = tuple(int(TARONJA[k] + (VERMELL[k] - TARONJA[k]) * (q - 0.5) * 2) for k in range(3))
+                pygame.draw.rect(surf, c, (barra.x + sx, barra.y, min(2, barra.w - sx), barra.h))
+            for k in range(3):                              # rotació dels canons
+                encesa = self.gir > (k + 0.5) / 3
+                pygame.draw.rect(surf, color if encesa else GRIS_FOSC, (barra.x + k * 6, barra.bottom + 4, 4, 2))
+            return
+        bmax = self.bales_max(i)
+        if bmax is None:
+            text(surf, "∞", F_UI, BLANC, (x0 + 10, r.y + 26))
+            return
+        b = self.bales_armes[i]
+        poca = b <= bmax * 0.25
+        parpella = poca and (self.t_global // 8) % 2 == 0
+        text(surf, f"{b}/{bmax}", F_MINI, (VERMELL if parpella else TARONJA) if poca else BLANC, (x1, r.y + 10),
+             ancora="midright")
+        files = 1 if bmax <= 34 else 2
+        per = math.ceil(bmax / files)
+        pas = max(3, min(7, (x1 - x0) // per))
+        alt = 9 if files == 1 else 6
+        for k in range(bmax):
+            f, c = divmod(k, per)
+            px, py = x0 + c * pas, r.y + 20 + f * (alt + 2)
+            plena = k < b
+            col = ((VERMELL if parpella else TARONJA) if poca else color) if plena else (42, 44, 64)
+            pygame.draw.rect(surf, col, (px, py, pas - 1, alt))
+            if plena:
+                pygame.draw.rect(surf, aclarir(col, 80), (px, py, pas - 1, 2))
+        if b == 0 and (self.t_global // 10) % 2 == 0:
+            text(surf, "¡SIN BALAS!", F_MINI, VERMELL, ((x0 + x1) // 2, r.y + 27))
+
+    def _hud_ranures(self, surf):
+        """Ranures d'armes (1-5) a baix a la dreta, amb icona, munició i cadenat si no es pot fer servir."""
+        usables = self.armes_usables()
+        mostrar = [i for i, a in enumerate(ARMES) if a["id"] in self.armes_propies or i in usables]
+        w, h, sep = 42, 34, 4
+        x = WIDTH - 6 - len(mostrar) * (w + sep) + sep
+        for i in mostrar:
+            ident = ARMES[i]["id"]
+            actual, usable = i == self.arma_actual, i in usables
+            rr = pygame.Rect(x, HEIGHT - 6 - h - (4 if actual else 0), w, h)
+            panell_hud(surf, rr, VERD if actual else ((90, 120, 190) if usable else (200, 60, 70)), 210 if actual else 150)
+            ic = ICONES_ARMA[ident]
+            img = ic[1] if usable else ic["off"]
+            surf.blit(img, img.get_rect(center=(rr.centerx + 3, rr.centery + 2)))
+            text(surf, str(i + 1), F_MINI, BLANC if usable else GRIS, (rr.x + 7, rr.y + 8), ombra=False)
+            if not usable:
+                dibuixar_cadenat(surf, rr.right - 9, rr.y + 11)
+            else:
+                bmax = self.bales_max(i)
+                fr = (self.calor / 100) if bmax is None else self.bales_armes[i] / max(1, bmax)
+                col = (VERMELL if self.sobreescalfat else TARONJA) if bmax is None else (
+                    VERMELL if fr <= 0.25 else COLOR_ARMA[ident])
+                pygame.draw.rect(surf, (40, 42, 60), (rr.x + 5, rr.bottom - 5, w - 10, 2))
+                pygame.draw.rect(surf, col, (rr.x + 5, rr.bottom - 5, int((w - 10) * fr), 2))
+            x += w + sep
+
+    RETRATS_CAP = {}
+
+    def retrat_cap(self, cap):
+        img = Game.RETRATS_CAP.get(cap.clau)
+        if img is None:
+            base, _ = cap.imatge()
+            if base is None:
+                img = pygame.Surface((30, 30), pygame.SRCALPHA)
+                pygame.draw.circle(img, VERMELL_FOSC, (15, 15), 13)
+            else:
+                bw, bh = base.get_size()
+                k = min(30 / bw, 30 / bh)
+                img = pygame.transform.smoothscale(base, (max(1, int(bw * k)), max(1, int(bh * k))))
+            Game.RETRATS_CAP[cap.clau] = img
+        return img
+
+    def _hud_cap(self, surf):
+        """Barra del cap: retrat, vida perduda en blanc, segments i marca de la fase de fúria (50%)."""
+        cap = self.cap
+        furia = cap.furia
+        r = panell_hud(surf, (286, HEIGHT - 46, 420, 40), (220, 80, 100))
+        pr = pygame.Rect(r.x + 5, r.y + 5, 30, 30)
+        pygame.draw.rect(surf, (40, 12, 24), pr)
+        img = self.retrat_cap(cap)
+        d = (random.randint(-1, 1), random.randint(-1, 1)) if (furia and self.t_global % 6 < 3) or cap.flash else (0, 0)
+        surf.blit(img, img.get_rect(center=(pr.centerx + d[0], pr.centery + d[1])))
+        if cap.flash:
+            pygame.draw.rect(surf, BLANC, pr, 1)
+        else:
+            pygame.draw.rect(surf, VERMELL if furia else (220, 80, 100), pr, 1)
+        text(surf, self.nom_cap, F_MINI, (255, 200, 200), (pr.right + 8, r.y + 11), ancora="midleft")
+        parpella = (self.t_global // 10) % 2 == 0
+        if furia:
+            text(surf, "¡FURIA!", F_MINI, VERMELL if parpella else (255, 150, 150), (r.right - 10, r.y + 11), ancora="midright")
+        barra = pygame.Rect(pr.right + 8, r.y + 20, r.right - 10 - (pr.right + 8), 12)
+        fr = max(0, cap.vida) / cap.vida_max
+        fb = (self.cap_mostrada if self.cap_mostrada is not None else max(0, cap.vida)) / cap.vida_max
+        pygame.draw.rect(surf, NEGRE, barra.inflate(4, 4))
+        pygame.draw.rect(surf, VERMELL_FOSC, barra)
+        pygame.draw.rect(surf, (255, 236, 236), (barra.x, barra.y, int(barra.w * fb), barra.h))
+        col = ((255, 70, 70) if parpella else (210, 40, 50)) if furia else (232, 96, 60)
+        pygame.draw.rect(surf, col, (barra.x, barra.y, int(barra.w * fr), barra.h))
+        pygame.draw.rect(surf, aclarir(col, 70), (barra.x, barra.y, int(barra.w * fr), 3))
+        for k in range(1, 10):
+            sx = barra.x + barra.w * k // 10
+            pygame.draw.line(surf, (60, 10, 20), (sx, barra.y + 3), (sx, barra.bottom - 1))
+        mx = barra.x + barra.w // 2
+        pygame.draw.line(surf, GROC if not furia else GRIS, (mx, barra.y - 3), (mx, barra.bottom + 2), 2)
+
+    def dibuixar_mira(self, surf):
+        """Punt de mira propi de cada arma, que s'obre amb el retrocés, i marca d'impacte."""
+        mx, my = ratoli()
+        arma = ARMES[self.arma_actual]
+        ident = arma["id"]
+        col = VERMELL if self.avis_bales else BLANC
+        ob = self.mira_obertura
+
+        def linia(a, b, c=None, g=2):
+            pygame.draw.line(surf, NEGRE, a, b, g + 2)
+            pygame.draw.line(surf, c or col, a, b, g)
+
+        if ident == "escopeta":                     # cercle discontinu = on arriben els perdigons
+            cx, cy = self.jugador.canons(self.spr_jugador())
+            obertura = math.radians(arma["obertura"] / 2 + arma["dispersio"])
+            r = int(max(12, min(90, math.hypot(mx - cx, my - cy) * math.tan(obertura))) + ob)
+            for k in range(12):
+                a0 = k * math.tau / 12 + self.t_global * 0.01
+                pygame.draw.arc(surf, NEGRE, (mx - r - 1, my - r - 1, 2 * r + 2, 2 * r + 2), a0, a0 + 0.3, 4)
+                pygame.draw.arc(surf, col, (mx - r, my - r, 2 * r, 2 * r), a0, a0 + 0.3, 2)
+            pygame.draw.circle(surf, NEGRE, (mx, my), 3)
+            pygame.draw.circle(surf, col, (mx, my), 2)
+        elif ident == "fusell":                     # creu fina amb cantonades
+            g = 4 + ob
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                linia((mx + dx * g, my + dy * g), (mx + dx * (g + 9), my + dy * (g + 9)), g=1)
+            s = int(13 + ob)
+            for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                pts = [(mx + sx * s, my + sy * (s - 5)), (mx + sx * s, my + sy * s), (mx + sx * (s - 5), my + sy * s)]
+                pygame.draw.lines(surf, NEGRE, False, pts, 3)
+                pygame.draw.lines(surf, col, False, pts, 1)
+            pygame.draw.rect(surf, col, (mx, my, 1, 1))
+        elif ident == "minigun":                    # tres arcs que giren amb els canons i s'escalfen
+            q = self.calor / 100
+            c = (255, int(255 - 140 * q), int(255 - 215 * q)) if not self.sobreescalfat else VERMELL
+            r = int(13 + ob)
+            for k in range(3):
+                a0 = self.gir_mira + k * math.tau / 3
+                pygame.draw.arc(surf, NEGRE, (mx - r - 1, my - r - 1, 2 * r + 2, 2 * r + 2), a0, a0 + 1.0, 5)
+                pygame.draw.arc(surf, c, (mx - r, my - r, 2 * r, 2 * r), a0, a0 + 1.0, 3)
+            pygame.draw.circle(surf, NEGRE, (mx, my), 3)
+            pygame.draw.circle(surf, c, (mx, my), 2)
+        elif ident == "plasma":                     # rombe que batega
+            r = 11 + ob + 2 * math.sin(self.t_global * 0.15)
+            punts = [(mx + r, my), (mx, my + r), (mx - r, my), (mx, my - r)]
+            pygame.draw.polygon(surf, NEGRE, punts, 4)
+            pygame.draw.polygon(surf, (150, 245, 255) if col == BLANC else col, punts, 2)
+            pygame.draw.circle(surf, NEGRE, (mx, my), 4, 3)
+            pygame.draw.circle(surf, (150, 245, 255), (mx, my), 3, 1)
+        else:                                       # pistola
+            g = 5 + ob
+            pygame.draw.circle(surf, NEGRE, (mx, my), int(10 + ob * 0.5), 3)
+            pygame.draw.circle(surf, col, (mx, my), int(9 + ob * 0.5), 1)
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                linia((mx + dx * g, my + dy * g), (mx + dx * (g + 8), my + dy * (g + 8)))
+        # marca d'impacte (blanca) i de baixa (vermella, més gran)
+        if self.marca_t or self.marca_mort_t:
+            mort = self.marca_mort_t > 0
+            k = self.marca_mort_t / 14 if mort else self.marca_t / 8
+            c = VERMELL if mort else BLANC
+            g0 = 7 + (1 - k) * 3
+            g1 = g0 + (9 if mort else 6)
+            for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                linia((mx + sx * g0, my + sy * g0), (mx + sx * g1, my + sy * g1), c, 3 if mort else 2)
+
+    def pols_impacte(self, b):
+        """Bala que toca el terra: pols i un parell d'espurnes del seu color."""
+        x, y = b.x, TERRA_Y
+        for _ in range(4):
+            self.efectes.append(Particula(x + random.uniform(-3, 3), y - 1, random.uniform(-1.5, 1.5),
+                                          random.uniform(-2.2, -0.6), random.choice(((170, 160, 140), (130, 125, 115), (200, 195, 180))),
+                                          vida=random.randint(10, 20), mida=random.uniform(2, 3.5), gravetat=0.12))
+        espurnes(self.efectes, x, y - 1, -math.pi / 2 - math.copysign(0.6, b.vx), 2, [b.color[:3], BLANC], 0.5, (2, 4), (6, 10))
+
+    def dibuixar_iman(self, surf):
+        """Millora «Imán»: camp blau al voltant del soldat i línies cap als objectes que atrau."""
+        atrets = [it for it in self.items if getattr(it, "atret", False)]
+        if not atrets:
+            return
+        jx, jy = self.jugador.centre
+        t = self.t_global
+        r = 34 + 3 * math.sin(t * 0.2)
+        for k in range(8):
+            a0 = k * math.tau / 8 + t * 0.06
+            pygame.draw.arc(surf, (110, 180, 255), (jx - r, jy - r, 2 * r, 2 * r), a0, a0 + 0.4, 2)
+        for it in atrets:
+            ix, iy = it.x + 12, it.y + 12
+            for q in range(4):
+                f = ((t * 0.05) + q / 4) % 1.0
+                px, py = ix + (jx - ix) * f, iy + (jy - iy) * f
+                pygame.draw.circle(surf, (150, 210, 255), (int(px), int(py)), 2)
+
     def dibuixar_joc(self, surf):
         c = self.capa
         fons = FONS_NIVELLS.get((self.nivell_actual, self.escenari_actual))
@@ -5613,7 +6451,17 @@ class Game:
             r.dibuixar(c)
         spr = self.spr_jugador()
         if self.fase != "mort":
+            self.dibuixar_iman(c)
             self.jugador.dibuixar(c, spr)
+            if self.escut_t:                          # el blindatge aguanta el cop: escut hexagonal
+                jx, jy = self.jugador.centre
+                k = self.escut_t / 12
+                r = 30 + (1 - k) * 10
+                punts = [(jx + math.cos(i * math.pi / 3 + math.pi / 6) * r, jy + math.sin(i * math.pi / 3 + math.pi / 6) * r * 1.15)
+                         for i in range(6)]
+                pygame.draw.polygon(c, (120, 200, 255) if self.escut_t % 4 < 2 else BLANC, punts, 2)
+                for px, py in punts[::2]:
+                    pygame.draw.line(c, (90, 160, 230), (jx, jy), (px, py), 1)
         else:
             self.jugador.dibuixar_mort(c, spr)
         for b in self.bales:
@@ -5630,6 +6478,11 @@ class Game:
             vel = CAPA_TRANSPARENT
             vel.fill((255, 255, 255, int(16 * self.flaix)))
             c.blit(vel, (0, 0))
+        if self.batec_t:                              # poca vida: la pantalla batega en vermell
+            p = self.batec_t % 60
+            k = max(0.0, 1 - p / 12, 0.75 * (1 - abs(p - 15) / 8))
+            ALARMA.set_alpha(int(35 + 90 * k))
+            c.blit(ALARMA, (0, 0))
 
         if self.tremolor > 0.5:
             ox = random.randint(-int(self.tremolor), int(self.tremolor))
@@ -5641,85 +6494,13 @@ class Game:
         self.dibuixar_hud(surf)
 
     def dibuixar_hud(self, surf):
-        surf.blit(FRANJA_HUD, (0, 0))
         j = self.jugador
-        for i in range(j.vida_max // 20):
-            fr = max(0.0, min(1.0, (j.vida - i * 20) / 20))
-            fr = math.ceil(fr * 2) / 2
-            dibuixar_cor(surf, 14 + i * 28, 10, 22, fr)
-        # ranures d'armes (1-5)
-        usables = self.armes_usables()
-        for i, a in enumerate(ARMES):
-            r = pygame.Rect(14 + i * 30, 38, 26, 20)
-            propia = a["id"] in self.armes_propies
-            if not propia:
-                continue
-            color = VERD if i == self.arma_actual else (BLAU if i in usables else VERMELL_FOSC)
-            pygame.draw.rect(surf, NEGRE, r.move(0, 2), border_radius=4)
-            pygame.draw.rect(surf, color, r, border_radius=4)
-            text(surf, str(i + 1), F_MINI, BLANC if i in usables else GRIS, r.center, ombra=False)
-            if i not in usables:
-                pygame.draw.line(surf, VERMELL, r.topleft, r.bottomright, 2)
-        # passi
-        nivell = self.nivell_passi()
-        fr = 1.0 if nivell >= len(PASSI) else (self.xp % XP_PER_NIVELL) / XP_PER_NIVELL
-        pygame.draw.rect(surf, GRIS_FOSC, (14, 64, 146, 4))
-        pygame.draw.rect(surf, (255, 150, 255), (14, 64, int(146 * fr), 4))
-        text(surf, f"BP{nivell}", F_MINI, (255, 200, 255), (166, 66), ancora="midleft")
-        # Arma i bales
-        arma = ARMES[self.arma_actual]
-        text(surf, T(arma["nom"]).upper(), F_SUBTITOL, BLANC, (WIDTH // 2, 25))
-        bmax = self.bales_max(self.arma_actual)
-        if arma["id"] == "minigun":                  # barra de calor en lloc de bales
-            barra = pygame.Rect(WIDTH // 2 - 40, 47, 120, 10)
-            calent = self.sobreescalfat and (self.t_global // 8) % 2 == 0
-            text(surf, "¡CALOR!" if self.sobreescalfat else "CALOR", F_MINI, VERMELL if calent else BLANC,
-                 (barra.left - 8, barra.centery), ancora="midright")
-            pygame.draw.rect(surf, NEGRE, barra.inflate(4, 4), border_radius=4)
-            pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=3)
-            fr = self.calor / 100
-            color = VERMELL if self.sobreescalfat else (TARONJA if fr > 0.7 else GROC)
-            pygame.draw.rect(surf, color, (barra.x, barra.y, int(barra.w * fr), barra.h), border_radius=3)
-        else:
-            if bmax is None:
-                txt_bales, col = T("BALAS: ∞"), BLANC
-            else:
-                b = self.bales_armes[self.arma_actual]
-                txt_bales = T("BALAS: {b}/{m}").format(b=b, m=bmax)
-                col = VERMELL if b <= bmax * 0.25 else BLANC
-            text(surf, txt_bales, F_HUD, col, (WIDTH // 2, 53))
-        # Monedes, sector, onada i enemics
-        r = text(surf, str(self.monedes), F_UI, GROC, (WIDTH - 14, 18), ancora="midright")
-        dibuixar_moneda(surf, r.left - 14, 18)
-        if self.mode == "tutorial":
-            linia1 = T("ENTRENAMIENTO")
-            linia2 = ""
-        elif self.mode == "supervivencia":
-            linia1 = T("SUPERVIVENCIA · OLEADA {o}").format(o=self.onada)
-            linia2 = T("PUNTOS: {p}").format(p=self.punts)
-        else:
-            linia1 = T("SECTOR {s} · OLEADA {o}/{n}").format(s=f"{self.nivell_actual + 1}-{self.escenari_actual + 1}",
-                                                            o=self.onada + 1, n=len(self.onades))
-            linia2 = T("ENEMIGOS: {n}").format(n=len(self.enemics))
-        text(surf, linia1, F_MINI, BLANC, (WIDTH - 14, 42), ancora="midright")
-        text(surf, linia2, F_MINI, BLANC, (WIDTH - 14, 58), ancora="midright")
-        if self.mode == "historia" and self.fase == "jugant":       # cronòmetre de l'estrella de rapidez
-            limit = TEMPS_ESTRELLA[(self.nivell_actual, self.escenari_actual)]
-            segons = self.temps_joc // FPS
-            col = (255, 220, 120) if segons <= limit else GRIS
-            r2 = text(surf, f"{segons // 60}:{segons % 60:02d}", F_MINI, col, (WIDTH - 14, 74), ancora="midright")
-            dibuixar_estrella(surf, r2.left - 10, 74, 6, segons <= limit)
-            if self.dany_rebut == 0:
-                dibuixar_estrella(surf, r2.left - 26, 74, 6, True, (255, 140, 140))
-        # Barra del cap
+        self._hud_vida(surf, j)
+        self._hud_info(surf)
+        self._hud_arma(surf)
+        self._hud_ranures(surf)
         if self.cap and self.cap in self.enemics:
-            amp = 420
-            x, y = WIDTH // 2 - amp // 2, HEIGHT - 20
-            text(surf, self.nom_cap, F_TEXT_PP, (255, 200, 200), (WIDTH // 2, y - 12))
-            pygame.draw.rect(surf, NEGRE, (x - 3, y - 3, amp + 6, 18), border_radius=4)
-            pygame.draw.rect(surf, VERMELL_FOSC, (x, y, amp, 12), border_radius=3)
-            fr = max(0, self.cap.vida) / self.cap.vida_max
-            pygame.draw.rect(surf, VERMELL if fr < 0.5 else (230, 90, 60), (x, y, int(amp * fr), 12), border_radius=3)
+            self._hud_cap(surf)
         # Avisos
         if self.avis_bales and (self.avis_bales // 10) % 2 == 0:
             text(surf, "¡SIN BALAS! Recoge munición o cambia de arma (Q)", F_HUD, VERMELL, (WIDTH // 2, 110))
@@ -5764,14 +6545,8 @@ class Game:
             self.dibuixar_tutorial(surf)
         if self.presentacio:
             self.dibuixar_presentacio(surf)
-        # Punt de mira
         if self.estat == "joc" and not self.presentacio:
-            mx, my = ratoli()
-            col = VERMELL if self.avis_bales else BLANC
-            pygame.draw.circle(surf, NEGRE, (mx, my), 10, 3)
-            pygame.draw.circle(surf, col, (mx, my), 9, 1)
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                pygame.draw.line(surf, col, (mx + dx * 5, my + dy * 5), (mx + dx * 13, my + dy * 13), 2)
+            self.dibuixar_mira(surf)
 
     def dibuixar_avisos(self, surf, y):
         for k, (txt, color, temps) in enumerate(self.avisos):

@@ -79,7 +79,7 @@ Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquea
 
 ## Opciones
 
-Desde el menú (y desde la pausa) se puede ajustar el **volumen de la música** y el **de los efectos** por separado, elegir **pantalla completa o ventana** y el **escalado** (suave o nítido). Todo se guarda.
+Desde el menú (y desde la pausa) se puede ajustar el **volumen de la música** y el **de los efectos** por separado, elegir **pantalla completa o ventana**, el **escalado** (suave o nítido), la **dificultad**, el **idioma** y si se muestran los **números de daño**. Todo se guarda.
 
 El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x1080** se amplía exactamente **x2**: cada píxel del juego son 2x2 píxeles de la pantalla, sin suavizado y sin bandas negras, así que se ve totalmente nítido (y lo mismo a x3 en 2880x1620 o x4 en 4K). En otras resoluciones se usa el escalado elegido en Opciones. En el navegador el lienzo también es de 960x540 y, si la ventana es justo el doble (1920x1080 a pantalla completa), se muestra píxel a píxel.
 
@@ -94,6 +94,17 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 3.4: interfaz nueva**
+- **HUD rediseñado** en paneles: arriba a la izquierda la vida, la voltereta, las mejoras activas y el Battle Pass; arriba a la derecha las monedas (que suben contando), el sector, los enemigos y el cronómetro; abajo a la izquierda el arma con su icono y la munición en balitas (o la barra de calor de la minigun), y abajo a la derecha las cinco ranuras con icono, munición y un candado si el escenario no deja usar esa arma.
+- **Vida**: los corazones tiemblan al recibir un golpe y la vida perdida se vacía poco a poco en blanco. Con poca vida la pantalla late en rojo y suena el corazón.
+- **Voltereta**: un indicador que se rellena mientras se recarga y destella cuando vuelve a estar lista.
+- **Mejoras a la vista**: iconos con su nivel que se iluminan cuando actúan (el imán atrae algo, el doble salto se gasta…). En el soldado se ven las placas del **blindaje** (hombrera, peto y casco), el campo del **imán**, las llamas de los **propulsores** y la estela de los **reflejos**; con blindaje, los golpes muestran un escudo hexagonal.
+- **Barra del jefe** con retrato, segmentos, vida perdida en blanco y aviso de **¡FURIA!** al pasar del 50%.
+- **Balas propias de cada arma**: trazadores de pistola, fusil y minigun (uno de cada tres más brillante), perdigones que se apagan y bolas de plasma con rayos. Las balas enemigas tienen contorno oscuro y formas propias (rombos, anillos, estrellas) para no confundirlas con las tuyas.
+- **Disparos con más impacto**: fogonazo distinto para cada arma y orientado hacia donde apuntas, casquillos que rebotan en el suelo (cartuchos rojos en la escopeta, vapor en el plasma), chispas al impactar, polvo cuando una bala toca el suelo y un «ting» cuando un escudo para la bala.
+- **Punto de mira según el arma** (el de la escopeta muestra hasta dónde se abren los perdigones), que se abre con el retroceso, y **marca de impacto** al acertar (roja al eliminar).
+- Textos flotantes con contorno («+20 vida», «+12 balas») y **números de daño** sobre los enemigos (los golpes seguidos se suman). Se pueden quitar en **Opciones > Números de daño**.
 
 **Versión 3.3**
 - Las páginas de «Cómo funciona» ahora están animadas: el Battle Pass se llena y desbloquea recompensas, cada mejora se ve en acción, cada arma dispara contra drones (la minigun se calienta) y los logros, las estrellas y la supervivencia tienen su escena.
@@ -187,6 +198,6 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 - Python y Pygame (pygame-ce), con asyncio para el bucle principal.
 - pygbag para ejecutarlo en el navegador con WebAssembly.
 - Gráficos originales del soldado y los enemigos de Abel; efectos de sonido y parte de la música libres de derechos.
-- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, y las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy).
+- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy) y los sonidos del latido, el «ting» del escudo y la marca de impacto con `tools/generar_sons.py`.
 - Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
 - Los datos del juego (armas, niveles, historia, mejoras y Battle Pass) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.

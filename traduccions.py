@@ -1,6 +1,13 @@
 """Traducciones del juego (generadas a partir de los textos en español). Clave: texto en español."""
 
 CA = {
+    "+{n} VIDA": "+{n} VIDA",
+    "+{n} BALAS": "+{n} BALES",
+    "¡SIN BALAS!": "SENSE BALES!",
+    "¡FURIA!": "FÚRIA!",
+    "Números de daño": "Números de dany",
+    "Sí": "Sí",
+    "No": "No",
     "A tiempo": "A temps",
     "¡NIVEL {n}!": "NIVELL {n}!",
     "Gana XP eliminando enemigos y completando escenarios (más XP la primera vez).": "Guanya XP eliminant enemics i completant escenaris (més XP la primera vegada).",
@@ -28,7 +35,7 @@ CA = {
     "HECHO CON": "FET AMB",
     "AGRADECIMIENTOS": "AGRAÏMENTS",
     "A todos los que juegan y prueban el juego": "A tothom qui juga i prova el joc",
-    "Versión 3.2": "Versió 3.2",
+    "Versión 3.4": "Versió 3.4",
     "ESPACIO / flecha abajo: más rápido": "ESPAI / fletxa avall: més ràpid",
     "Sin munición, pero se calienta. Tarda en arrancar y pesa.": "Sense munició, però s'escalfa. Triga a arrencar i pesa.",
     "¡Minigun sobrecalentada! Espera a que se enfríe o cambia de arma.": "Minigun sobreescalfada! Espera que es refredi o canvia d'arma.",
@@ -497,6 +504,13 @@ CA = {
 
 
 EN = {
+    "+{n} VIDA": "+{n} HEALTH",
+    "+{n} BALAS": "+{n} AMMO",
+    "¡SIN BALAS!": "NO AMMO!",
+    "¡FURIA!": "RAGE!",
+    "Números de daño": "Damage numbers",
+    "Sí": "On",
+    "No": "Off",
     "A tiempo": "In time",
     "¡NIVEL {n}!": "LEVEL {n}!",
     "Gana XP eliminando enemigos y completando escenarios (más XP la primera vez).": "Earn XP by killing enemies and clearing stages (more XP the first time).",
@@ -524,7 +538,7 @@ EN = {
     "HECHO CON": "MADE WITH",
     "AGRADECIMIENTOS": "THANKS",
     "A todos los que juegan y prueban el juego": "To everyone who plays and tests the game",
-    "Versión 3.2": "Version 3.2",
+    "Versión 3.4": "Version 3.4",
     "ESPACIO / flecha abajo: más rápido": "SPACE / down arrow: faster",
     "Sin munición, pero se calienta. Tarda en arrancar y pesa.": "No ammo needed, but it overheats. Slow to spin up and heavy.",
     "¡Minigun sobrecalentada! Espera a que se enfríe o cambia de arma.": "Minigun overheated! Let it cool down or switch weapons.",
