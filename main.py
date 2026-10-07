@@ -51,8 +51,72 @@ def ruta(*parts):
     return os.path.join(BASE, "assets", *parts)
 
 
+class Desat:
+    """Desa el progrés: localStorage al navegador, fitxer JSON a l'escriptori."""
+
+    CLAU = "invasio_alienigena_v1"
+    FITXER = os.path.join(BASE, "partida.json")
+
+    @staticmethod
+    def _storage():
+        try:
+            return __import__("platform").window.localStorage
+        except Exception:
+            return None
+
+    @classmethod
+    def carregar(cls):
+        try:
+            if WEB:
+                st = cls._storage()
+                txt = st.getItem(cls.CLAU) if st is not None else None
+            elif os.path.exists(cls.FITXER):
+                with open(cls.FITXER, encoding="utf-8") as f:
+                    txt = f.read()
+            else:
+                txt = None
+            if not txt or str(txt) in ("null", "undefined"):
+                return {}
+            dades = json.loads(str(txt))
+            return dades if isinstance(dades, dict) else {}
+        except Exception as err:
+            print(f"No s'ha pogut carregar la partida: {err}")
+            return {}
+
+    @classmethod
+    def desar(cls, dades):
+        try:
+            txt = json.dumps(dades)
+            if WEB:
+                st = cls._storage()
+                if st is not None:
+                    st.setItem(cls.CLAU, txt)
+            else:
+                with open(cls.FITXER, "w", encoding="utf-8") as f:
+                    f.write(txt)
+        except Exception as err:
+            print(f"No s'ha pogut desar la partida: {err}")
+
+    @classmethod
+    def esborrar(cls):
+        try:
+            if WEB:
+                st = cls._storage()
+                if st is not None:
+                    st.removeItem(cls.CLAU)
+            elif os.path.exists(cls.FITXER):
+                os.remove(cls.FITXER)
+        except Exception as err:
+            print(f"No s'ha pogut esborrar la partida: {err}")
+
+
+OPCIONS_INICIALS = Desat.carregar().get("opcions", {})
+if not isinstance(OPCIONS_INICIALS, dict):
+    OPCIONS_INICIALS = {}
+
 try:
-    pygame.mixer.pre_init(44100, -16, 2, 512)
+    # búfer gran: evita els talls i espetecs del so en ordinadors lents i al navegador
+    pygame.mixer.pre_init(44100, -16, 2, 2048)
 except Exception:
     pass
 pygame.init()
@@ -67,8 +131,98 @@ except pygame.error as err:
     print(f"Àudio no disponible: {err}")
     AUDIO_OK = False
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Juego Militar: Invasión Alienígena")
+
+
+class Pantalla:
+    """El joc es dibuixa sempre a 800x600 (`screen`) i aquí s'escala a la resolució de la finestra o del
+    monitor (per exemple 1920x1080). Les bandes laterals s'omplen amb una versió difuminada de la imatge."""
+
+    MIDA_WEB = (1280, 720)          # al navegador el CSS ja l'amplia a tota la finestra; així va fluid
+
+    def __init__(self, completa=True, suau=True):
+        info = pygame.display.Info()
+        self.monitor = (info.current_w or 1920, info.current_h or 1080)
+        self.completa = completa
+        self.suau = suau
+        self.ambient = None
+        self.temps = 0
+        self.aplicar()
+
+    def mida_finestra(self):
+        forcada = os.environ.get("JOC_FINESTRA")          # p. ex. "800x600" per a les proves
+        if forcada:
+            w, h = forcada.lower().split("x")
+            return int(w), int(h)
+        mw, mh = self.monitor
+        alt = min(1080, int(mh * 0.85))
+        return int(alt * 16 / 9), alt
+
+    def aplicar(self):
+        if WEB:
+            self.surf = pygame.display.set_mode(self.MIDA_WEB)
+        elif self.completa and not os.environ.get("JOC_FINESTRA"):
+            self.surf = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            self.surf = pygame.display.set_mode(self.mida_finestra(), pygame.RESIZABLE)
+        pygame.display.set_caption("Juego Militar: Invasión Alienígena")
+        self.recalcular()
+
+    def recalcular(self):
+        self.surf = pygame.display.get_surface()
+        w, h = self.surf.get_size()
+        self.escala = min(w / WIDTH, h / HEIGHT)
+        mida = (int(WIDTH * self.escala), int(HEIGHT * self.escala))
+        self.rect = pygame.Rect(0, 0, *mida)
+        self.rect.center = (w // 2, h // 2)
+        self.ambient = None
+
+    def commutar_completa(self):
+        if WEB:
+            try:
+                __import__("platform").window.document.documentElement.requestFullscreen()
+            except Exception as err:
+                print(f"No s'ha pogut posar a pantalla completa: {err}")
+            return
+        self.completa = not self.completa
+        self.aplicar()
+
+    def a_virtual(self, pos):
+        """Coordenades de la finestra -> coordenades del joc (800x600)."""
+        x = (pos[0] - self.rect.x) / self.escala
+        y = (pos[1] - self.rect.y) / self.escala
+        return int(max(0, min(WIDTH - 1, x))), int(max(0, min(HEIGHT - 1, y)))
+
+    def presentar(self, virtual):
+        self.temps += 1
+        if self.rect.size == (WIDTH, HEIGHT) and self.rect.topleft == (0, 0):
+            self.surf.blit(virtual, (0, 0))
+        else:
+            w, h = self.surf.get_size()
+            if self.rect.width < w or self.rect.height < h:
+                # bandes laterals: la mateixa imatge, molt difuminada i fosca (s'actualitza cada 6 fotogrames)
+                if self.ambient is None or self.temps % 6 == 0:
+                    petit = pygame.transform.smoothscale(virtual, (24, 18))
+                    self.ambient = pygame.transform.smoothscale(petit, (w, h))
+                    self.ambient.fill((135, 135, 150), special_flags=pygame.BLEND_RGB_MULT)
+                if self.rect.left > 0:
+                    self.surf.blit(self.ambient, (0, 0), pygame.Rect(0, 0, self.rect.left, h))
+                    self.surf.blit(self.ambient, (self.rect.right, 0), pygame.Rect(self.rect.right, 0, w - self.rect.right, h))
+                if self.rect.top > 0:
+                    self.surf.blit(self.ambient, (0, 0), pygame.Rect(0, 0, w, self.rect.top))
+                    self.surf.blit(self.ambient, (0, self.rect.bottom), pygame.Rect(0, self.rect.bottom, w, h - self.rect.bottom))
+            escalat = (pygame.transform.smoothscale if self.suau else pygame.transform.scale)(virtual, self.rect.size)
+            self.surf.blit(escalat, self.rect)
+        pygame.display.flip()
+
+
+PANTALLA = Pantalla(bool(OPCIONS_INICIALS.get("completa", True)), bool(OPCIONS_INICIALS.get("suau", True)))
+screen = pygame.Surface((WIDTH, HEIGHT))       # llenç virtual on es dibuixa tot el joc
+
+
+def ratoli():
+    """Posició del ratolí en coordenades del joc, sigui quina sigui la resolució."""
+    return PANTALLA.a_virtual(pygame.mouse.get_pos())
+
 
 
 # ---------------------------------------------------------------------------
@@ -348,19 +502,19 @@ class Audio:
         "buit": 0.7, "ferit": 0.7, "escopeta": 0.6, "plasma": 0.5, "envestida": 0.5, "explosio": 0.8,
         "passi": 0.6,
     }
-    VOL_MUSICA = 0.45
-
-    def __init__(self):
+    def __init__(self, vol_musica=0.3, vol_efectes=0.8):
         self.sons = {}
         self.musica_actual = None
         self.silenci = False
         self.ultim = {}
+        self.vol_musica = vol_musica          # 0-1, ho tria el jugador a Opciones
+        self.vol_efectes = vol_efectes
         if not AUDIO_OK:
             return
         for nom, vol in self.VOLUMS.items():
             try:
                 so = pygame.mixer.Sound(ruta("so", nom + ".ogg"))
-                so.set_volume(vol)
+                so.set_volume(vol * self.vol_efectes)
                 self.sons[nom] = so
             except (OSError, pygame.error) as err:
                 print(f"No s'ha pogut carregar el so {nom}: {err}")
@@ -386,7 +540,7 @@ class Audio:
         self.musica_actual = nom
         try:
             pygame.mixer.music.load(ruta("musica", nom + ".ogg"))
-            pygame.mixer.music.set_volume(0 if self.silenci else self.VOL_MUSICA)
+            pygame.mixer.music.set_volume(0 if self.silenci else self.vol_musica)
             pygame.mixer.music.play(-1)
         except (OSError, pygame.error) as err:
             print(f"No s'ha pogut reproduir la música {nom}: {err}")
@@ -399,72 +553,24 @@ class Audio:
     def commutar_silenci(self):
         self.silenci = not self.silenci
         if AUDIO_OK:
-            pygame.mixer.music.set_volume(0 if self.silenci else self.VOL_MUSICA)
+            pygame.mixer.music.set_volume(0 if self.silenci else self.vol_musica)
             if self.silenci:
                 for i in range(pygame.mixer.get_num_channels()):
                     pygame.mixer.Channel(i).stop()
 
 
-AUDIO = Audio()
+    def canviar_volums(self, musica=None, efectes=None):
+        if musica is not None:
+            self.vol_musica = max(0.0, min(1.0, musica))
+            if AUDIO_OK:
+                pygame.mixer.music.set_volume(0 if self.silenci else self.vol_musica)
+        if efectes is not None:
+            self.vol_efectes = max(0.0, min(1.0, efectes))
+            for nom, so in self.sons.items():
+                so.set_volume(self.VOLUMS[nom] * self.vol_efectes)
 
 
-class Desat:
-    """Desa el progrés: localStorage al navegador, fitxer JSON a l'escriptori."""
-
-    CLAU = "invasio_alienigena_v1"
-    FITXER = os.path.join(BASE, "partida.json")
-
-    @staticmethod
-    def _storage():
-        try:
-            return __import__("platform").window.localStorage
-        except Exception:
-            return None
-
-    @classmethod
-    def carregar(cls):
-        try:
-            if WEB:
-                st = cls._storage()
-                txt = st.getItem(cls.CLAU) if st is not None else None
-            elif os.path.exists(cls.FITXER):
-                with open(cls.FITXER, encoding="utf-8") as f:
-                    txt = f.read()
-            else:
-                txt = None
-            if not txt or str(txt) in ("null", "undefined"):
-                return {}
-            dades = json.loads(str(txt))
-            return dades if isinstance(dades, dict) else {}
-        except Exception as err:
-            print(f"No s'ha pogut carregar la partida: {err}")
-            return {}
-
-    @classmethod
-    def desar(cls, dades):
-        try:
-            txt = json.dumps(dades)
-            if WEB:
-                st = cls._storage()
-                if st is not None:
-                    st.setItem(cls.CLAU, txt)
-            else:
-                with open(cls.FITXER, "w", encoding="utf-8") as f:
-                    f.write(txt)
-        except Exception as err:
-            print(f"No s'ha pogut desar la partida: {err}")
-
-    @classmethod
-    def esborrar(cls):
-        try:
-            if WEB:
-                st = cls._storage()
-                if st is not None:
-                    st.removeItem(cls.CLAU)
-            elif os.path.exists(cls.FITXER):
-                os.remove(cls.FITXER)
-        except Exception as err:
-            print(f"No s'ha pogut esborrar la partida: {err}")
+AUDIO = Audio(float(OPCIONS_INICIALS.get("musica", 0.3)), float(OPCIONS_INICIALS.get("efectes", 0.8)))
 
 
 def musica_escenari(nivell, escenari):
@@ -1116,7 +1222,7 @@ class Boto:
         self.color_text = color_text
 
     def hover(self):
-        return self.actiu and self.rect.collidepoint(pygame.mouse.get_pos())
+        return self.actiu and self.rect.collidepoint(ratoli())
 
     def dibuixar(self, surf):
         if self.invisible:
@@ -1149,6 +1255,49 @@ def gestionar_botons(botons, event):
 # ---------------------------------------------------------------------------
 # Entitats del joc
 # ---------------------------------------------------------------------------
+class Lliscador:
+    """Barra lliscant (0-100%) per als volums."""
+
+    def __init__(self, x, y, amp, valor, en_canvi, en_deixar=None):
+        self.rect = pygame.Rect(x, y, amp, 14)
+        self.valor = valor
+        self.en_canvi = en_canvi
+        self.en_deixar = en_deixar
+        self.arrossegant = False
+
+    def _posar(self, x):
+        self.valor = max(0.0, min(1.0, (x - self.rect.x) / self.rect.width))
+        self.en_canvi(self.valor)
+
+    def gestionar(self, ev):
+        if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1 and self.rect.inflate(20, 26).collidepoint(ev.pos):
+            self.arrossegant = True
+            self._posar(ev.pos[0])
+            return True
+        if ev.type == pygame.MOUSEMOTION and self.arrossegant:
+            self._posar(ev.pos[0])
+            return True
+        if ev.type == pygame.MOUSEBUTTONUP and ev.button == 1 and self.arrossegant:
+            self.arrossegant = False
+            if self.en_deixar:
+                self.en_deixar()
+            return True
+        return False
+
+    def dibuixar(self, surf):
+        pygame.draw.rect(surf, NEGRE, self.rect.move(0, 3), border_radius=7)
+        pygame.draw.rect(surf, GRIS_FOSC, self.rect, border_radius=7)
+        ple = self.rect.copy()
+        ple.width = int(self.rect.width * self.valor)
+        if ple.width > 0:
+            pygame.draw.rect(surf, CIAN, ple, border_radius=7)
+        x = self.rect.x + int(self.rect.width * self.valor)
+        hover = self.rect.inflate(20, 26).collidepoint(ratoli()) or self.arrossegant
+        pygame.draw.circle(surf, NEGRE, (x, self.rect.centery + 2), 13)
+        pygame.draw.circle(surf, BLANC if hover else (210, 220, 240), (x, self.rect.centery), 12)
+        pygame.draw.circle(surf, CIAN, (x, self.rect.centery), 6)
+
+
 class Plataforma:
     def __init__(self, x, y, w, h=18, terra=False):
         self.rect = pygame.Rect(x, y, w, h)
@@ -2468,6 +2617,8 @@ class Game:
             "cosmetics": sorted(self.cosmetics),
             "equipat": {"uniforme": self.uniforme, "arma": self.aparenca, "titol": self.titol},
             "intro_vista": self.intro_vista,
+            "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
+                        "completa": PANTALLA.completa, "suau": PANTALLA.suau},
         })
 
     def esborrar_progres(self):
@@ -2569,7 +2720,8 @@ class Game:
         c = WIDTH // 2
         b = [Boto((c - 160, 242, 320, 46), "Jugar", self.entrar_selector, VERD)]
         graella = [("Tienda", self.entrar_botiga), ("Battle Pass", self.entrar_passi),
-                   ("Historia", self.entrar_arxiu), ("Guía", self.entrar_guia), ("Créditos", self.entrar_credits)]
+                   ("Historia", self.entrar_arxiu), ("Guía", self.entrar_guia),
+                   ("Opciones", self.entrar_opcions), ("Créditos", self.entrar_credits)]
         if not WEB:
             graella.append(("Salir", lambda: self.canviar_estat("quit")))
         for k, (nom, accio) in enumerate(graella):
@@ -2790,9 +2942,59 @@ class Game:
         self.botons = [
             Boto((WIDTH // 2 - 120, 230, 240, 50), "Continuar", self.reprendre, VERD),
             Boto((WIDTH // 2 - 120, 294, 240, 50), "Reiniciar", self.iniciar_joc, BLAU),
-            Boto((WIDTH // 2 - 120, 358, 240, 50), "Menú", self.entrar_menu, GRIS_FOSC),
+            Boto((WIDTH // 2 - 120, 358, 240, 50), "Opciones", lambda: self.entrar_opcions(self.pausar), BLAU),
+            Boto((WIDTH // 2 - 120, 422, 240, 50), "Menú", self.entrar_menu, GRIS_FOSC),
         ]
         self.canviar_estat("pausa")
+
+    # ----- Opciones ---------------------------------------------------------
+    def entrar_opcions(self, tornada=None):
+        self.tornada_opcions = tornada or self.entrar_menu
+        self.lliscadors = [
+            Lliscador(300, 170, 300, AUDIO.vol_musica, lambda v: AUDIO.canviar_volums(musica=v), self.desar_progres),
+            Lliscador(300, 250, 300, AUDIO.vol_efectes, lambda v: AUDIO.canviar_volums(efectes=v),
+                      lambda: (AUDIO.so("moneda"), self.desar_progres())),
+        ]
+        b = []
+        if WEB:
+            b.append(Boto((300, 322, 300, 40), "Pantalla completa (F11)", PANTALLA.commutar_completa, BLAU, font=F_HUD))
+        else:
+            b.append(Boto((300, 322, 145, 40), "Completa", lambda: self.posar_pantalla(True),
+                          VERD if PANTALLA.completa else BLAU, font=F_HUD))
+            b.append(Boto((455, 322, 145, 40), "Ventana", lambda: self.posar_pantalla(False),
+                          VERD if not PANTALLA.completa else BLAU, font=F_HUD))
+        b.append(Boto((300, 392, 145, 40), "Suave", lambda: self.posar_suau(True), VERD if PANTALLA.suau else BLAU,
+                      font=F_HUD))
+        b.append(Boto((455, 392, 145, 40), "Nítido", lambda: self.posar_suau(False),
+                      VERD if not PANTALLA.suau else BLAU, font=F_HUD))
+        b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
+        self.botons = b
+        self.canviar_estat("opcions")
+
+    def posar_pantalla(self, completa):
+        if PANTALLA.completa != completa:
+            PANTALLA.completa = completa
+            PANTALLA.aplicar()
+            self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
+
+    def posar_suau(self, suau):
+        PANTALLA.suau = suau
+        self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
+
+    def dibuixar_opcions(self, surf):
+        self.fons_menu.dibuixar(surf)
+        text(surf, "OPCIONES", F_SUBTITOL, BLANC, (WIDTH // 2, 60))
+        files = [("Música", 177), ("Efectos", 257), ("Pantalla", 342), ("Escalado", 412)]
+        for nom, y in files:
+            text(surf, nom, F_TEXT, BLANC, (110, y), ancora="midleft")
+        for l in self.lliscadors:
+            l.dibuixar(surf)
+            text(surf, f"{round(l.valor * 100)}%", F_UI, CIAN, (l.rect.right + 30, l.rect.centery), ancora="midleft")
+        w, h = PANTALLA.surf.get_size()
+        text(surf, f"Resolución actual: {w}x{h}", F_TEXT_P, GRIS, (WIDTH // 2, 470))
+        text(surf, "F11: pantalla completa  ·  M: silenciar", F_TEXT_PP, GRIS, (WIDTH // 2, 500))
 
     def reprendre(self):
         self.botons = []
@@ -2917,7 +3119,7 @@ class Game:
             return
         spr = self.spr_jugador()
         cx, cy = self.jugador.canons(spr)
-        mx, my = pygame.mouse.get_pos()
+        mx, my = ratoli()
         base = math.atan2(my - cy, mx - cx)
         dany = max(1, round(arma["dany"] * self.multiplicador_dany()))
         color = self.color_bala()
@@ -3006,21 +3208,21 @@ class Game:
         dre = teclat[pygame.K_d] or teclat[pygame.K_RIGHT]
         salt = teclat[pygame.K_SPACE] or teclat[pygame.K_w] or teclat[pygame.K_UP]
         avall = teclat[pygame.K_s] or teclat[pygame.K_DOWN]
-        ratoli = pygame.mouse.get_pressed()[0]
-        mx, _ = pygame.mouse.get_pos()
+        premut = pygame.mouse.get_pressed()[0]
+        mx, _ = ratoli()
 
         if self.fase != "mort":
             self.jugador.actualitzar(esq, dre, salt, avall, self.plataformes, mx)
             self.pols_jugador()
 
         # Trets
-        if self.esperar_alliberar and not ratoli:
+        if self.esperar_alliberar and not premut:
             self.esperar_alliberar = False
         self.cooldown = max(0, self.cooldown - 1)
         self.clic_pendent = max(0, self.clic_pendent - 1)
         if self.fase == "jugant" and not self.esperar_alliberar and self.cooldown == 0:
             arma = ARMES[self.arma_actual]
-            if (arma["auto"] and ratoli) or self.clic_pendent:
+            if (arma["auto"] and premut) or self.clic_pendent:
                 self.clic_pendent = 0
                 self.disparar()
         self.avis_bales = max(0, self.avis_bales - 1)
@@ -3264,7 +3466,7 @@ class Game:
         self.dibuixar_avisos(surf, 132)
         # Punt de mira
         if self.estat == "joc":
-            mx, my = pygame.mouse.get_pos()
+            mx, my = ratoli()
             col = VERMELL if self.avis_bales else BLANC
             pygame.draw.circle(surf, NEGRE, (mx, my), 10, 3)
             pygame.draw.circle(surf, col, (mx, my), 9, 1)
@@ -3320,7 +3522,7 @@ class Game:
             self.dibuixar_botiga_aparenca(surf)
 
     def dibuixar_botiga_armes(self, surf):
-        ratoli = pygame.mouse.get_pos()
+        pos_ratoli = ratoli()
         info_hover = None
         for i, arma in enumerate(ARMES):
             carta = pygame.Rect(18 + i * 154, 136, 146, 356)
@@ -3347,7 +3549,7 @@ class Game:
                 text(surf, valor, F_TEXT_P, BLANC, (carta.right - 12, y), ancora="midright", ombra=False)
             text(surf, "Potencia", F_TEXT_P, GRIS, (carta.left + 12, carta.top + 250), ancora="midleft", ombra=False)
             dibuixar_pips(surf, carta.left + 14, carta.top + 266, arma["potencia"], color=TARONJA)
-            if carta.collidepoint(ratoli):
+            if carta.collidepoint(pos_ratoli):
                 info_hover = arma["desc"] + ("" if disponible else f" Disponible al completar {nom_escenari(arma['req'])}.")
         if self.missatge:
             return
@@ -3389,7 +3591,7 @@ class Game:
     def _casella_cosmetic(self, surf, r, tipus, ident, equipat, img, nom):
         prefix = {"uniforme": "u:", "arma": "a:", "titol": "t:"}[tipus]
         obert = prefix + ident in self.cosmetics
-        hover = r.collidepoint(pygame.mouse.get_pos())
+        hover = r.collidepoint(ratoli())
         panell(surf, r, VERD if equipat else (BLAU_CLAR if obert and hover else (GRIS if obert else GRIS_FOSC)))
         if img:
             if not obert:
@@ -3424,7 +3626,7 @@ class Game:
         txt = (f"Nivel {nivell}/{len(PASSI)} · {self.xp % XP_PER_NIVELL}/{XP_PER_NIVELL} XP" if nivell < len(PASSI)
                else f"Nivel máximo · {self.xp} XP")
         text(surf, txt, F_HUD, BLANC, (barra.centerx, barra.top - 12))
-        ratoli = pygame.mouse.get_pos()
+        pos_ratoli = ratoli()
         descripcio = None
         for i, recompenses in enumerate(PASSI):
             fila, col = divmod(i, 10)
@@ -3458,7 +3660,7 @@ class Game:
                 capa = pygame.Surface(r.size, pygame.SRCALPHA)
                 capa.fill((0, 0, 0, 110))
                 surf.blit(capa, r)
-            if r.collidepoint(ratoli):
+            if r.collidepoint(pos_ratoli):
                 descripcio = f"Nivel {i + 1}: " + " + ".join(nom_recompensa(t, v) for t, v in recompenses)
         text(surf, descripcio or "Gana XP eliminando enemigos y completando escenarios (más XP la primera vez).",
              F_TEXT_P, CIAN if descripcio else GRIS, (WIDTH // 2 + 70, 450))
@@ -3491,6 +3693,7 @@ class Game:
             ("P / ESC", "Pausa"),
             ("G", "Volver al menú"),
             ("M", "Activar / silenciar el sonido"),
+            ("F11", "Pantalla completa (volumen y vídeo en Opciones)"),
         ]
         for i, (tecla, accio) in enumerate(controls):
             y = 100 + i * 34
@@ -3550,6 +3753,21 @@ class Game:
         if ev.type == pygame.KEYDOWN and ev.key == pygame.K_m:
             AUDIO.commutar_silenci()
             return
+        if ev.type == pygame.KEYDOWN and ev.key == pygame.K_F11:
+            PANTALLA.commutar_completa()
+            self.desar_progres()
+            if self.estat == "opcions":
+                self.entrar_opcions(self.tornada_opcions)
+            return
+        if ev.type == getattr(pygame, "VIDEORESIZE", -1):
+            PANTALLA.recalcular()
+            return
+        if self.estat == "opcions":
+            if any(l.gestionar(ev) for l in self.lliscadors):
+                return
+            if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
+                self.tornada_opcions()
+                return
         if ev.type == getattr(pygame, "WINDOWFOCUSLOST", -1) and self.estat == "joc" and self.fase == "jugant":
             self.pausar()
             return
@@ -3624,7 +3842,7 @@ class Game:
             a[2] -= 1
             if a[2] <= 0:
                 self.avisos.remove(a)
-        if self.estat in ("loading", "menu", "selector", "botiga", "guia", "credits", "passi", "arxiu"):
+        if self.estat in ("loading", "menu", "selector", "botiga", "guia", "credits", "passi", "arxiu", "opcions"):
             self.fons_menu.actualitzar()
         if self.estat == "loading" and self.temps_estat > FPS * 6:
             self.sortir_carrega()
@@ -3640,7 +3858,7 @@ class Game:
             "loading": self.dibuixar_loading, "menu": self.dibuixar_menu, "selector": self.dibuixar_selector,
             "botiga": self.dibuixar_botiga, "guia": self.dibuixar_guia, "credits": self.dibuixar_credits,
             "joc": self.dibuixar_joc, "pausa": self.dibuixar_pausa, "passi": self.dibuixar_passi,
-            "arxiu": self.dibuixar_arxiu, "intro": lambda s: self.intro.dibuixar(s),
+            "arxiu": self.dibuixar_arxiu, "intro": lambda s: self.intro.dibuixar(s), "opcions": self.dibuixar_opcions,
         }.get(self.estat)
         if dibuix:
             dibuix(surf)
@@ -3659,6 +3877,8 @@ class Game:
     def pas(self):
         """Un fotograma complet (també l'utilitzen les proves automàtiques)."""
         for ev in pygame.event.get():
+            if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and hasattr(ev, "pos"):
+                ev = pygame.event.Event(ev.type, {**ev.dict, "pos": PANTALLA.a_virtual(ev.pos)})
             self.gestionar_event(ev)
         if self.estat == "quit":
             return False
@@ -3666,7 +3886,7 @@ class Game:
         if self.estat == "quit":
             return False
         self.dibuixar(screen)
-        pygame.display.flip()
+        PANTALLA.presentar(screen)
         return True
 
     async def main(self):

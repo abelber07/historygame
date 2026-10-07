@@ -42,6 +42,7 @@ Al completar un sector se desbloquea un expediente en **Historia**, con el trasf
 | P / ESC | Pausa |
 | G | Volver al menú |
 | M | Activar / silenciar el sonido |
+| F11 | Pantalla completa |
 
 ## Armas y potencia
 
@@ -55,6 +56,12 @@ Al completar un sector se desbloquea un expediente en **Historia**, con el trasf
 
 Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquean (por ejemplo, en las ruinas inestables del sector 1, en el laboratorio con gas inflamable de la selva o en el campo supresor de la colmena). Si el arma equipada no está permitida, el juego elige la mejor que sí lo está. El selector de niveles muestra la potencia máxima de cada escenario.
 
+## Opciones
+
+Desde el menú (y desde la pausa) se puede ajustar el **volumen de la música** y el **de los efectos** por separado, elegir **pantalla completa o ventana** y el **escalado** (suave o nítido). Todo se guarda.
+
+El juego se dibuja a 800x600 y se escala a la resolución del monitor (por ejemplo 1920x1080 a pantalla completa); a los lados se muestra una versión difuminada de la imagen para llenar la pantalla panorámica. En el navegador el lienzo es de 1280x720 y se amplía a toda la ventana.
+
 ## Tienda
 
 - **Armas**: compra y equipa las cinco armas. Algunas no se pueden comprar hasta que avanzas en la historia.
@@ -66,6 +73,11 @@ Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquea
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 2.2**
+- Pantalla de Opciones con volumen de música y efectos, pantalla completa o ventana y escalado.
+- El juego se adapta a la resolución del monitor (1920x1080 a pantalla completa) y llena la pantalla panorámica.
+- Música menos fuerte por defecto (30%), recodificada con más calidad y margen para que no distorsione, y búfer de audio más grande para evitar chasquidos. La versión web ya no recomprime el audio (`--no_opt`).
 
 **Versión 2.1**
 - Todo el juego en español.
