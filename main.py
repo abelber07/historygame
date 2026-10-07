@@ -3,7 +3,7 @@ Joc Militar: Invasió Alienígena
 Versió millorada, compatible amb escriptori i navegador (pygbag / GitHub Pages).
 
 Escriptori:  python main.py
-Navegador:   pygbag .        (o el workflow de GitHub Actions del repositori)
+Navegador:   pygbag .        (GitHub Actions recompila index.html i historygame.apk)
 """
 import asyncio
 import json
