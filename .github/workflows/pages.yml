@@ -1,13 +1,14 @@
 name: Recompilar el joc web
 
 # GitHub Pages publica la branca main (arrel). Aquest workflow recompila
-# index.html i historygame.apk quan canvia el codi o els assets, i els desa a main.
+# index.html, historygame.apk i historygame.tar.gz quan canvia el codi o els assets, i els desa a main.
 on:
   push:
     branches: [main]
     paths:
       - "main.py"
       - "assets/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -36,13 +37,13 @@ jobs:
           mkdir -p _web/historygame
           cp -r main.py assets _web/historygame/
           python -m pygbag --build --title "Invasió Alienígena" --icon favicon.png _web/historygame
-          cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk .
+          cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk _web/historygame/build/web/historygame.tar.gz .
 
       - name: Desar la versió compilada a main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html historygame.apk
+          git add index.html historygame.apk historygame.tar.gz
           if git diff --cached --quiet; then
             echo "Res a actualitzar"
           else
