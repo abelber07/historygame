@@ -1,17 +1,21 @@
-name: Publicar el joc a GitHub Pages
+name: Recompilar el joc web
 
+# GitHub Pages publica la branca main (arrel). Aquest workflow recompila
+# index.html i historygame.apk quan canvia el codi o els assets, i els desa a main.
 on:
   push:
     branches: [main]
+    paths:
+      - "main.py"
+      - "assets/**"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: build-web
   cancel-in-progress: true
 
 jobs:
@@ -29,23 +33,25 @@ jobs:
 
       - name: Compilar per a navegador (WebAssembly)
         run: |
-          mkdir -p _web/invasio
-          cp -r main.py assets _web/invasio/
-          python -m pygbag --build --title "Invasió Alienígena" _web/invasio
-          ls -la _web/invasio/build/web
+          mkdir -p _web/historygame
+          cp -r main.py assets _web/historygame/
+          python -m pygbag --build --title "Invasió Alienígena" --icon favicon.png _web/historygame
+          cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk .
 
-      - uses: actions/configure-pages@v5
+      - name: Desar la versió compilada a main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html historygame.apk
+          if git diff --cached --quiet; then
+            echo "Res a actualitzar"
+          else
+            git commit -m "Recompilar la versió web"
+            git push
+          fi
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _web/invasio/build/web
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Demanar una nova publicació de GitHub Pages
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds"

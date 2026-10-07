@@ -82,7 +82,9 @@ pygbag .
 
 ## Publicació
 
-Cada `push` a `main` executa `.github/workflows/pages.yml`, que compila el joc amb pygbag i el publica a GitHub Pages. Cal tenir activat **Settings → Pages → Source: GitHub Actions**.
+GitHub Pages publica l'arrel de la branca `main` (**Settings → Pages → Deploy from a branch: main / root**). La versió web compilada són els fitxers `index.html` i `historygame.apk` de l'arrel.
+
+Quan es puja un canvi a `main.py` o a `assets/`, el workflow `.github/workflows/pages.yml` recompila el joc amb pygbag, actualitza aquests dos fitxers i torna a publicar la pàgina.
 
 ## Eines
 
