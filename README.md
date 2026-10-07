@@ -44,7 +44,11 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 - Cada escenario da hasta **3 estrellas**: completarlo, hacerlo sin recibir daño y acabarlo antes de un tiempo (el cronómetro está arriba a la derecha). Cada estrella nueva da 30 XP para el Battle Pass.
 - **Supervivencia** (se desbloquea al completar el sector 1): oleadas infinitas en la arena que elijas, cada vez más difíciles y con un jefe cada cinco. Se guardan los 5 mejores récords. Da la mitad de monedas y XP.
 - **Dificultad** Fácil, Normal o Difícil en Opciones: cambia la vida, el daño y la cadencia de los enemigos (y las monedas que ganas).
-- **Idioma**: español, catalán o inglés, en Opciones.
+- **Idioma**: español, catalán o inglés, en Opciones o con el icono del planeta arriba a la izquierda del menú (salen las banderas).
+
+## Logros
+
+28 logros de bronce, plata, oro y platino (el icono del trofeo, arriba a la izquierda del menú). Cada uno da monedas (50, 150, 400 o 1000). Además de los de la historia y los de habilidad, hay **logros secretos** que no dicen qué hay que hacer hasta conseguirlos (solo dan una pista): encontrar las placas de identificación escondidas en cada sector, reventar algo que te vigila desde el fondo del primer escenario, derribar uno de los ovnis del cielo, acabar el juego de cierta manera o introducir un código muy famoso en el menú. Al conseguir todos, el platino.
 
 ## Controles
 
@@ -90,6 +94,12 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 3.1**
+- Sistema de logros (28, con secretos, placas escondidas y platino) y avisos de logro desbloqueado.
+- Iconos en el menú: el planeta para cambiar de idioma con banderas y el trofeo para ver los logros.
+- Las cinemáticas ya no se aceleran con clic o ESPACIO: avanzan solas con tiempo para leer y se pueden saltar con el botón «Saltar» (o ESC).
+- Arreglado el imán: los objetos solo se acercan si los puedes usar (vida o munición que no tengas al máximo); si no, se quedan donde están.
 
 **Versión 3.0**
 - Tres enemigos de suelo nuevos (soldado, escudero y kamikaze), peligros en los escenarios (escombros, morteros, ácido, gas, electricidad, plataformas móviles y frágiles) y oleadas de refuerzos.

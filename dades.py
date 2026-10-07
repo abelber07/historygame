@@ -397,3 +397,67 @@ def nom_recompensa(tipus, valor):
     if tipus == "arma":
         return T("Aspecto de arma {a}").format(a=T(APARENCES_ARMA[valor]["nom"]))
     return T("Título: {t}").format(t=T(TITOLS[valor]))
+
+
+# ---------------------------------------------------------------------------
+# Logros (como los trofeos de las consolas). "secret": no se ve qué hay que hacer hasta conseguirlo;
+# "pista" es lo único que se muestra de los secretos. Cada logro da monedas según su categoría.
+# ---------------------------------------------------------------------------
+CATEGORIES_LOGRO = {
+    "bronze": {"nom": "Bronce", "color": (205, 127, 70), "monedes": 50},
+    "plata": {"nom": "Plata", "color": (200, 205, 220), "monedes": 150},
+    "or": {"nom": "Oro", "color": (255, 205, 60), "monedes": 400},
+    "plati": {"nom": "Platino", "color": (150, 230, 255), "monedes": 1000},
+}
+LOGROS = [
+    # historia
+    {"id": "primer", "nom": "Primer contacto", "desc": "Completa el escenario 1-1.", "cat": "bronze"},
+    {"id": "sector1", "nom": "Las ruinas son nuestras", "desc": "Derrota al General Xylothian.", "cat": "bronze"},
+    {"id": "sector2", "nom": "Poda radical", "desc": "Derrota al Maestro de la Selva.", "cat": "bronze"},
+    {"id": "comandant", "nom": "Sin voz", "desc": "Derrota al Comandante Supremo.", "cat": "plata"},
+    {"id": "nau", "nom": "Fuera de órbita", "desc": "Destruye la Nave Nodriza.", "cat": "plata"},
+    {"id": "final", "nom": "Silencio", "desc": "Apaga el Núcleo de Xylos y termina la historia.", "cat": "or"},
+    {"id": "fins_final", "nom": "Hasta el final", "desc": "Mira la cinemática final entera sin saltarla.", "cat": "bronze"},
+    # habilidad
+    {"id": "intocable", "nom": "Intocable", "desc": "Derrota a un jefe sin recibir ni un golpe.", "cat": "or"},
+    {"id": "rellotge", "nom": "Contrarreloj", "desc": "Consigue la estrella de rapidez en 5 escenarios.", "cat": "plata"},
+    {"id": "estrelles", "nom": "Constelación", "desc": "Consigue las 45 estrellas.", "cat": "or"},
+    {"id": "dificil", "nom": "Veterano de verdad", "desc": "Derrota al Núcleo de Xylos en Difícil.", "cat": "or"},
+    {"id": "onada10", "nom": "Superviviente", "desc": "Llega a la oleada 10 en Supervivencia.", "cat": "plata"},
+    {"id": "onada20", "nom": "Leyenda de la arena", "desc": "Llega a la oleada 20 en Supervivencia.", "cat": "or"},
+    {"id": "baixes", "nom": "Exterminador", "desc": "Elimina a 500 alienígenas.", "cat": "plata"},
+    {"id": "voltes", "nom": "Acróbata", "desc": "Haz 100 volteretas.", "cat": "bronze"},
+    {"id": "esquena", "nom": "Por la espalda", "desc": "Elimina a un escudero disparándole por detrás.", "cat": "bronze"},
+    {"id": "carambola", "nom": "Carambola", "desc": "Haz que la explosión de un kamikaze elimine a otro alienígena.", "cat": "bronze"},
+    # tienda y aspecto
+    {"id": "arsenal", "nom": "Arsenal completo", "desc": "Consigue las cinco armas.", "cat": "plata"},
+    {"id": "millores", "nom": "Al máximo", "desc": "Sube todas las mejoras al máximo.", "cat": "or"},
+    {"id": "daurat", "nom": "Todo de oro", "desc": "Equípate el uniforme y el aspecto de arma dorados.", "cat": "plata"},
+    # secretos
+    {"id": "placa", "nom": "Placa encontrada", "desc": "Encuentra una placa de identificación escondida.", "cat": "bronze",
+     "secret": True, "pista": "Hay cosas brillando donde nadie mira."},
+    {"id": "placas", "nom": "Nadie se queda atrás", "desc": "Recupera las cinco placas de identificación escondidas.",
+     "cat": "or", "secret": True, "pista": "Los soldados caídos dejaron algo en cada sector."},
+    {"id": "ull", "nom": "Ojo por ojo", "desc": "Revienta el ojo de la torre de vigilancia del escenario 1-1.",
+     "cat": "plata", "secret": True, "pista": "Alguien te vigila desde el fondo del primer escenario."},
+    {"id": "ovni", "nom": "Avistamiento", "desc": "Derriba uno de los ovnis que cruzan el cielo del fondo.",
+     "cat": "plata", "secret": True, "pista": "Mira al cielo."},
+    {"id": "pistola", "nom": "Vieja escuela", "desc": "Derrota al Núcleo de Xylos usando solo la pistola.",
+     "cat": "or", "secret": True, "pista": "A veces, menos es más."},
+    {"id": "konami", "nom": "Código secreto", "desc": "Introduce el código más famoso de los videojuegos en el menú.",
+     "cat": "plata", "secret": True, "pista": "Arriba, arriba..."},
+    {"id": "suicida", "nom": "Mal cálculo", "desc": "Muere por la explosión de un kamikaze.", "cat": "bronze",
+     "secret": True, "pista": "No los abraces."},
+    # platino
+    {"id": "plati", "nom": "Héroe de la galaxia", "desc": "Consigue todos los demás logros.", "cat": "plati"},
+]
+LOGRO_PER_ID = {l["id"]: l for l in LOGROS}
+
+# Placas de identificación escondidas: una por sector, (escenario): (x, y) del centro de la placa
+PLAQUES = {
+    (0, 1): (930, 230),      # en el borde derecho, saltando desde la última plataforma
+    (1, 0): (370, 470),      # dentro del charco de ácido (rodando no quema)
+    (2, 0): (872, 108),      # muy arriba, a la derecha de la plataforma más alta
+    (3, 1): (40, 462),       # entre los contenedores, sobre el suelo electrificado
+    (4, 0): (760, 120),      # encima de una plataforma que se rompe
+}
