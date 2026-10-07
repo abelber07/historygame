@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "main.py"
+      - "dades.py"
       - "assets/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -35,7 +36,7 @@ jobs:
       - name: Compilar per a navegador (WebAssembly)
         run: |
           mkdir -p _web/historygame
-          cp -r main.py assets _web/historygame/
+          cp -r main.py dades.py assets _web/historygame/
           python -m pygbag --build --title "Invasió Alienígena" --icon favicon.png _web/historygame
           cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk _web/historygame/build/web/historygame.tar.gz .
 

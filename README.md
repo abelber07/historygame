@@ -6,39 +6,72 @@
 
 Versió millorada i adaptada a web del joc original [`Joc_final`](https://github.com/abelber07/Joc_final), fet per Nacho i Abel amb Python i Pygame.
 
-## Context
+## Història
 
-Any 2147. Els Xylothians, una raça alienígena, han devastat la Terra. Nexus, un soldat cibernètic, és l'última esperança de la humanitat per aturar la invasió infiltrant-se a les bases enemigues.
+Any 2147. Els Xylothians, una espècie que comparteix una sola ment, han devastat la Terra. Nexus, un soldat cibernètic immune al seu senyal mental, és l'última esperança de la humanitat.
 
-En vèncer el líder alienígena, Nexus destrueix la fortalesa, tanca els portals Xylothians i assegura la supervivència de la humanitat... de moment.
+Nexus travessa les ruïnes, la selva tecnològica i la fortalesa alienígena fins a derrotar el Comandant Suprem. Però abans de caure, el Comandant crida la **Nau Mare** que orbita la Terra, i les seves restes revelen la veritat: tots els Xylothians obeeixen el **Nucli de Xylos**, al seu món d'origen. Nexus haurà de pujar a l'òrbita i creuar l'últim portal per acabar la guerra per sempre.
+
+## Sectors
+
+| Sector | Escenaris | Cap |
+|---|---|---|
+| 1. Ruïnes Urbanes | 1-1 a 1-3 | General Xylothian |
+| 2. Selva Tecnològica | 2-1 a 2-3 | Mestre de la Selva |
+| 3. Fortalesa Xylothian | 3-1 a 3-3 | Comandant d'Elit i **Comandant Suprem** (cap final) |
+| 4. Òrbita: la Nau Mare | 4-1 a 4-3 | **Nau Mare Xylothian** (cap final) |
+| 5. Xylos, el Món Rusc | 5-1 a 5-3 | Guardià del Rusc i **Nucli de Xylos** (cap final) |
+
+Cada cap final té el seu patró: el Comandant Suprem llança anells que giren, la Nau Mare deixa caure cortines de bales i crida reforços, i el Nucli de Xylos dispara espirals, anells amb un buit per esquivar i una mirada que t'apunta.
+
+Quan completes un sector desbloqueges una entrada de l'**Arxiu**, amb el lore dels Xylothians.
 
 ## Controls
 
 | Tecla | Acció |
 |---|---|
 | A / D o fletxes | Moure's |
-| ESPAI / W / fletxa amunt | Saltar (mantén premut per saltar més alt) |
+| ESPAI / W / fletxa amunt | Saltar (mantén premut per saltar més alt; doble salt amb els Propulsors) |
 | S / fletxa avall | Baixar d'una plataforma |
 | Clic esquerre | Disparar (mantén premut amb les armes automàtiques) |
+| 1-5 / Q / roda del ratolí | Canviar d'arma |
 | P / ESC | Pausa |
 | G | Tornar al menú |
 | M | Activar / silenciar el so |
 
-## Armes
+## Armes i potència
 
-| Arma | Dany | Bales | Tirs/s | Mode | Cost |
-|---|---|---|---|---|---|
-| Pistola | 5 | 20 | 6 | Semiautomàtica | Inicial |
-| Fusell | 15 | 30 | 6,7 | Automàtica | 700 |
-| Minigun | 25 | ∞ | 10 | Automàtica | 1400 |
+| Arma | Dany | Bales | Tirs/s | Potència | Cost | Disponible després de |
+|---|---|---|---|---|---|---|
+| Pistola | 5 | 20 | 6 | 1 | Inicial | — |
+| Escopeta | 6 × 6 perdigons | 12 | 1,8 | 2 | 500 | 1-2 |
+| Fusell | 15 | 30 | 6,7 | 3 | 900 | 1-3 |
+| Minigun | 25 | ∞ | 10 | 4 | 1800 | 3-1 |
+| Canó de plasma | 40 (travessa enemics) | 24 | 3,8 | 5 | 3000 | 4-2 |
 
-Les armes es compren a la Botiga amb les monedes que guanyes eliminant enemics (dron 50, lloctinent 100, cap 250, Comandant Suprem 500).
+Cada escenari té una **potència màxima**: les armes més potents s'hi bloquegen (per exemple, a les ruïnes inestables del sector 1, al laboratori amb gas inflamable de la selva o al camp supressor del rusc). Si l'arma equipada no està permesa, el joc tria la millor que sí que ho està. El selector de nivells mostra la potència màxima de cada escenari.
 
-## Nivells
+## Botiga
 
-Tres sectors amb tres escenaris cadascun: **Ruïnes Urbanes**, **Selva Tecnològica** i **Fortalesa Xylothian**. Cada sector acaba amb un cap amb el seu propi patró d'atac, i l'escenari final és el combat contra el Comandant Suprem Xylothian (anells de projectils que giren i una fase de fúria a mitja vida).
+- **Armes**: compra i equipa les cinc armes. Algunes no es poden comprar fins que avances en la història.
+- **Millores** (cada nivell també té un requisit d'història): Blindatge (+20 de vida), Potència (+15% de dany), Carregadors (+30% de munició), Imant (atrau els ítems), Reflexos (velocitat i invulnerabilitat) i Propulsors (doble salt).
+- **Aparença**: uniformes, aparences d'arma (canvien el color del metall i de les bales) i títols.
+
+## Passi de batalla
+
+Guanyes XP eliminant enemics i completant escenaris (més XP la primera vegada). Cada 200 XP puges un nivell del passi, fins a 20, i desbloqueges monedes i cosmètics exclusius: uniformes Desert, Àrtic, Operacions nocturnes, Elit vermell, Cibernètic i Daurat; aparences d'arma Tòxic, Plasma blau, Infern, Arc de Sant Martí i Daurat; i títols com «Caçador d'aliens» o «Llegenda de Xylos».
 
 ## Novetats d'aquesta versió
+
+**Versió 2.0**
+- Dos sectors nous (6 escenaris) amb fons nous, dos caps finals nous (Nau Mare i Nucli de Xylos), un cap nou (Guardià del Rusc) i un enemic nou: el caçador, que es carrega i envesteix.
+- Història ampliada i coherent amb el final, i Arxiu de lore.
+- Dues armes noves (escopeta i canó de plasma), potència d'arma per escenari i canvi d'arma durant la partida.
+- Botiga amb pestanyes d'armes, millores i aparença, amb compres que depenen de l'avanç en la història.
+- Passi de batalla de 20 nivells amb aparences exclusives per al soldat i les armes.
+- Animacions dels enemics: inclinació en moure's, propulsors, avís lluminós abans d'atacar, restes que cauen en morir i seqüències de mort dels caps amb explosions encadenades. El Comandant Suprem mou els tentacles i té una fase de fúria, la Nau Mare té llums i canons que s'il·luminen, i l'ull del Nucli segueix el jugador i parpelleja.
+- Els desats de la versió anterior es migren automàticament.
+
 
 **Errors corregits**
 - El bucle principal no cedia el control (`await asyncio.sleep(0)`), cosa que bloquejava la pestanya al navegador.
@@ -93,10 +126,12 @@ pygbag .
 
 GitHub Pages publica l'arrel de la branca `main` (**Settings → Pages → Deploy from a branch: main / root**). La versió web compilada són els fitxers `index.html`, `historygame.tar.gz` i `historygame.apk` de l'arrel.
 
-Quan es puja un canvi a `main.py` o a `assets/`, el workflow `.github/workflows/pages.yml` recompila el joc amb pygbag, actualitza aquests fitxers i torna a publicar la pàgina.
+Quan es puja un canvi a `main.py`, `dades.py` o `assets/`, el workflow `.github/workflows/pages.yml` recompila el joc amb pygbag, actualitza aquests fitxers i torna a publicar la pàgina.
 
 ## Eines
 
 - Python i Pygame (pygame-ce), amb asyncio per al bucle principal.
 - pygbag per executar-lo al navegador amb WebAssembly.
 - Assets propis (imatges, fons) i música i efectes lliures de drets.
+- L'art dels sectors 4 i 5, els caps finals nous, el caçador i les armes noves es generen amb `tools/generar_assets.py`.
+- Les dades del joc (armes, nivells, història, millores i passi) són a `dades.py`, per equilibrar-lo fàcilment.
