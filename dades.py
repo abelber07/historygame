@@ -476,7 +476,7 @@ PASSOS_TUTORIAL = [
     ("baixar", "Baja de la plataforma pulsando S (o la flecha abajo)."),
     ("voltereta", "Haz dos volteretas con MAYÚS o clic derecho: mientras ruedas no te hacen daño."),
     ("disparar", "Apunta con el ratón y dispara con clic izquierdo. Destruye los tres blancos."),
-    ("arma", "Cambia al fusil con la tecla 3 (o con Q o la rueda del ratón) y dispara."),
+    ("arma", "Cambia al fusil con la tecla 3 (o con Q o la rueda del ratón)."),
     ("items", "Recoge el corazón (vida) y la caja (munición)."),
     ("fi", "¡Entrenamiento completado! Con P o ESC puedes pausar cuando quieras."),
 ]

@@ -1,6 +1,18 @@
 """Traducciones del juego (generadas a partir de los textos en español). Clave: texto en español."""
 
 CA = {
+    "A tiempo": "A temps",
+    "¡NIVEL {n}!": "NIVELL {n}!",
+    "Gana XP eliminando enemigos y completando escenarios (más XP la primera vez).": "Guanya XP eliminant enemics i completant escenaris (més XP la primera vegada).",
+    "El ejército crea su última arma: el Proyecto NEXUS. Un soldado con implantes que lo hacen inmune a la señal mental alienígena.": "L'exèrcit crea la seva última arma: el Projecte NEXUS. Un soldat amb implants que el fan immune al senyal mental alienígena.",
+    "Los Xylothians no construyen: hacen crecer. Sus máquinas son organismos modificados que se alimentan de la biosfera de los mundos que invaden. La Selva Tecnológica era una granja: estaban convirtiendo la Tierra en una pieza más de la colmena.": "Els Xylothians no construeixen: fan créixer. Les seves màquines són organismes modificats que s'alimenten de la biosfera dels mons que envaeixen. La Selva Tecnològica era una granja: estaven convertint la Terra en una peça més del rusc.",
+    "La señal cruza la atmósfera. En órbita, una sombra inmensa despierta: la Nave Nodriza.": "El senyal travessa l'atmosfera. En òrbita, una ombra immensa es desperta: la Nau Nodrissa.",
+    "INMUNIDAD NEURAL": "IMMUNITAT NEURAL",
+    "SINCRONIZACIÓN": "SINCRONITZACIÓ",
+    "M: sonido OFF": "M: so OFF",
+    "Supervivencia: completa el sector 1": "Supervivència: completa el sector 1",
+    "¡Munición!": "Munició!",
+    "Cambia al fusil con la tecla 3 (o con Q o la rueda del ratón).": "Canvia al fusell amb la tecla 3 (o amb Q o la roda del ratolí).",
     "UN JUEGO DE": "UN JOC DE",
     "UN JUEGO DE ABEL": "UN JOC DE L'ABEL",
     "PROGRAMACIÓN": "PROGRAMACIÓ",
@@ -485,6 +497,18 @@ CA = {
 
 
 EN = {
+    "A tiempo": "In time",
+    "¡NIVEL {n}!": "LEVEL {n}!",
+    "Gana XP eliminando enemigos y completando escenarios (más XP la primera vez).": "Earn XP by killing enemies and clearing stages (more XP the first time).",
+    "El ejército crea su última arma: el Proyecto NEXUS. Un soldado con implantes que lo hacen inmune a la señal mental alienígena.": "The army builds its last weapon: Project NEXUS. A soldier with implants that make him immune to the alien mind signal.",
+    "Los Xylothians no construyen: hacen crecer. Sus máquinas son organismos modificados que se alimentan de la biosfera de los mundos que invaden. La Selva Tecnológica era una granja: estaban convirtiendo la Tierra en una pieza más de la colmena.": "The Xylothians don't build: they grow. Their machines are modified organisms that feed on the biosphere of the worlds they invade. The Techno-Jungle was a farm: they were turning Earth into one more piece of the hive.",
+    "La señal cruza la atmósfera. En órbita, una sombra inmensa despierta: la Nave Nodriza.": "The signal crosses the atmosphere. In orbit, an immense shadow awakens: the Mothership.",
+    "INMUNIDAD NEURAL": "NEURAL IMMUNITY",
+    "SINCRONIZACIÓN": "SYNCHRONIZATION",
+    "M: sonido OFF": "M: sound OFF",
+    "Supervivencia: completa el sector 1": "Survival: clear sector 1 first",
+    "¡Munición!": "Ammo!",
+    "Cambia al fusil con la tecla 3 (o con Q o la rueda del ratón).": "Switch to the rifle with key 3 (or Q or the mouse wheel).",
     "UN JUEGO DE": "A GAME BY",
     "UN JUEGO DE ABEL": "A GAME BY ABEL",
     "PROGRAMACIÓN": "PROGRAMMING",

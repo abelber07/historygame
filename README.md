@@ -95,6 +95,12 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.3**
+- Las páginas de «Cómo funciona» ahora están animadas: el Battle Pass se llena y desbloquea recompensas, cada mejora se ve en acción, cada arma dispara contra drones (la minigun se calienta) y los logros, las estrellas y la supervivencia tienen su escena.
+- Arreglado: con inglés o catalán, la escena del Proyecto NEXUS de la intro salía en español (y algún texto más).
+- Arreglado: en el entrenamiento se podía cambiar de arma antes de tiempo y el paso de cambiar de arma se quedaba atascado. Ahora el fusil solo aparece en ese paso y, al acabar, vuelves a tener el arma que llevabas.
+- Arreglado: las diagonales de la bandera inglesa se salían por las esquinas.
+
 **Versión 3.2**
 - La primera vez que se abre el juego: selector de idioma con banderas, la intro, un **entrenamiento jugable** con los controles (moverse, saltar, bajar, voltereta, disparar, cambiar de arma y recoger objetos) y unas páginas que explican el Battle Pass, las mejoras, las armas, las estrellas y los logros. Todo se puede repetir desde la Guía («Tutorial» y «Cómo funciona»).
 - Minigun reequilibrada: 9 de daño (unos 110 por segundo en lugar de 250), no gasta munición pero **se calienta** y se bloquea si no sueltas el gatillo, tarda en arrancar y te frena mientras disparas. El cañón de plasma pasa a 45 de daño y 30 cargas: ahora sí es el arma más potente.

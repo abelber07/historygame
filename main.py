@@ -3497,6 +3497,8 @@ def dibuixar_globus(surf, cx, cy, r):
 def dibuixar_bandera(surf, codi, rect):
     """Banderes en pixel art: castellà (Espanya), català (senyera) i anglès (Regne Unit)."""
     r = pygame.Rect(rect)
+    clip_abans = surf.get_clip()
+    surf.set_clip(r.clip(clip_abans) if clip_abans else r)     # les diagonals no surten de la bandera
     if codi == "es":
         pygame.draw.rect(surf, (198, 11, 30), r)
         pygame.draw.rect(surf, (255, 196, 0), (r.x, r.y + r.h // 4, r.w, r.h // 2))
@@ -3514,6 +3516,7 @@ def dibuixar_bandera(surf, codi, rect):
         pygame.draw.rect(surf, BLANC, (r.centerx - r.h // 6, r.y, r.h // 3, r.h))
         pygame.draw.rect(surf, (200, 16, 46), (r.x, r.centery - r.h // 10, r.w, r.h // 5 + 1))
         pygame.draw.rect(surf, (200, 16, 46), (r.centerx - r.h // 10, r.y, r.h // 5 + 1, r.h))
+    surf.set_clip(clip_abans)
     pygame.draw.rect(surf, NEGRE, r, 1)
 
 
@@ -3720,8 +3723,9 @@ class Game:
         return POTENCIA_MAX.get((self.nivell_actual, self.escenari_actual), 5)
 
     def armes_usables(self):
-        if self.mode == "tutorial":                     # a l'entrenament: pistola i fusell
-            return [ARMA_PER_ID["pistola"], ARMA_PER_ID["fusell"]]
+        if self.mode == "tutorial":     # a l'entrenament: només la pistola fins al pas de canviar d'arma
+            ja_pot = [c for c, _ in PASSOS_TUTORIAL].index("arma") <= getattr(self, "tut", {}).get("pas", 0)
+            return [ARMA_PER_ID["pistola"]] + ([ARMA_PER_ID["fusell"]] if ja_pot else [])
         pm = self.potencia_max()
         return [i for i, a in enumerate(ARMES) if a["id"] in self.armes_propies and a["potencia"] <= pm]
 
@@ -5111,6 +5115,8 @@ class Game:
     def iniciar_tutorial(self, despres=None):
         self.tut_despres = despres or self.entrar_menu
         self.mode = "tutorial"
+        self.arma_abans_tutorial = self.arma_actual
+        self.arma_actual = ARMA_PER_ID["pistola"]
         self.nivell_actual, self.escenari_actual = 0, 0
         self.iniciar_joc()
 
@@ -5119,6 +5125,7 @@ class Game:
 
     def acabar_tutorial(self):
         self.mode = "historia"
+        self.arma_actual = getattr(self, "arma_abans_tutorial", self.arma_actual)
         self.tutorial_vist = True
         self.desar_progres()
         self.tut_despres()
@@ -5176,7 +5183,7 @@ class Game:
         elif clau == "disparar":
             fet = not self.enemics and not self.restes
         elif clau == "arma":
-            fet = ARMES[self.arma_actual]["id"] == "fusell" and "fusell" in self.armes_usades
+            fet = ARMES[self.arma_actual]["id"] == "fusell"
         elif clau == "items":
             fet = not self.items
         else:
@@ -5244,15 +5251,32 @@ class Game:
         return y
 
     def _ajuda_0(self, surf, r):
-        """Battle Pass: barra de nivell i algunes recompenses."""
-        barra = pygame.Rect(r.x + 30, r.y + 30, 330, 12)
+        """Battle Pass animat: el soldat abat drons, l'XP vola a la barra i es desbloquegen recompenses."""
+        cicle = 50
+        t = self.temps_estat % (25 * cicle + 120)
+        baixes, f = t // cicle, t % cicle
+        if baixes >= 25:                                   # nivell 5: una pausa abans de tornar a començar
+            baixes, f = 25, 0
+        nivell = min(5, baixes // 5)
+        xp = (baixes % 5) * 40 + (min(40, (f - 38) * 4) if f >= 38 else 0)
+        barra = pygame.Rect(r.x + 30, r.y + 34, 330, 12)
         pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=6)
-        pygame.draw.rect(surf, (255, 130, 255), (barra.x, barra.y, int(barra.w * 0.6), barra.h), border_radius=6)
-        text(surf, "120/200 XP", F_HUD, BLANC, (barra.centerx, barra.y - 14))
+        pygame.draw.rect(surf, (255, 130, 255), (barra.x, barra.y, int(barra.w * min(1, xp / 200)), barra.h), border_radius=6)
+        text(surf, T("Nivel {n}").format(n=nivell) + f" · {min(xp, 200)}/200 XP", F_HUD, BLANC, (barra.centerx, barra.y - 14))
+        puja = baixes % 5 == 4 and f >= 48 and baixes < 25
+        if puja:
+            l = llum(60, (255, 140, 255))
+            surf.blit(l, l.get_rect(center=barra.center))
         for k, recompenses in enumerate(PASSI[:5]):
             c = pygame.Rect(r.x + 30 + k * 68, r.y + 64, 60, 96)
-            panell(surf, c, VERD if k < 2 else GRIS_FOSC)
-            text(surf, str(k + 1), F_MINI, BLANC, (c.centerx, c.y + 12))
+            obert = k < nivell
+            nou = obert and k == nivell - 1 and baixes % 5 == 0 and f < 30 and baixes > 0
+            if nou:
+                c = c.inflate(int(14 * (1 - f / 30)), int(14 * (1 - f / 30)))
+                l = llum(46, (130, 255, 160))
+                surf.blit(l, l.get_rect(center=c.center))
+            panell(surf, c, VERD if obert else GRIS_FOSC)
+            text(surf, str(k + 1), F_MINI, BLANC if obert else GRIS, (c.centerx, c.y + 12))
             tipus, valor = recompenses[0]
             centre = (c.centerx, c.y + 54)
             if tipus == "monedes":
@@ -5264,6 +5288,38 @@ class Game:
                     surf.blit(img, img.get_rect(center=centre))
             else:
                 text(surf, "T", F_UI, (230, 210, 160), centre)
+            if not obert:
+                capa = pygame.Surface(c.size, pygame.SRCALPHA)
+                capa.fill((0, 0, 0, 120))
+                surf.blit(capa, c)
+            else:
+                pygame.draw.lines(surf, VERD, False, [(c.centerx - 8, c.bottom - 16), (c.centerx - 2, c.bottom - 10),
+                                                      (c.centerx + 10, c.bottom - 24)], 3)
+        # escena: el soldat dispara a un dron
+        esc = pygame.Rect(r.x + 20, r.y + 184, 360, 170)
+        self._caixa_demo(surf, esc)
+        peus = esc.bottom - 30
+        cano = self._soldat_demo(surf, esc.x + 50, peus, "quiet", t=t)
+        dx = esc.right - 50 - min(f, 38) * 1.4
+        dy = esc.y + 50 + math.sin(t * 0.1) * 6
+        if f < 38 and SPR_ENEMIC.get("dron"):
+            dron = SPR_ENEMIC["dron"]
+            surf.blit(dron, dron.get_rect(center=(int(dx), int(dy))))
+        if cano and 18 <= f < 38:
+            for k in range(3):                                   # bales
+                p = ((f - 18) * 3 + k * 7) % 20 / 20
+                bx = cano[0] + (dx - cano[0]) * p
+                by = cano[1] + (dy - cano[1]) * p
+                pygame.draw.line(surf, GROC, (bx, by), (bx - 6, by - (dy - cano[1]) * 0.02), 3)
+        if f >= 38:                                              # explosió i XP que vola a la barra
+            k = (f - 38) / 12
+            pygame.draw.circle(surf, TARONJA, (int(dx), int(dy)), int(6 + 26 * k), 3)
+            pygame.draw.circle(surf, GROC, (int(dx), int(dy)), int(4 + 12 * k))
+            tx = dx + (barra.right - 30 - dx) * k
+            ty = dy + (barra.y - dy) * k
+            text(surf, "+40 XP", F_HUD, (255, 200, 255), (int(tx), int(ty)))
+        if puja:
+            text(surf, T("¡NIVEL {n}!").format(n=nivell + 1), F_TITOL, (255, 200, 255), (esc.centerx, esc.y + 46))
         self._punts(surf, r.x + 400, r.y + 26, r.w - 420, [
             "Ganas XP eliminando enemigos y completando escenarios (+60 XP la primera vez).",
             "Cada estrella nueva da +30 XP.",
@@ -5273,48 +5329,259 @@ class Game:
         ])
 
     def _ajuda_1(self, surf, r):
-        """Millores: què fa cada una."""
-        for k, m in enumerate(MILLORES):
-            y = r.y + 18 + k * 52
-            text(surf, m["nom"], F_UI, CIAN, (r.x + 24, y + 10), ancora="midleft")
-            dibuixar_pips(surf, r.x + 24, y + 26, len(m["costos"]), total=len(m["costos"]), color=VERD, mida=10)
-            detall = ajustar_linies(T(DETALL_MILLORES[m["id"]]), F_TEXT_PP, r.right - r.x - 260)[:2]
-            for i, tros in enumerate(detall):
-                text(surf, tros, F_TEXT_PP, BLANC, (r.x + 240, y + 1 + i * 17), ancora="topleft")
-            costos = " / ".join(str(c) for c in m["costos"])
-            text(surf, T("Precio: {c} monedas").format(c=costos), F_TEXT_PP, GRIS, (r.x + 240, y + 2 + 17 * len(detall)),
-                 ancora="topleft")
+        """Millores animades: a l'esquerra es veu què fa la millora marcada a la llista."""
+        cicle = 160
+        actual, f = (self.temps_estat // cicle) % len(MILLORES), self.temps_estat % cicle
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        m = MILLORES[actual]
+        text(surf, m["nom"], F_UI, GROC, (caixa.centerx, caixa.y + 22))
+        peus = caixa.bottom - 30
+        cx = caixa.centerx
+        ident = m["id"]
+        if ident == "blindatge":
+            for i in range(6):
+                if i < 5 or f > 30:
+                    mida = 26 if i < 5 else int(26 * min(1, (f - 30) / 20))
+                    dibuixar_cor(surf, caixa.x + 34 + i * 40, caixa.y + 56, max(2, mida), 1)
+            if f > 50:
+                text(surf, "+20", F_UI, VERD, (caixa.x + 34 + 5 * 40 + 13, caixa.y + 100 - min(20, (f - 50) // 2)))
+            aura = llum(50, (90, 180, 255))
+            aura.set_alpha(int(110 + 60 * math.sin(f * 0.15)))
+            surf.blit(aura, aura.get_rect(center=(cx, peus - 30)))
+            aura.set_alpha(255)
+            self._soldat_demo(surf, cx, peus, t=f)
+        elif ident == "potencia":
+            cano = self._soldat_demo(surf, caixa.x + 60, peus, t=f)
+            dron = SPR_ENEMIC.get("dron")
+            if dron:
+                surf.blit(dron, dron.get_rect(center=(caixa.right - 60, peus - 40)))
+            fort = f > 80
+            if cano:
+                p = (f % 20) / 20
+                bx = cano[0] + (caixa.right - 90 - cano[0]) * p
+                pygame.draw.circle(surf, TARONJA if fort else GROC, (int(bx), int(cano[1])), 5 if fort else 3)
+            valor = "17" if fort else "15"
+            text(surf, valor, F_TITOL if fort else F_SUBTITOL, TARONJA if fort else BLANC,
+                 (caixa.right - 60, peus - 100 - (f % 20)))
+            text(surf, "+15%" if fort else "", F_UI, VERD, (caixa.centerx, caixa.y + 70))
+        elif ident == "carregadors":
+            maxim = 20 if f < 60 else min(26, 20 + (f - 60) // 6)
+            text(surf, f"{maxim}/{maxim}", F_TITOL, GROC if f >= 60 else BLANC, (cx, caixa.y + 90))
+            for i in range(maxim):
+                fila, col = divmod(i, 13)
+                pygame.draw.rect(surf, GROC, (caixa.x + 30 + col * 19, caixa.y + 140 + fila * 26, 8, 18))
+                pygame.draw.rect(surf, TARONJA, (caixa.x + 30 + col * 19, caixa.y + 140 + fila * 26, 8, 6))
+            self._soldat_demo(surf, cx, peus, t=f)
+        elif ident == "iman":
+            self._soldat_demo(surf, cx, peus, t=f)
+            k = min(1.0, f / 90)
+            for i, (x0, tipus) in enumerate(((caixa.x + 30, "vida"), (caixa.right - 54, "bales"))):
+                x = x0 + (cx - 12 - x0) * k
+                y = caixa.y + 90 + (peus - 50 - caixa.y - 90) * k
+                if k < 1:
+                    Item(x, y, tipus).dibuixar(surf)
+                for a in range(3):
+                    rr = 30 + ((f * 2 + a * 20) % 60)
+                    pygame.draw.circle(surf, (120, 180, 255), (int(cx), int(peus - 40)), rr, 1)
+            if k >= 1:
+                text(surf, "+20 VIDA", F_HUD, VERD, (cx, peus - 90))
+        elif ident == "reflexos":
+            x = caixa.x + 30 + (f * 2.2) % (caixa.w - 40)
+            for g in range(1, 4):
+                self._soldat_demo(surf, x - g * 22, peus, "corre", t=f, alfa=110 - g * 30)
+            self._soldat_demo(surf, x, peus, "corre", t=f)
+            for k in range(4):
+                y = peus - 20 - k * 12
+                pygame.draw.line(surf, CIAN, (x - 70 - k * 8, y), (x - 40 - k * 8, y), 1)
+            text(surf, "+6%", F_UI, VERD, (cx, caixa.y + 70))
+        else:                                                  # propulsors: doble salt
+            if f < 34:
+                h = 14 * f - 0.4 * f * f
+            elif f < 80:
+                u = f - 34
+                h = (14 * 34 - 0.4 * 34 * 34) + 12 * u - 0.4 * u * u
+            else:
+                h = 0
+            h = max(0, h)
+            if 34 <= f < 46:
+                for k in range(8):
+                    pygame.draw.circle(surf, random.choice((CIAN, BLANC)), (int(cx + random.uniform(-8, 8)),
+                                       int(peus - h + random.uniform(0, 14))), 3)
+                pygame.draw.circle(surf, CIAN, (int(cx), int(peus - h)), 10 + (f - 34) * 2, 2)
+            self._soldat_demo(surf, cx, peus - min(h, caixa.h - 120), "salt" if 0 < h else "quiet", t=f)
+        # llista de millores
+        for k, mi in enumerate(MILLORES):
+            fila = pygame.Rect(r.x + 340, r.y + 18 + k * 55, r.right - r.x - 360, 50)
+            if k == actual:
+                pygame.draw.rect(surf, (40, 50, 90), fila, border_radius=6)
+                pygame.draw.rect(surf, GROC, fila, 2, border_radius=6)
+            text(surf, mi["nom"], F_UI, CIAN if k != actual else GROC, (fila.x + 12, fila.y + 13), ancora="midleft")
+            costos = " / ".join(str(c) for c in mi["costos"])
+            text(surf, T("Precio: {c} monedas").format(c=costos), F_TEXT_PP, GRIS, (fila.right - 10, fila.y + 13),
+                 ancora="midright")
+            detall = ajustar_linies(T(DETALL_MILLORES[mi["id"]]), F_TEXT_PP, fila.w - 24)[0]
+            text(surf, detall, F_TEXT_PP, BLANC, (fila.x + 12, fila.y + 34), ancora="midleft")
         text(surf, "Se compran en Tienda > Mejoras. Cada nivel se abre al avanzar en la historia.", F_TEXT_PP, GROC,
-             (r.centerx, r.bottom - 14))
+             (r.centerx, r.bottom - 10))
 
     def _ajuda_2(self, surf, r):
-        """Armes: per a què serveix cadascuna i la potencia."""
+        """Armes animades: el soldat dispara l'arma marcada contra dos drons."""
+        cicle = 170
+        actual, f = (self.temps_estat // cicle) % len(ARMES), self.temps_estat % cicle
         for k, a in enumerate(ARMES):
-            y = r.y + 16 + k * 60
+            fila = pygame.Rect(r.x + 20, r.y + 18 + k * 64, 300, 58)
+            if k == actual:
+                pygame.draw.rect(surf, (40, 50, 90), fila, border_radius=6)
+                pygame.draw.rect(surf, GROC, fila, 2, border_radius=6)
             img = mostra_soldat(a["id"], self.uniforme, self.aparenca)
             if img:
-                surf.blit(img, img.get_rect(center=(r.x + 50, y + 24)))
-            text(surf, T(a["nom"]).upper(), F_TEXT, BLANC, (r.x + 100, y + 12), ancora="midleft")
-            dibuixar_pips(surf, r.x + 104, y + 32, a["potencia"], color=TARONJA)
-            linies = ajustar_linies(T(DETALL_ARMES[a["id"]]), F_TEXT_P, r.right - r.x - 310)[:2]
-            for i, tros in enumerate(linies):
-                text(surf, tros, F_TEXT_P, (200, 205, 225), (r.x + 290, y + 12 - 11 * (len(linies) - 1) + i * 22),
-                     ancora="topleft")
+                surf.blit(img, img.get_rect(center=(fila.x + 34, fila.centery)))
+            text(surf, T(a["nom"]).upper(), F_TEXT, GROC if k == actual else BLANC, (fila.x + 76, fila.y + 18),
+                 ancora="midleft")
+            dibuixar_pips(surf, fila.x + 80, fila.y + 38, a["potencia"], color=TARONJA)
+        a = ARMES[actual]
+        caixa = pygame.Rect(r.x + 340, r.y + 18, r.right - r.x - 360, 220)
+        self._caixa_demo(surf, caixa)
+        peus = caixa.bottom - 30
+        cano = self._soldat_demo(surf, caixa.x + 70, peus, "quiet", arma=a["id"], t=f)
+        drons = [(caixa.x + caixa.w * 0.62, peus - 40), (caixa.x + caixa.w * 0.85, peus - 40)]
+        radi, color = Bala.ESTILS[a["estil"]]
+        tocats = [False, False]
+        if cano:
+            # trets: moments en què dispara (la minigun arrenca a poc a poc i s'escalfa)
+            trets, tt, calor = [], 20, 0.0
+            while tt < 150:
+                trets.append(tt)
+                if a["id"] == "minigun":
+                    gir = min(1.0, (tt - 20) / 30)
+                    tt += round(a["cadencia"] + 11 * (1 - gir))
+                    calor += CALOR_DISPAR * 1.6
+                    if calor >= 100:
+                        break
+                else:
+                    tt += max(a["cadencia"], 8)
+            for t0 in trets:
+                if t0 > f:
+                    break
+                vida = f - t0
+                n = a["perdigons"]
+                for p in range(n):
+                    ang = (p - (n - 1) / 2) * math.radians(a["obertura"]) / max(1, n - 1)
+                    x = cano[0] + vida * a["vel"] * 0.8 * math.cos(ang)
+                    y = cano[1] + vida * a["vel"] * 0.8 * math.sin(ang)
+                    limit = caixa.right - 8 if a["perfora"] else drons[0][0] - 10
+                    if x > limit:
+                        for i, (dx, _) in enumerate(drons):
+                            if x - a["vel"] < dx and (a["perfora"] or i == 0) and vida < 60:
+                                tocats[i] = True
+                        continue
+                    pygame.draw.line(surf, tuple(c // 2 for c in color), (x - 8, y), (x, y), radi)
+                    pygame.draw.circle(surf, color, (int(x), int(y)), radi)
+            if a["id"] == "minigun":
+                fr = min(1.0, len([t0 for t0 in trets if t0 <= f]) * CALOR_DISPAR * 1.6 / 100)
+                barra = pygame.Rect(caixa.x + 30, caixa.y + 16, 120, 10)
+                pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=3)
+                pygame.draw.rect(surf, VERMELL if fr >= 1 else (TARONJA if fr > 0.7 else GROC),
+                                 (barra.x, barra.y, int(barra.w * fr), barra.h), border_radius=3)
+                text(surf, "¡CALOR!" if fr >= 1 else "CALOR", F_MINI, VERMELL if fr >= 1 else BLANC,
+                     (barra.right + 10, barra.centery), ancora="midleft")
+                if fr >= 1:
+                    for k in range(3):
+                        pygame.draw.circle(surf, (200, 200, 210), (int(cano[0] + random.uniform(-4, 4)),
+                                           int(cano[1] - 8 - (f * 2 + k * 9) % 30)), 4)
+        dron = SPR_ENEMIC.get("dron")
+        for i, (dx, dy) in enumerate(drons):
+            if dron:
+                img = tenyir(dron, (255, 255, 255), 160) if tocats[i] and (f // 3) % 2 else dron
+                surf.blit(img, img.get_rect(center=(int(dx + (random.randint(-2, 2) if tocats[i] else 0)),
+                                                    int(dy + math.sin(self.t_global * 0.08 + i) * 5))))
+        linies = ajustar_linies(T(DETALL_ARMES[a["id"]]), F_TEXT_P, caixa.w)
+        for i, tros in enumerate(linies[:3]):
+            text(surf, tros, F_TEXT_P, BLANC, (caixa.x, caixa.bottom + 14 + i * 24), ancora="topleft")
         text(surf, "Cada escenario tiene una potencia máxima: las armas más fuertes no siempre se pueden usar.",
-             F_TEXT_PP, GROC, (r.centerx, r.bottom - 14))
+             F_TEXT_PP, GROC, (r.centerx, r.bottom - 10))
 
     def _ajuda_3(self, surf, r):
-        """Estrelles, logros i supervivència."""
-        for k in range(3):
-            dibuixar_estrella(surf, r.x + 50 + k * 34, r.y + 40, 14, True)
-        dibuixar_trofeu(surf, r.x + 84, r.y + 150, 44)
-        dibuixar_globus(surf, r.x + 84, r.y + 270, 24)
-        self._punts(surf, r.x + 180, r.y + 22, r.w - 200, [
+        """Estrelles, logros i supervivència, en tres petites escenes que es van alternant."""
+        cicle = 210
+        escena, f = (self.temps_estat // cicle) % 3, self.temps_estat % cicle
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        peus = caixa.bottom - 30
+        if escena == 0:                                       # estrelles
+            text(surf, "¡SECTOR LIMPIO!", F_SUBTITOL, VERD, (caixa.centerx, caixa.y + 40))
+            noms = ["Completado", "Sin recibir daño", "A tiempo"]
+            for i in range(3):
+                inici = 25 + i * 30
+                if f < inici:
+                    continue
+                k = min(1.0, (f - inici) / 10)
+                x, y = caixa.centerx, caixa.y + 100 + i * 64
+                dibuixar_estrella(surf, x - 90, y, int(8 + 14 * k), True)
+                text(surf, noms[i], F_TEXT_P, BLANC, (x - 66, y), ancora="midleft")
+                if k < 1:
+                    l = llum(30, (255, 220, 120))
+                    surf.blit(l, l.get_rect(center=(x - 90, y)))
+        elif escena == 1:                                     # logro: una placa amagada
+            placa_x = caixa.x + 220
+            agafada = f > 80
+            if not agafada:
+                dibuixar_placa(surf, placa_x, peus - 24, self.t_global)
+            x = min(placa_x, caixa.x + 40 + f * 2.4)
+            self._soldat_demo(surf, x, peus, "corre" if x < placa_x else "quiet", t=f)
+            if agafada:
+                k = min(1.0, (f - 80) / 14)
+                toast = pygame.Rect(caixa.x + 10, caixa.y + 20 - int(70 * (1 - k)), caixa.w - 20, 56)
+                logro = LOGRO_PER_ID["placa"]
+                capa = pygame.Surface(toast.size, pygame.SRCALPHA)
+                capa.fill((8, 10, 24, 235))
+                surf.blit(capa, toast)
+                pygame.draw.rect(surf, CATEGORIES_LOGRO[logro["cat"]]["color"], toast, 2, border_radius=6)
+                dibuixar_medalla(surf, toast.x + 28, toast.centery, 20, logro["cat"])
+                text(surf, "LOGRO DESBLOQUEADO", F_MINI, CATEGORIES_LOGRO[logro["cat"]]["color"],
+                     (toast.x + 56, toast.y + 14), ancora="midleft")
+                text(surf, logro["nom"], F_TEXT_P, BLANC, (toast.x + 56, toast.y + 36), ancora="midleft")
+                if f > 100:
+                    text(surf, "+50", F_UI, GROC, (placa_x, peus - 90 - min(40, f - 100)))
+            dibuixar_trofeu(surf, caixa.centerx, caixa.y + 140, 60)
+        else:                                                 # supervivència: les onades pugen
+            onada = min(10, 1 + f // 18)
+            text(surf, T("OLEADA {o}").format(o=onada), F_TITOL, TARONJA, (caixa.centerx, caixa.y + 50))
+            dron = SPR_ENEMIC.get("dron")
+            if dron:
+                petit = pygame.transform.scale(dron, (30, 26))
+                for i in range(min(onada, 9)):
+                    fila, col = divmod(i, 3)
+                    surf.blit(petit, (caixa.x + 70 + col * 60, caixa.y + 100 + fila * 44 + int(math.sin(f * 0.1 + i) * 4)))
+            self._soldat_demo(surf, caixa.x + 40, peus, t=f)
+            if onada >= 10 and (f // 8) % 2:
+                text(surf, "¡NUEVO RÉCORD!", F_UI, VERD, (caixa.centerx, peus - 20))
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
             "Estrellas: cada escenario da tres, por completarlo, por no recibir daño y por acabarlo a tiempo.",
             "Logros: hay 28, y algunos son secretos. Busca placas escondidas y cosas raras en los escenarios.",
             "Supervivencia: oleadas sin fin para batir tus récords (se abre al completar el sector 1).",
             "El planeta del menú cambia el idioma; en Opciones eliges dificultad, volumen y pantalla.",
         ], salt=18)
+
+    def _caixa_demo(self, surf, rect):
+        capa = pygame.Surface(rect.size, pygame.SRCALPHA)
+        capa.fill((4, 6, 16, 230))
+        surf.blit(capa, rect)
+        pygame.draw.rect(surf, (60, 70, 120), rect, 2, border_radius=6)
+        pygame.draw.line(surf, (70, 64, 50), (rect.x + 4, rect.bottom - 30), (rect.right - 4, rect.bottom - 30), 3)
+
+    def _soldat_demo(self, surf, x, peus, pose="quiet", arma="pistola", t=0, direccio=1, alfa=255):
+        spr = sprites_jugador(arma, self.uniforme, self.aparenca)
+        if not spr:
+            return None
+        llista = spr.poses[pose]
+        img = llista[(t // 5) % len(llista) if pose == "corre" else (t // 35) % len(llista)][direccio]
+        if alfa < 255:
+            img = img.copy()
+            img.set_alpha(alfa)
+        surf.blit(img, (int(x - spr.ancoratge(direccio)), int(peus - img.get_height())))
+        return x + direccio * spr.cano_dx, peus + spr.cano_dy
 
     def dibuixar_joc(self, surf):
         c = self.capa
