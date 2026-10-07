@@ -60,7 +60,7 @@ Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquea
 
 Desde el menú (y desde la pausa) se puede ajustar el **volumen de la música** y el **de los efectos** por separado, elegir **pantalla completa o ventana** y el **escalado** (suave o nítido). Todo se guarda.
 
-El juego se dibuja a 800x600 y se escala a la resolución del monitor (por ejemplo 1920x1080 a pantalla completa); a los lados se muestra una versión difuminada de la imagen para llenar la pantalla panorámica. En el navegador el lienzo es de 1280x720 y se amplía a toda la ventana.
+El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x1080** se amplía exactamente **x2**: cada píxel del juego son 2x2 píxeles de la pantalla, sin suavizado y sin bandas negras, así que se ve totalmente nítido (y lo mismo a x3 en 2880x1620 o x4 en 4K). En otras resoluciones se usa el escalado elegido en Opciones. En el navegador el lienzo también es de 960x540 y, si la ventana es justo el doble (1920x1080 a pantalla completa), se muestra píxel a píxel.
 
 ## Tienda
 
@@ -73,6 +73,12 @@ El juego se dibuja a 800x600 y se escala a la resolución del monitor (por ejemp
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 2.3**
+- Resolución base nueva de 960x540 (16:9): a 1920x1080 el juego se ve a x2 exacto, perfectamente nítido y sin bandas laterales.
+- Los 15 fondos redibujados en panorámico, con el tamaño justo para que se pinten píxel a píxel.
+- Menús, tienda, Battle Pass, Historia, opciones, HUD, intro y plataformas recolocados para la pantalla panorámica (el menú ahora tiene el logo a la izquierda y los botones a la derecha).
+- El escalado x2 es más rápido que el anterior (unos 6,5 ms por fotograma a 1920x1080 en lugar de 8).
 
 **Versión 2.2**
 - Pantalla de Opciones con volumen de música y efectos, pantalla completa o ventana y escalado.

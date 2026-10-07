@@ -16,10 +16,15 @@ pygame.init()
 pygame.display.set_mode((1, 1))
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMG = os.path.join(ARREL, "assets", "img")
-W, H = 400, 300   # els fons es dibuixen a la meitat i s'escalen a 800x600
+# Los fondos se dibujan a la mitad (500x303), se recortan 23 filas de cielo (500x280) y se escalan x2:
+# 1000x560, el tamaño exacto con el que el juego los pinta (960x540 + margen para el paralaje).
+W, H = 500, 303
+RETALL = 23
 
 
-def desar(s, nom, escala=1):
+def desar(s, nom, escala=1, retall=0):
+    if retall:
+        s = s.subsurface((0, retall, s.get_width(), s.get_height() - retall)).copy()
     if escala != 1:
         s = pygame.transform.scale(s, (s.get_width() * escala, s.get_height() * escala))
     pygame.image.save(s, os.path.join(IMG, nom))
@@ -86,18 +91,18 @@ def fons_orbita():
     estrelles(s, rnd, 260)
     planeta_terra(s, 70, 430, 270, rnd, nit_dreta=True)
     # lluna
-    pygame.draw.circle(s, (170, 170, 180), (330, 58), 20)
+    pygame.draw.circle(s, (170, 170, 180), (420, 64), 20)
     for _ in range(9):
-        pygame.draw.circle(s, (130, 130, 142), (330 + rnd.randint(-14, 14), 58 + rnd.randint(-14, 14)), rnd.randint(2, 5))
-    pygame.draw.circle(s, (210, 210, 220), (330, 58), 20, 1)
+        pygame.draw.circle(s, (130, 130, 142), (420 + rnd.randint(-14, 14), 64 + rnd.randint(-14, 14)), rnd.randint(2, 5))
+    pygame.draw.circle(s, (210, 210, 220), (420, 64), 20, 1)
     # ombra de la Nau Mare a l'horitzó
-    pygame.draw.ellipse(s, (22, 22, 38), (190, 92, 230, 50))
-    pygame.draw.ellipse(s, (30, 30, 50), (250, 76, 90, 34))
+    pygame.draw.ellipse(s, (22, 22, 38), (250, 96, 230, 50))
+    pygame.draw.ellipse(s, (30, 30, 50), (320, 80, 90, 34))
     for i in range(14):
-        s.set_at((205 + i * 15, 118), (255, 120, 80) if i % 3 else (120, 220, 255))
+        s.set_at((265 + i * 15, 122), (255, 120, 80) if i % 3 else (120, 220, 255))
     # deixalles
     for _ in range(14):
-        x, y = rnd.randint(0, W), rnd.randint(20, 240)
+        x, y = rnd.randint(0, W), rnd.randint(30, 250)
         w, h = rnd.randint(3, 10), rnd.randint(2, 4)
         pygame.draw.rect(s, rnd.choice(((80, 84, 100), (110, 110, 125), (60, 62, 80))), (x, y, w, h))
     return s
@@ -115,13 +120,13 @@ def fons_hangar():
             s.set_at((x + 6, y), (80, 85, 110))
             s.set_at((x + 34, y), (80, 85, 110))
     # finestral a l'espai amb plats volants aparcats
-    fin = pygame.Rect(110, 36, 180, 104)
+    fin = pygame.Rect(160, 46, 180, 104)
     pygame.draw.rect(s, (6, 8, 20), fin)
     estr = pygame.Surface(fin.size)
     estr.fill((6, 8, 20))
     estrelles(estr, rnd, 70)
     s.blit(estr, fin.topleft)
-    for i, (ux, uy) in enumerate(((150, 96), (215, 70), (255, 112))):
+    for i, (ux, uy) in enumerate(((200, 106), (265, 80), (305, 122))):
         pygame.draw.ellipse(s, (60, 64, 90), (ux - 16, uy - 3, 32, 8))
         pygame.draw.ellipse(s, (90, 140, 180), (ux - 6, uy - 8, 12, 8))
         s.set_at((ux, uy + 4), (255, 200, 80))
@@ -130,11 +135,11 @@ def fons_hangar():
     pygame.draw.rect(s, (110, 116, 145), fin, 1)
     # tires de llum morada
     for x in range(0, W, 8):
-        pygame.draw.rect(s, (150, 70, 220) if (x // 8) % 2 else (190, 110, 255), (x, 14, 6, 3))
+        pygame.draw.rect(s, (150, 70, 220) if (x // 8) % 2 else (190, 110, 255), (x, 28, 6, 3))
     glow = pygame.Surface((W, 20), pygame.SRCALPHA)
     for y in range(20):
         pygame.draw.line(glow, (170, 90, 255, int(70 * (1 - y / 20))), (0, y), (W, y))
-    s.blit(glow, (0, 17))
+    s.blit(glow, (0, 31))
     # canonades
     for y in (176, 188):
         pygame.draw.rect(s, (70, 72, 88), (0, y, W, 6))
@@ -144,7 +149,7 @@ def fons_hangar():
     # franja de perill i contenidors
     for x in range(-10, W, 16):
         pygame.draw.polygon(s, (200, 160, 40), [(x, 236), (x + 8, 236), (x + 14, 244), (x + 6, 244)])
-    for cx, w, h, c in ((20, 46, 30, (70, 90, 70)), (300, 60, 36, (110, 60, 50)), (350, 40, 22, (60, 70, 100))):
+    for cx, w, h, c in ((20, 46, 30, (70, 90, 70)), (74, 34, 20, (90, 80, 60)), (380, 60, 36, (110, 60, 50)), (440, 40, 22, (60, 70, 100))):
         pygame.draw.rect(s, c, (cx, 275 - h, w, h))
         pygame.draw.rect(s, [v + 30 for v in c], (cx, 275 - h, w, h), 1)
         for xx in range(cx + 6, cx + w - 2, 8):
@@ -156,18 +161,18 @@ def fons_pont():
     rnd = random.Random(43)
     s = pygame.Surface((W, H))
     s.fill((20, 18, 30))
-    fin = pygame.Rect(30, 26, 340, 160)
+    fin = pygame.Rect(40, 40, 420, 150)
     vista = pygame.Surface(fin.size)
     degradat(vista, (2, 4, 14), (10, 14, 34))
     estrelles(vista, rnd, 110)
-    planeta_terra(vista, 170, 330, 230, rnd, nit_dreta=False)
+    planeta_terra(vista, 210, 320, 230, rnd, nit_dreta=False)
     s.blit(vista, fin.topleft)
-    for x in range(fin.left, fin.right + 1, 68):                    # muntants de la finestra
+    for x in range(fin.left, fin.right + 1, 70):                    # muntants de la finestra
         pygame.draw.polygon(s, (46, 40, 62), [(x - 5, fin.top), (x + 5, fin.top), (x + 3, fin.bottom), (x - 3, fin.bottom)])
     pygame.draw.rect(s, (52, 46, 70), fin, 6)
     pygame.draw.rect(s, (90, 80, 120), fin, 1)
     # consoles
-    pygame.draw.polygon(s, (36, 32, 50), [(0, 214), (W, 214), (W, 300), (0, 300)])
+    pygame.draw.polygon(s, (36, 32, 50), [(0, 214), (W, 214), (W, H), (0, H)])
     for x in range(10, W - 30, 54):
         pygame.draw.polygon(s, (54, 48, 76), [(x, 236), (x + 44, 236), (x + 40, 212), (x + 4, 212)])
         for _ in range(8):
@@ -177,8 +182,8 @@ def fons_pont():
         pygame.draw.line(s, (90, 230, 255), (x + 12, 222), (x + 30, 222))
     # llums d'alarma
     for x in (14, W - 22):
-        pygame.draw.rect(s, (90, 20, 20), (x, 8, 8, 6))
-        pygame.draw.rect(s, (255, 60, 60), (x + 2, 9, 4, 3))
+        pygame.draw.rect(s, (90, 20, 20), (x, 28, 8, 6))
+        pygame.draw.rect(s, (255, 60, 60), (x + 2, 29, 4, 3))
     return s
 
 
@@ -201,7 +206,7 @@ def fons_xylos():
     degradat(s, (40, 12, 70), (210, 90, 140), 0, 210)
     degradat(s, (210, 90, 140), (120, 40, 90), 210, H)
     estrelles(s, rnd, 50, y_max=90, colors=((255, 220, 255),))
-    for cx, cy, r, c in ((300, 96, 30, (255, 170, 110)), (348, 58, 11, (255, 245, 210))):
+    for cx, cy, r, c in ((380, 100, 30, (255, 170, 110)), (430, 62, 11, (255, 245, 210))):
         halo = pygame.Surface((W, H), pygame.SRCALPHA)
         for i in range(8, 0, -1):
             pygame.draw.circle(halo, (*c, 18), (cx, cy), r + i * 4)
@@ -223,7 +228,7 @@ def fons_rusc():
     degradat(s, (34, 18, 16), (58, 30, 20))
     r = 14
     for fila in range(-1, 14):
-        for col in range(-1, 18):
+        for col in range(-1, 22):
             cx = col * r * 1.75 + (r * 0.87 if fila % 2 else 0)
             cy = fila * r * 1.5
             punts = [(cx + r * math.cos(math.pi / 6 + i * math.pi / 3), cy + r * math.sin(math.pi / 6 + i * math.pi / 3))
@@ -240,7 +245,7 @@ def fons_rusc():
             nx, ny = x + rnd.randint(-8, 8), y + rnd.randint(-2, 9)
             pygame.draw.line(s, (120, 40, 60), (x, y), (nx, ny), 2)
             x, y = nx, ny
-    for x in (30, 360):                                             # columnes orgàniques
+    for x in (30, 450):                                             # columnes orgàniques
         pygame.draw.rect(s, (70, 40, 30), (x, 0, 18, H))
         for y in range(0, H, 12):
             pygame.draw.ellipse(s, (90, 52, 36), (x - 2, y, 22, 8))
@@ -251,7 +256,7 @@ def fons_nucli():
     rnd = random.Random(53)
     s = pygame.Surface((W, H))
     s.fill((10, 5, 18))
-    cx, cy = 200, 110
+    cx, cy = 250, 120
     for i in range(60, 0, -1):
         pygame.draw.circle(s, (20 + i, 6 + i // 4, 40 + i * 2), (cx, cy), 160 - i * 2)
     for _ in range(26):                                             # venes que convergeixen al centre
@@ -264,7 +269,7 @@ def fons_nucli():
             punts.append((x, y))
         pygame.draw.lines(s, (150, 40, 170), False, punts, 3)
         pygame.draw.lines(s, (230, 110, 255), False, punts, 1)
-    for x, h in ((22, 150), (52, 100), (340, 130), (372, 170)):     # pilars de cristall
+    for x, h in ((22, 150), (52, 100), (430, 130), (462, 170)):     # pilars de cristall
         pygame.draw.polygon(s, (40, 160, 190), [(x, 275), (x + 16, 275), (x + 12, 275 - h), (x + 4, 275 - h - 14)])
         pygame.draw.line(s, (170, 250, 255), (x + 4, 270), (x + 5, 275 - h - 10))
     for r in (70, 96, 124):
@@ -509,13 +514,14 @@ def fons_ciutat_dia():
         h = rnd.randint(60, 130)
         pygame.draw.rect(s, (150, 160, 180), (x, 240 - h, 30, h))
     boira(s, 150, 100, (220, 215, 205), 120)
-    torre_alien(s, 330, 240, 150, (90, 40, 110))
-    tentacles(s, rnd, 330, 238, 6, (110, 50, 130), 50)
+    torre_alien(s, 420, 240, 150, (90, 40, 110))
+    tentacles(s, rnd, 420, 238, 6, (110, 50, 130), 50)
     edifici(s, rnd, 10, 275, 70, 170, (200, 150, 100), (255, 230, 150), 0.15, danyat=0.6, forats=3)
     edifici(s, rnd, 90, 275, 60, 120, (180, 120, 90), (255, 230, 150), 0.1, danyat=0.9, forats=2)
     edifici(s, rnd, 160, 275, 80, 200, (215, 170, 110), (255, 230, 150), 0.2, danyat=0.4, forats=4)
     edifici(s, rnd, 255, 275, 50, 90, (170, 130, 100), (255, 230, 150), 0.1, danyat=1.0)
-    edifici(s, rnd, 350, 275, 60, 150, (200, 160, 120), (255, 230, 150), 0.15, danyat=0.5, forats=2)
+    edifici(s, rnd, 318, 275, 70, 130, (190, 140, 105), (255, 230, 150), 0.15, danyat=0.7, forats=3)
+    edifici(s, rnd, 434, 275, 60, 150, (200, 160, 120), (255, 230, 150), 0.15, danyat=0.5, forats=2)
     runa(s, rnd, 276, 26, ((120, 100, 90), (150, 130, 110), (100, 84, 80)))
     pygame.draw.rect(s, (160, 40, 40), (250, 262, 26, 10))                     # coche volcado
     pygame.draw.circle(s, (30, 30, 30), (256, 262), 4)
@@ -571,20 +577,20 @@ def fons_ciutat_nit():
         h = rnd.randint(80, 160)
         pygame.draw.rect(s, (30, 20, 46), (x, 260 - h, 28, h))
     # cúpula de la colmena en el centro
-    pygame.draw.ellipse(s, (70, 30, 90), (130, 150, 140, 130))
+    pygame.draw.ellipse(s, (70, 30, 90), (180, 150, 140, 130))
     for k in range(6):
-        pygame.draw.arc(s, (120, 60, 150), (138 + k * 4, 156 + k * 6, 124 - k * 8, 120), 0.2, 2.9, 2)
+        pygame.draw.arc(s, (120, 60, 150), (188 + k * 4, 156 + k * 6, 124 - k * 8, 120), 0.2, 2.9, 2)
     for _ in range(14):
-        x, y = rnd.randint(140, 260), rnd.randint(160, 260)
+        x, y = rnd.randint(190, 310), rnd.randint(160, 260)
         pygame.draw.circle(s, (255, 120, 220), (x, y), 3)
         pygame.draw.circle(s, (255, 220, 250), (x, y), 1)
-    for x, h in ((20, 190), (300, 170), (360, 210)):
+    for x, h in ((20, 190), (100, 140), (372, 170), (440, 210)):
         edifici(s, rnd, x, 275, 50, h, (40, 34, 56), (255, 150, 80), 0.12, danyat=0.8, forats=3)
         tentacles(s, rnd, x + 25, 275 - h + 20, 5, (120, 50, 150), 60)
-    for x in (70, 270):
+    for x in (85, 345):
         torre_alien(s, x, 275, 120, (80, 30, 100), (255, 80, 160))
     runa(s, rnd, 276, 20, ((50, 40, 60), (70, 50, 70)))
-    for x in (10, 380):                                            # incendios (las chispas las anima el juego)
+    for x in (10, 480):                                            # incendios (las chispas las anima el juego)
         for k in range(10):
             pygame.draw.circle(s, rnd.choice(((255, 120, 30), (255, 200, 60), (230, 60, 20))),
                                (x + rnd.randint(-12, 12), 270 - rnd.randint(0, 30)), rnd.randint(3, 8))
@@ -599,20 +605,20 @@ def fons_selva_dia():
     for x in range(-20, W, 30):                                    # bosque lejano
         pygame.draw.ellipse(s, (90, 160, 140), (x, 150 + rnd.randint(-10, 10), 50, 80))
     boira(s, 170, 70, (230, 250, 240), 140)
-    pagoda(s, 300, 270, 4, (40, 120, 70), (190, 80, 60), ruina=True)
+    pagoda(s, 380, 270, 4, (40, 120, 70), (190, 80, 60), ruina=True)
     for _ in range(5):                                             # cables que trepan por la pagoda
-        pygame.draw.lines(s, (40, 60, 70), False, [(rnd.randint(270, 330), 270), (rnd.randint(280, 320), 200),
-                                                    (rnd.randint(285, 315), 160)], 2)
-    for x, h in ((40, 200), (130, 160), (200, 220), (380, 190)):
+        pygame.draw.lines(s, (40, 60, 70), False, [(rnd.randint(350, 410), 270), (rnd.randint(360, 400), 200),
+                                                    (rnd.randint(365, 395), 160)], 2)
+    for x, h in ((40, 200), (130, 160), (215, 220), (300, 170), (472, 190)):
         arbre_jungla(s, rnd, x, 275, h, (70, 50, 40), ((40, 130, 60), (60, 160, 70), (30, 110, 60)), (50, 70, 80))
     for _ in range(12):                                            # setas luminosas
         x = rnd.randint(0, W)
         pygame.draw.rect(s, (220, 220, 200), (x, 266, 2, 8))
         pygame.draw.ellipse(s, rnd.choice(((120, 255, 200), (255, 120, 220))), (x - 4, 262, 10, 6))
     # cascada
-    pygame.draw.rect(s, (200, 240, 255), (240, 120, 10, 150))
+    pygame.draw.rect(s, (200, 240, 255), (258, 120, 10, 150))
     for y in range(120, 270, 6):
-        pygame.draw.line(s, (255, 255, 255), (241, y), (241, y + 3))
+        pygame.draw.line(s, (255, 255, 255), (259, y), (259, y + 3))
     return s
 
 
@@ -625,10 +631,10 @@ def fons_selva_laboratori():
         pygame.draw.ellipse(s, (40, 80, 70), (x, 110 + rnd.randint(-10, 20), 46, 120))
     boira(s, 140, 80, (120, 150, 140), 100)
     # módulo del laboratorio
-    pygame.draw.rect(s, (60, 70, 80), (60, 120, 280, 155))
-    pygame.draw.rect(s, (90, 100, 110), (60, 120, 280, 155), 2)
-    pygame.draw.ellipse(s, (70, 80, 92), (60, 90, 280, 60))
-    for k, x in enumerate(range(80, 330, 50)):                     # tanques con criaturas
+    pygame.draw.rect(s, (60, 70, 80), (80, 120, 340, 155))
+    pygame.draw.rect(s, (90, 100, 110), (80, 120, 340, 155), 2)
+    pygame.draw.ellipse(s, (70, 80, 92), (80, 90, 340, 60))
+    for k, x in enumerate(range(105, 400, 50)):                     # tanques con criaturas
         pygame.draw.rect(s, (30, 40, 50), (x, 160, 34, 100))
         liq = (60, 220, 140) if k % 2 == 0 else (190, 90, 230)
         pygame.draw.rect(s, liq, (x + 3, 166, 28, 90))
@@ -638,11 +644,11 @@ def fons_selva_laboratori():
         for b in range(4):
             s.set_at((x + 6 + b * 6, 240 - b * 14), (230, 255, 240))
     for y in (132, 144):                                           # tuberías
-        pygame.draw.line(s, (110, 120, 130), (60, y), (340, y), 3)
-    pygame.draw.rect(s, (255, 200, 40), (180, 124, 40, 8))         # señal de peligro
-    for x in range(184, 218, 8):
+        pygame.draw.line(s, (110, 120, 130), (80, y), (420, y), 3)
+    pygame.draw.rect(s, (255, 200, 40), (230, 124, 40, 8))         # señal de peligro
+    for x in range(234, 268, 8):
         pygame.draw.line(s, (20, 20, 20), (x, 131), (x + 4, 124), 2)
-    for x, h in ((20, 200), (370, 210)):
+    for x, h in ((20, 200), (472, 210)):
         arbre_jungla(s, rnd, x, 275, h, (50, 40, 34), ((30, 90, 60), (40, 110, 70)), (40, 60, 70))
     for _ in range(160):
         x, y = rnd.randint(0, W), rnd.randint(0, 270)
@@ -657,19 +663,19 @@ def fons_selva_cor():
     degradat(s, (10, 10, 20), (60, 24, 30))
     estrelles(s, rnd, 50, y_max=100)
     # árbol-máquina gigante
-    pygame.draw.polygon(s, (50, 36, 40), [(150, 275), (175, 120), (225, 120), (250, 275)])
+    pygame.draw.polygon(s, (50, 36, 40), [(200, 275), (225, 120), (275, 120), (300, 275)])
     for k in range(7):
         a = -math.pi / 2 + (k - 3) * 0.35
-        pygame.draw.line(s, (50, 36, 40), (200, 125), (200 + math.cos(a) * 140, 125 + math.sin(a) * 90), 6)
-    pygame.draw.ellipse(s, (40, 70, 50), (60, 20, 280, 120))
+        pygame.draw.line(s, (50, 36, 40), (250, 125), (250 + math.cos(a) * 160, 125 + math.sin(a) * 90), 6)
+    pygame.draw.ellipse(s, (40, 70, 50), (90, 32, 320, 112))
     for _ in range(30):
-        pygame.draw.ellipse(s, rnd.choice(((30, 60, 44), (50, 90, 60))), (rnd.randint(60, 300), rnd.randint(20, 110), 40, 20))
-    pygame.draw.circle(s, (120, 255, 160), (200, 190), 16)          # núcleo del árbol
-    pygame.draw.circle(s, (220, 255, 230), (200, 190), 7)
+        pygame.draw.ellipse(s, rnd.choice(((30, 60, 44), (50, 90, 60))), (rnd.randint(90, 370), rnd.randint(34, 116), 40, 20))
+    pygame.draw.circle(s, (120, 255, 160), (250, 190), 16)          # núcleo del árbol
+    pygame.draw.circle(s, (220, 255, 230), (250, 190), 7)
     for k in range(8):
         a = k * math.tau / 8
-        pygame.draw.line(s, (90, 220, 140), (200, 190), (200 + math.cos(a) * 34, 190 + math.sin(a) * 34), 1)
-    for x in (30, 90, 320, 370):                                   # árboles en llamas
+        pygame.draw.line(s, (90, 220, 140), (250, 190), (250 + math.cos(a) * 34, 190 + math.sin(a) * 34), 1)
+    for x in (30, 100, 400, 470):                                  # árboles en llamas
         arbre_jungla(s, rnd, x, 275, rnd.randint(140, 200), (30, 22, 20), ((60, 30, 20), (90, 40, 20)))
         for k in range(14):
             pygame.draw.circle(s, rnd.choice(((255, 120, 30), (255, 200, 60), (230, 60, 20))),
@@ -689,7 +695,7 @@ def fons_fortalesa_muralla():
         while x < W:
             x += rnd.randint(30, 60)
             punts.append((x, 230 - rnd.randint(alt // 2, alt)))
-        punts += [(W, 230), (W, 300), (0, 300)]
+        punts += [(W, 230), (W, H), (0, H)]
         pygame.draw.polygon(s, col, punts)
     # muralla
     pygame.draw.rect(s, (52, 50, 66), (0, 160, W, 120))
@@ -701,23 +707,23 @@ def fons_fortalesa_muralla():
     for k in range(30):
         pygame.draw.line(barrera, (90, 240, 255, int(60 * (1 - k / 30))), (0, 158 - k), (W, 158 - k))
     s.blit(barrera, (0, 128))
-    for x in (40, 360):                                            # torres con reflector
+    for x in (40, 460):                                            # torres con reflector
         pygame.draw.rect(s, (44, 42, 58), (x - 12, 90, 24, 190))
         pygame.draw.rect(s, (70, 66, 90), (x - 16, 84, 32, 10))
         pygame.draw.circle(s, (255, 250, 200), (x, 82), 5)
     # puerta del hangar
-    pygame.draw.rect(s, (30, 30, 40), (150, 200, 100, 76))
+    pygame.draw.rect(s, (30, 30, 40), (190, 200, 100, 76))
     for y in range(204, 276, 8):
-        pygame.draw.line(s, (50, 50, 64), (152, y), (248, y))
-    for x in range(150, 250, 12):
+        pygame.draw.line(s, (50, 50, 64), (192, y), (288, y))
+    for x in range(190, 290, 12):
         pygame.draw.polygon(s, (220, 180, 40), [(x, 196), (x + 6, 196), (x + 10, 200), (x + 4, 200)])
     # cohete en la rampa (como en el escenario original)
-    pygame.draw.rect(s, (90, 90, 100), (300, 120, 6, 156))
-    pygame.draw.rect(s, (200, 200, 210), (310, 140, 22, 110))
-    pygame.draw.polygon(s, (190, 40, 50), [(310, 140), (321, 112), (332, 140)])
-    pygame.draw.polygon(s, (190, 40, 50), [(310, 230), (300, 256), (310, 250)])
-    pygame.draw.polygon(s, (190, 40, 50), [(332, 230), (342, 256), (332, 250)])
-    pygame.draw.circle(s, (90, 200, 255), (321, 165), 5)
+    pygame.draw.rect(s, (90, 90, 100), (360, 120, 6, 156))
+    pygame.draw.rect(s, (200, 200, 210), (370, 140, 22, 110))
+    pygame.draw.polygon(s, (190, 40, 50), [(370, 140), (381, 112), (392, 140)])
+    pygame.draw.polygon(s, (190, 40, 50), [(370, 230), (360, 256), (370, 250)])
+    pygame.draw.polygon(s, (190, 40, 50), [(392, 230), (402, 256), (392, 250)])
+    pygame.draw.circle(s, (90, 200, 255), (381, 165), 5)
     return s
 
 
@@ -733,18 +739,18 @@ def fons_fortalesa_pati():
         for k in range(5):
             s.set_at((x + 30, 60 + k * 4), (220, 120, 255))
     # suelo de baldosas en perspectiva
-    horitzo, base = 200, 300
+    horitzo, base = 200, H
     for fila in range(10):
         y0 = horitzo + (base - horitzo) * (fila / 10) ** 1.6
         y1 = horitzo + (base - horitzo) * ((fila + 1) / 10) ** 1.6
-        for col in range(-8, 9):
+        for col in range(-11, 12):
             def px(c, y):
                 return W / 2 + c * 30 * (0.35 + 0.65 * (y - horitzo) / (base - horitzo)) * 1.6
             punts = [(px(col, y0), y0), (px(col + 1, y0), y0), (px(col + 1, y1), y1), (px(col, y1), y1)]
             color = (70, 110, 160) if (fila + col) % 2 else (34, 26, 52)
             pygame.draw.polygon(s, color, punts)
     # obeliscos con runas
-    for x in (70, 330):
+    for x in (80, 420):
         pygame.draw.polygon(s, (30, 22, 46), [(x - 14, 240), (x - 8, 70), (x, 56), (x + 8, 70), (x + 14, 240)])
         for k in range(6):
             pygame.draw.rect(s, (200, 110, 255), (x - 3, 90 + k * 22, 6, 8))
@@ -763,26 +769,26 @@ def fons_fortalesa_cim():
     nuvols(s, rnd, 10, (30, 32, 56), 10, 90, (40, 80))
     # anillo del portal detrás del trono
     for r, c in ((70, (90, 40, 140)), (62, (170, 80, 255)), (56, (60, 20, 100))):
-        pygame.draw.circle(s, c, (200, 140), r, 4)
+        pygame.draw.circle(s, c, (250, 140), r, 4)
     halo = pygame.Surface((W, H), pygame.SRCALPHA)
-    pygame.draw.circle(halo, (170, 80, 255, 40), (200, 140), 54)
+    pygame.draw.circle(halo, (170, 80, 255, 40), (250, 140), 54)
     s.blit(halo, (0, 0))
     # trono / plataforma
-    pygame.draw.polygon(s, (50, 50, 70), [(150, 260), (170, 220), (230, 220), (250, 260)])
-    pygame.draw.rect(s, (70, 70, 96), (176, 180, 48, 42))
-    pygame.draw.polygon(s, (70, 70, 96), [(176, 180), (200, 150), (224, 180)])
+    pygame.draw.polygon(s, (50, 50, 70), [(200, 260), (220, 220), (280, 220), (300, 260)])
+    pygame.draw.rect(s, (70, 70, 96), (226, 180, 48, 42))
+    pygame.draw.polygon(s, (70, 70, 96), [(226, 180), (250, 150), (274, 180)])
     # torres de tejado rojo (como en el original)
-    for x in (50, 350):
+    for x in (50, 450):
         pygame.draw.rect(s, (110, 110, 120), (x - 16, 90, 32, 190))
         for y in range(100, 270, 16):
             pygame.draw.rect(s, (60, 60, 70), (x - 4, y, 8, 8))
         pygame.draw.polygon(s, (170, 40, 40), [(x - 22, 92), (x, 30), (x + 22, 92)])
         pygame.draw.line(s, (220, 80, 70), (x - 22, 92), (x, 30))
     # nieve
-    pygame.draw.rect(s, (230, 236, 250), (0, 255, W, 45))
+    pygame.draw.rect(s, (230, 236, 250), (0, 255, W, H - 255))
     for x in range(0, W, 14):
         pygame.draw.ellipse(s, (240, 244, 255), (x, 250 + rnd.randint(-2, 2), 20, 10))
-    for x in (110, 290):                                           # braseros
+    for x in (140, 360):                                           # braseros
         pygame.draw.rect(s, (60, 50, 50), (x - 6, 238, 12, 16))
         for k in range(8):
             pygame.draw.circle(s, rnd.choice(((255, 120, 30), (255, 200, 60))), (x + rnd.randint(-5, 5), 234 - rnd.randint(0, 12)), 3)
@@ -799,7 +805,7 @@ if __name__ == "__main__":
                    ("fons_nivell_3_0.png", fons_orbita), ("fons_nivell_3_1.png", fons_hangar),
                    ("fons_nivell_3_2.png", fons_pont), ("fons_nivell_4_0.png", fons_xylos),
                    ("fons_nivell_4_1.png", fons_rusc), ("fons_nivell_4_2.png", fons_nucli)):
-        desar(f(), nom, 2)
+        desar(f(), nom, 2, RETALL)
     print("Generant personatges:")
     desar(nau_mare(), "boss_nau_mare.png")
     desar(nucli(), "boss_nucli.png")

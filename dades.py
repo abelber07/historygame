@@ -82,28 +82,29 @@ NOMS_CAPS = {
     (4, 2): "NÚCLEO DE XYLOS",
 }
 
-# Plataformas: (x, y_superior, anchura). Enemigos: (tipo, vida)
-_P1 = [(100, 450, 150), (300, 350, 150), (500, 250, 150)]
-_P2 = [(150, 450, 150), (350, 350, 150), (550, 250, 150)]
-_P_ORBITA = [(70, 440, 140), (260, 360, 120), (440, 290, 140), (630, 420, 120)]
-_P_XYLOS = [(110, 460, 150), (320, 380, 150), (540, 300, 160)]
+# Plataformas: (x, y_superior, anchura) en la pantalla de 960x540 (el suelo está en y=490).
+# Enemigos: (tipo, vida)
+_P1 = [(120, 390, 180), (360, 290, 180), (600, 190, 180)]
+_P2 = [(180, 390, 180), (420, 290, 180), (660, 190, 180)]
+_P_ORBITA = [(84, 380, 168), (312, 300, 144), (528, 230, 168), (756, 360, 144)]
+_P_XYLOS = [(132, 400, 180), (384, 320, 180), (648, 240, 192)]
 NIVELLS = {
     (0, 0): {"plataformes": _P1, "enemics": [("dron", 30)] * 2},
-    (0, 1): {"plataformes": [(150, 450, 150), (350, 350, 150), (550, 400, 150)],
+    (0, 1): {"plataformes": [(180, 390, 180), (420, 290, 180), (660, 340, 180)],
              "enemics": [("dron", 30)] * 3 + [("lloctinent", 60)]},
     (0, 2): {"plataformes": _P1, "enemics": [("boss", 100)]},
-    (1, 0): {"plataformes": [(150, 450, 150), (350, 350, 200), (550, 250, 150)], "enemics": [("dron", 50)] * 2},
+    (1, 0): {"plataformes": [(180, 390, 180), (420, 290, 240), (660, 190, 180)], "enemics": [("dron", 50)] * 2},
     (1, 1): {"plataformes": _P1, "enemics": [("dron", 50)] * 3 + [("lloctinent", 100)]},
     (1, 2): {"plataformes": _P2, "enemics": [("boss", 200)]},
     (2, 0): {"plataformes": _P1, "enemics": [("dron", 80)] * 2},
     (2, 1): {"plataformes": _P2, "enemics": [("dron", 80)] * 2 + [("boss", 250)]},
     (2, 2): {"plataformes": _P1, "enemics": [("final_comandant", 1200)]},
     (3, 0): {"plataformes": _P_ORBITA, "enemics": [("dron", 100)] * 2 + [("cacador", 60)] * 2},
-    (3, 1): {"plataformes": [(90, 450, 160), (300, 340, 200), (560, 420, 160)],
+    (3, 1): {"plataformes": [(108, 390, 192), (360, 280, 240), (672, 360, 192)],
              "enemics": [("cacador", 70)] * 3 + [("dron", 100), ("lloctinent", 160)]},
     (3, 2): {"plataformes": _P_ORBITA, "enemics": [("final_nau", 1800)]},
     (4, 0): {"plataformes": _P_XYLOS, "enemics": [("dron", 120)] * 2 + [("cacador", 80)] * 2 + [("lloctinent", 180)]},
-    (4, 1): {"plataformes": [(140, 450, 140), (340, 360, 120), (520, 450, 140)],
+    (4, 1): {"plataformes": [(168, 390, 168), (408, 300, 144), (624, 390, 168)],
              "enemics": [("boss", 450), ("cacador", 80), ("cacador", 80)]},
     (4, 2): {"plataformes": _P_XYLOS, "enemics": [("final_nucli", 2400)]},
 }
