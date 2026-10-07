@@ -8,6 +8,8 @@ on:
     paths:
       - "main.py"
       - "dades.py"
+      - "idiomes.py"
+      - "traduccions.py"
       - "assets/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -36,7 +38,10 @@ jobs:
       - name: Compilar per a navegador (WebAssembly)
         run: |
           mkdir -p _web/historygame
-          cp -r main.py dades.py assets _web/historygame/
+          cp -r main.py dades.py idiomes.py traduccions.py assets _web/historygame/
+          # Paquet lleuger: només la música del menú hi va dins. La resta el joc la descarrega en segon pla
+          # des de assets/musica/ de la mateixa pàgina, quan la necessita.
+          find _web/historygame/assets/musica -name "*.ogg" ! -name "menu.ogg" -delete
           python -m pygbag --build --no_opt --title "Invasión Alienígena" --icon favicon.png _web/historygame
           cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk _web/historygame/build/web/historygame.tar.gz .
 

@@ -28,7 +28,23 @@ La primera vez que se abre el juego se ve una **animación inicial** que cuenta 
 
 Cada jefe final tiene su propio patrón: el Comandante Supremo lanza anillos que giran, la Nave Nodriza deja caer cortinas de balas y llama refuerzos, y el Núcleo de Xylos dispara espirales, anillos con un hueco para esquivar y una mirada que te apunta.
 
-Al completar un sector se desbloquea un expediente en **Historia**, con el trasfondo de los Xylothians.
+Al completar un sector se desbloquea un expediente en **Historia**, con el trasfondo de los Xylothians. Al derrotar a cada jefe final se ve una **cinemática** (la señal del Comandante Supremo, la explosión de la Nave Nodriza y el final), que también se puede volver a ver desde Historia.
+
+Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega (creadora del Proyecto NEXUS), el propio Nexus... y, en los últimos sectores, la mente de Xylos. Cada jefe tiene una **presentación** al aparecer.
+
+## Enemigos, peligros y oleadas
+
+- **Voladores**: drones, lugartenientes y cazadores que embisten.
+- **De suelo** (nuevos): el **soldado** camina por las plataformas y dispara en línea recta; el **escudero** lleva un escudo de energía que para todo lo que le llega de frente (hay que rodearlo; el plasma lo atraviesa); el **kamikaze** corre hacia ti y explota (si lo abates, la explosión daña a los demás aliens).
+- **Peligros** de cada escenario: escombros que caen en las ruinas, morteros en las murallas (primero sale una marca en el suelo), charcos de ácido en la selva y la colmena, gas tóxico en el laboratorio, suelo electrificado en el patio y el hangar, plataformas que flotan y se mueven en órbita y plataformas que se rompen si te quedas encima.
+- Casi todos los escenarios tienen **dos oleadas**: cuando acabas con la primera llegan refuerzos.
+
+## Estrellas, supervivencia y dificultad
+
+- Cada escenario da hasta **3 estrellas**: completarlo, hacerlo sin recibir daño y acabarlo antes de un tiempo (el cronómetro está arriba a la derecha). Cada estrella nueva da 30 XP para el Battle Pass.
+- **Supervivencia** (se desbloquea al completar el sector 1): oleadas infinitas en la arena que elijas, cada vez más difíciles y con un jefe cada cinco. Se guardan los 5 mejores récords. Da la mitad de monedas y XP.
+- **Dificultad** Fácil, Normal o Difícil en Opciones: cambia la vida, el daño y la cadencia de los enemigos (y las monedas que ganas).
+- **Idioma**: español, catalán o inglés, en Opciones.
 
 ## Controles
 
@@ -37,6 +53,7 @@ Al completar un sector se desbloquea un expediente en **Historia**, con el trasf
 | A / D o flechas | Moverse |
 | ESPACIO / W / flecha arriba | Saltar (mantén pulsado para saltar más; doble salto con los Propulsores) |
 | S / flecha abajo | Bajar de una plataforma |
+| MAYÚS / clic derecho | Voltereta: esquiva rodando sin recibir daño (también en el aire) |
 | Clic izquierdo | Disparar (mantén pulsado con las armas automáticas) |
 | 1-5 / Q / rueda del ratón | Cambiar de arma |
 | P / ESC | Pausa |
@@ -73,6 +90,16 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 3.0**
+- Tres enemigos de suelo nuevos (soldado, escudero y kamikaze), peligros en los escenarios (escombros, morteros, ácido, gas, electricidad, plataformas móviles y frágiles) y oleadas de refuerzos.
+- Voltereta con invulnerabilidad (MAYÚS o clic derecho), pequeña pausa al impactar con armas pesadas, al eliminar enemigos y al recibir daño, y retroceso de la escopeta, el plasma y la minigun.
+- Estrellas por escenario, modo Supervivencia con récords y tres niveles de dificultad.
+- Mensajes de radio con retrato, presentación de cada jefe y cinemáticas al derrotar a los tres jefes finales (el final del juego ahora es una animación en lugar de un texto).
+- Seis canciones nuevas (sector 1, órbita, Xylos, jefes, supervivencia y final): ahora cada sector tiene su música.
+- Todos los sprites se amplían a escalas enteras (x2, x3), así que sus píxeles se ven iguales y nítidos.
+- En el navegador la música se descarga en segundo plano cuando hace falta: el juego tarda mucho menos en arrancar.
+- Juego en español, catalán e inglés.
 
 **Versión 2.3**
 - Resolución base nueva de 960x540 (16:9): a 1920x1080 el juego se ve a x2 exacto, perfectamente nítido y sin bandas laterales.
@@ -139,5 +166,6 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 - Python y Pygame (pygame-ce), con asyncio para el bucle principal.
 - pygbag para ejecutarlo en el navegador con WebAssembly.
 - Gráficos originales de Nacho y Abel (soldado y enemigos), música y efectos libres de derechos.
-- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`.
+- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, y las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy).
+- Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
 - Los datos del juego (armas, niveles, historia, mejoras y Battle Pass) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.
