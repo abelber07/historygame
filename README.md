@@ -1,5 +1,7 @@
 # Joc Militar: Invasió Alienígena
 
+![Invasió Alienígena](logo.png)
+
 **Juga-hi al navegador:** https://abelber07.github.io/historygame/
 
 Versió millorada i adaptada a web del joc original [`Joc_final`](https://github.com/abelber07/Joc_final), fet per Nacho i Abel amb Python i Pygame.
@@ -50,6 +52,13 @@ Tres sectors amb tres escenaris cadascun: **Ruïnes Urbanes**, **Selva Tecnològ
 - El text de la narrativa «saltava» mentre s'escrivia i trigava més de 20 segons a aparèixer.
 - La pantalla de càrrega durava 10 segons obligatoris; el botó «Sortir» deixava la pantalla en negre al navegador.
 - S'ha eliminat un fitxer que no era del joc (`assets/get_attachment_url`) i la música duplicada.
+
+**Animacions i gràfics (versió 1.1)**
+- El soldat ara té animacions: córrer (6 fotogrames amb les cames en moviment), respiració en repòs, salt, caiguda, aixafament en aterrar, retrocés i flamarada del canó, beines que salten, pols als peus i caiguda en morir.
+- Les bales surten de la punta real de cada arma.
+- L'ombra del jugador es projecta sobre la plataforma de sota i es fa petita i transparent en saltar (abans es quedava enganxada als peus).
+- Fons amb paral·laxi i ambient animat a cada escenari: cendra i platets llunyans a la ciutat, pluja, guspires i resplendor de foc, espores lluminoses i fulles a la selva, reflectors a la fortalesa, interferències d'energia, neu i llamps al combat final.
+- Logotip nou animat (platet volant amb raig tractor sobre la Terra) a la pantalla de càrrega i al menú, i icona nova per a la pestanya del navegador.
 
 **Millores**
 - Funciona al navegador (pygbag / WebAssembly) i es publica sol a GitHub Pages amb GitHub Actions.

@@ -135,25 +135,92 @@ def silueta_blanca(img):
     return s
 
 
-def centre_peus(img):
-    """Posició x mitjana dels píxels opacs de la part inferior (on són les cames)."""
-    w, h = img.get_size()
-    xs = [x for y in range(int(h * 0.75), h) for x in range(w) if img.get_at((x, y)).a]
-    return sum(xs) / len(xs) if xs else w / 2
+# ---------------------------------------------------------------------------
+# Animació del jugador: a partir de cada sprite original es generen fotogrames
+# separant les cames del cos (córrer, repòs, salt i caiguda).
+# ---------------------------------------------------------------------------
+# Per a cada arma: cames com (x_inici, x_final, y_inici) en coordenades del sprite retallat
+CAMES_JUGADOR = {
+    "Pistola": [(2, 5, 22), (8, 11, 22)],
+    "Fusell": [(2, 5, 22), (8, 11, 22)],
+    "Minigun": [(2, 5, 22), (10, 13, 26)],
+}
 
 
-# Jugador (s'escala x2 amb proporcions correctes i es guarda també la versió girada)
+class SpritesJugador:
+    ESCALA = 2
+    MARGE = 3
+    FOTOGRAMES_CORRER = 6
+
+    def __init__(self, img, cames):
+        self.w, self.h = img.get_size()
+        w, h = self.w, self.h
+        self.cames = []
+        mascara = set()
+        for x0, x1, y0 in cames:
+            px = [(x, y, tuple(img.get_at((x, y)))) for x in range(x0, min(x1, w - 1) + 1)
+                  for y in range(y0, h) if img.get_at((x, y)).a]
+            self.cames.append((y0, px))
+            mascara.update((x, y) for x, y, _ in px)
+        self.cos = img.copy()
+        for x, y in mascara:
+            self.cos.set_at((x, y), (0, 0, 0, 0))
+        totes = [x for _, px in self.cames for x, _, _ in px]
+        peus = (sum(totes) / len(totes)) if totes else w / 2
+        # punta del canó: el píxel opac més a la dreta de la zona del tors
+        punts = [(x, y) for y in range(8, h - 4) for x in range(w) if img.get_at((x, y)).a]
+        xmax = max(x for x, _ in punts)
+        ys = [y for x, y in punts if x == xmax]
+        canó = (xmax + 1, sum(ys) / len(ys))
+
+        e, m = self.ESCALA, self.MARGE
+        self.peus_x = (m + peus + 0.5) * e                      # ancoratge horitzontal (dreta)
+        self.ample = (w + 2 * m) * e
+        self.alt = h * e
+        self.cano_dx = (m + canó[0]) * e - self.peus_x           # punta del canó respecte als peus
+        self.cano_dy = canó[1] * e - self.alt + e
+
+        self.poses = {
+            "quiet": [self._fotograma(0, 0, 0, 0, 0), self._fotograma(0, 0, 0, 0, 1)],
+            "salt": [self._fotograma(-1.5, 1, 2.5, 3, 0)],
+            "caiguda": [self._fotograma(-2, 0, 1.5, 1, 0)],
+            "corre": [],
+        }
+        n = self.FOTOGRAMES_CORRER
+        for i in range(n):
+            fase = math.tau * i / n
+            s = 2.6 * math.sin(fase)
+            self.poses["corre"].append(self._fotograma(
+                -s, max(0.0, 2 * math.cos(fase)), s, max(0.0, -2 * math.cos(fase)),
+                1 if i % 3 == 1 else 0))
+
+    def _fotograma(self, swing_darrere, aixecar_darrere, swing_davant, aixecar_davant, bob):
+        m = self.MARGE
+        out = pygame.Surface((self.w + 2 * m, self.h), pygame.SRCALPHA)
+        params = ((swing_darrere, aixecar_darrere, 0.78), (swing_davant, aixecar_davant, 1.0))
+        for (y0, px), (swing, aixecar, llum) in zip(self.cames, params):
+            llarg = max(1, self.h - 1 - y0)
+            for x, y, c in px:
+                t = (y - y0) / llarg
+                nx = m + x + round(swing * t)
+                ny = y - round(aixecar * t)
+                if 0 <= nx < out.get_width() and 0 <= ny < self.h:
+                    out.set_at((nx, ny), (int(c[0] * llum), int(c[1] * llum), int(c[2] * llum), c[3]))
+        out.blit(self.cos, (m, bob))
+        dreta = pygame.transform.scale(out, (out.get_width() * self.ESCALA, self.h * self.ESCALA))
+        return {1: dreta, -1: pygame.transform.flip(dreta, True, False)}
+
+    def ancoratge(self, direccio):
+        return self.peus_x if direccio == 1 else self.ample - self.peus_x
+
+
 SPR_JUGADOR = {}
 for _nom, _fitxer in (("Pistola", "jugador_pistola.png"),
                       ("Fusell", "jugador_fusell.png"),
                       ("Minigun", "jugador_minigun.png")):
-    _img = escalar(retallar(carregar_imatge(_fitxer)), 2)
+    _img = retallar(carregar_imatge(_fitxer))
     if _img:
-        _cx = centre_peus(_img)
-        SPR_JUGADOR[_nom] = {
-            1: (_img, _cx),
-            -1: (pygame.transform.flip(_img, True, False), _img.get_width() - _cx),
-        }
+        SPR_JUGADOR[_nom] = SpritesJugador(_img, CAMES_JUGADOR[_nom])
 
 _dron = retallar(carregar_imatge("enemic.png"))
 _boss = retallar(carregar_imatge("enemic_boss.png"))
@@ -171,10 +238,9 @@ FONS_NIVELLS = {}
 for _n in range(3):
     for _e in range(3):
         _f = carregar_imatge(f"fons_nivell_{_n}_{_e}.png", alpha=False)
-        FONS_NIVELLS[(_n, _e)] = escalar(_f, mida=(WIDTH, HEIGHT)) if _f else None
+        # una mica més gran que la pantalla per poder fer paral·laxi
+        FONS_NIVELLS[(_n, _e)] = escalar(_f, mida=(WIDTH + 40, HEIGHT + 20)) if _f else None
 
-_logo = carregar_imatge("logo.png")
-LOGO = escalar(_logo, 300 / _logo.get_height()) if _logo else None
 
 
 class Audio:
@@ -546,6 +612,409 @@ class FonsAnimat:
 
 
 # ---------------------------------------------------------------------------
+# Ambient animat dels escenaris
+# ---------------------------------------------------------------------------
+AMBIENTS = {
+    (0, 0): ("cendra", "ovnis"),
+    (0, 1): ("pluja", "ovnis"),
+    (0, 2): ("brases", "foc", "explosions"),
+    (1, 0): ("espores", "fulles"),
+    (1, 1): ("pluja", "espores"),
+    (1, 2): ("brases", "foc", "fulles"),
+    (2, 0): ("reflectors", "ovnis"),
+    (2, 1): ("energia", "espores"),
+    (2, 2): ("neu", "llamps"),
+}
+
+_CACHE_LLUM = {}
+
+
+def llum(radi, color):
+    """Cercle de llum difusa (pre-renderitzat i reutilitzat)."""
+    clau = (radi, color)
+    s = _CACHE_LLUM.get(clau)
+    if s is None:
+        s = pygame.Surface((radi * 2, radi * 2), pygame.SRCALPHA)
+        for r in range(radi, 0, -1):
+            a = int(255 * (1 - r / radi) ** 2)
+            pygame.draw.circle(s, (*color, a), (radi, radi), r)
+        _CACHE_LLUM[clau] = s
+    return s
+
+
+def crear_vinyeta():
+    petit = pygame.Surface((80, 60), pygame.SRCALPHA)
+    for x in range(80):
+        for y in range(60):
+            d = math.hypot((x - 39.5) / 40, (y - 29.5) / 30)
+            petit.set_at((x, y), (0, 0, 10, int(min(1.0, max(0.0, d - 0.55) / 0.6) ** 1.6 * 150)))
+    return pygame.transform.smoothscale(petit, (WIDTH, HEIGHT))
+
+
+def crear_resplendor_foc():
+    s = pygame.Surface((WIDTH, 220), pygame.SRCALPHA)
+    for y in range(220):
+        a = int(120 * (y / 220) ** 2)
+        pygame.draw.line(s, (255, 110, 30, a), (0, y), (WIDTH, y))
+    return s
+
+
+def crear_ovni_llunya():
+    s = pygame.Surface((30, 12), pygame.SRCALPHA)
+    pygame.draw.ellipse(s, (40, 46, 70, 210), (0, 4, 30, 7))
+    pygame.draw.ellipse(s, (70, 80, 110, 210), (9, 0, 12, 8))
+    return s
+
+
+class Ambient:
+    """Efectes de fons i de primer pla que fan que cada escenari sembli viu."""
+
+    def __init__(self, nivell, escenari):
+        self.tipus = AMBIENTS.get((nivell, escenari), ())
+        self.t = 0
+        self.part = []       # partícules: [x, y, vx, vy, vida, mida, fase]
+        self.ovnis = []
+        self.flaix = 0
+        self.llamp = None
+        self.explosions = []
+        if "pluja" in self.tipus:
+            self.pluja = [[random.uniform(0, WIDTH + 100), random.uniform(-HEIGHT, HEIGHT), random.uniform(11, 15)]
+                          for _ in range(130)]
+        if "neu" in self.tipus:
+            self.neu = [[random.uniform(0, WIDTH), random.uniform(0, HEIGHT), random.uniform(0.5, 1.5),
+                         random.choice((1, 2, 2, 3)), random.uniform(0, math.tau)] for _ in range(120)]
+        if "espores" in self.tipus:
+            self.espores = [[random.uniform(0, WIDTH), random.uniform(80, TERRA_Y), random.uniform(0, math.tau),
+                             random.uniform(0.3, 0.8)] for _ in range(26)]
+
+    def actualitzar(self):
+        self.t += 1
+        t = self.t
+        tp = self.tipus
+        if "pluja" in tp:
+            for g in self.pluja:
+                g[0] -= 3
+                g[1] += g[2]
+                if g[1] > TERRA_Y:
+                    if random.random() < 0.25:
+                        self.part.append([g[0], TERRA_Y - 1, random.uniform(-1, 1), -random.uniform(1, 2), 8, 1, 0,
+                                          (180, 200, 235)])
+                    g[0], g[1] = random.uniform(0, WIDTH + 150), random.uniform(-80, -10)
+        if "neu" in tp:
+            for f in self.neu:
+                f[1] += f[2]
+                f[0] += math.sin(t * 0.02 + f[4]) * 0.5 - 0.2
+                if f[1] > TERRA_Y:
+                    f[0], f[1] = random.uniform(0, WIDTH + 40), -5
+        if "espores" in tp:
+            for e in self.espores:
+                e[2] += 0.02
+                e[0] += math.cos(e[2] * 1.3) * e[3]
+                e[1] += math.sin(e[2]) * e[3] * 0.6 - 0.1
+                if e[1] < 60:
+                    e[1] = TERRA_Y - 10
+                e[0] %= WIDTH
+        if "brases" in tp and t % 2 == 0:
+            x = random.choice((random.uniform(0, 140), random.uniform(WIDTH - 140, WIDTH), random.uniform(0, WIDTH)))
+            self.part.append([x, TERRA_Y, random.uniform(-0.4, 0.4), -random.uniform(0.8, 2.2),
+                              random.randint(60, 140), random.choice((2, 2, 3)), random.uniform(0, 6),
+                              random.choice(((255, 170, 60), (255, 120, 40), (255, 220, 120)))])
+        if "cendra" in tp and t % 5 == 0:
+            self.part.append([random.uniform(-50, WIDTH), -5, random.uniform(0.3, 0.9), random.uniform(0.4, 0.9),
+                              random.randint(300, 600), random.choice((1, 2)), random.uniform(0, 6), (200, 200, 205)])
+        if "fulles" in tp and t % 14 == 0:
+            self.part.append([random.uniform(0, WIDTH), -5, random.uniform(-0.3, 0.6), random.uniform(0.6, 1.2),
+                              random.randint(400, 700), 3, random.uniform(0, 6),
+                              random.choice(((90, 170, 70), (140, 190, 60), (200, 160, 50)))])
+        if "ovnis" in tp and (t % 420 == 60 or (not self.ovnis and t % 240 == 0)):
+            d = random.choice((-1, 1))
+            self.ovnis.append([WIDTH + 40 if d < 0 else -40, random.uniform(30, 150), d * random.uniform(0.6, 1.3),
+                               random.uniform(0.6, 1.0)])
+        for o in self.ovnis[:]:
+            o[0] += o[2]
+            if o[0] < -60 or o[0] > WIDTH + 60:
+                self.ovnis.remove(o)
+        if "explosions" in tp and random.random() < 0.012:
+            self.explosions.append([random.uniform(60, WIDTH - 60), random.uniform(250, 470), 0])
+        for ex in self.explosions[:]:
+            ex[2] += 1
+            if ex[2] > 30:
+                self.explosions.remove(ex)
+        if "llamps" in tp:
+            if random.random() < 0.006 and not self.llamp:
+                x = random.uniform(100, WIDTH - 100)
+                punts = [(x, 0)]
+                y = 0
+                while y < random.uniform(220, 380):
+                    y += random.uniform(20, 45)
+                    x += random.uniform(-30, 30)
+                    punts.append((x, y))
+                self.llamp = [punts, 10]
+                self.flaix = 10
+            if self.llamp:
+                self.llamp[1] -= 1
+                if self.llamp[1] <= 0:
+                    self.llamp = None
+        self.flaix = max(0, self.flaix - 1)
+        for p in self.part[:]:
+            p[0] += p[2] + (math.sin(t * 0.05 + p[6]) * 0.6 if p[5] == 3 else 0)
+            p[1] += p[3]
+            p[4] -= 1
+            if p[4] <= 0 or p[1] > TERRA_Y + 2 or p[1] < -20:
+                self.part.remove(p)
+
+    def dibuixar_fons(self, surf):
+        """Darrere de les plataformes i els personatges."""
+        t = self.t
+        if "reflectors" in self.tipus:
+            capa = CAPA_TRANSPARENT
+            capa.fill((0, 0, 0, 0))
+            for base_x, fase in ((140, 0.0), (WIDTH - 140, 2.1)):
+                a = -math.pi / 2 + math.sin(t * 0.012 + fase) * 0.55
+                for obertura, alfa in ((0.13, 34), (0.07, 46)):
+                    p1 = (base_x + math.cos(a - obertura) * 700, TERRA_Y + math.sin(a - obertura) * 700)
+                    p2 = (base_x + math.cos(a + obertura) * 700, TERRA_Y + math.sin(a + obertura) * 700)
+                    pygame.draw.polygon(capa, (255, 250, 200, alfa), [(base_x, TERRA_Y), p1, p2])
+            surf.blit(capa, (0, 0))
+        if "energia" in self.tipus:
+            y = (t * 3) % (HEIGHT + 200) - 100
+            surf.blit(BANDA_ENERGIA, (0, int(y)))
+            if (t // 4) % 50 == 0:                  # petita interferència
+                for _ in range(3):
+                    gy = random.randint(0, HEIGHT - 10)
+                    tira = surf.subsurface(pygame.Rect(0, gy, WIDTH, random.randint(2, 6))).copy()
+                    surf.blit(tira, (random.randint(-8, 8), gy))
+        for ex in self.explosions:
+            k = ex[2] / 30
+            radi = int(10 + 50 * k)
+            l = llum(max(4, radi), (255, 150, 60))
+            l.set_alpha(int(220 * (1 - k)))
+            surf.blit(l, l.get_rect(center=(int(ex[0]), int(ex[1]))))
+            l.set_alpha(255)
+        for o in self.ovnis:
+            img = OVNI_LLUNYA
+            surf.blit(img, (int(o[0]), int(o[1])))
+            if (t // 15) % 2:
+                pygame.draw.circle(surf, (255, 90, 90), (int(o[0]) + 15, int(o[1]) + 11), 1)
+        if "espores" in self.tipus:
+            for e in self.espores:
+                br = 0.6 + 0.4 * math.sin(t * 0.08 + e[2] * 3)
+                l = llum(9, (190, 255, 120))
+                l.set_alpha(int(170 * br))
+                surf.blit(l, (int(e[0]) - 9, int(e[1]) - 9))
+                l.set_alpha(255)
+                pygame.draw.circle(surf, (230, 255, 190), (int(e[0]), int(e[1])), 1)
+
+    def dibuixar_davant(self, surf):
+        """Per sobre de tot (pluja, neu, guspires, llamps) abans de l'HUD."""
+        t = self.t
+        if "foc" in self.tipus:
+            RESPLENDOR_FOC.set_alpha(150 + int(60 * math.sin(t * 0.3)) + random.randint(-25, 25))
+            surf.blit(RESPLENDOR_FOC, (0, HEIGHT - 220))
+        for p in self.part:
+            x, y, mida, color = int(p[0]), int(p[1]), p[5], p[7]
+            if color[0] == 255:                       # guspira: amb llum
+                l = llum(6, (255, 140, 50))
+                surf.blit(l, (x - 6, y - 6))
+                pygame.draw.circle(surf, color, (x, y), max(1, mida - 1))
+            elif mida == 3:                           # fulla
+                ang = math.sin(t * 0.08 + p[6])
+                pygame.draw.ellipse(surf, color, (x, y, 5, 3 if ang > 0 else 2))
+            else:
+                pygame.draw.rect(surf, color, (x, y, mida, mida))
+        if "pluja" in self.tipus:
+            for g in self.pluja:
+                pygame.draw.line(surf, (190, 205, 240), (g[0], g[1]), (g[0] + 3, g[1] - 14), 1)
+        if "neu" in self.tipus:
+            for f in self.neu:
+                pygame.draw.circle(surf, (240, 245, 255), (int(f[0]), int(f[1])), f[3] // 2 + 1 if f[3] > 1 else 1)
+        if self.llamp:
+            punts = self.llamp[0]
+            pygame.draw.lines(surf, (180, 200, 255), False, punts, 5)
+            pygame.draw.lines(surf, BLANC, False, punts, 2)
+        if self.flaix:
+            vel = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            vel.fill((220, 230, 255, int(14 * self.flaix)))
+            surf.blit(vel, (0, 0))
+        surf.blit(VINYETA, (0, 0))
+
+
+# ---------------------------------------------------------------------------
+# Logotip animat (dibuixat amb codi: platet volant, raig tractor i planeta)
+# ---------------------------------------------------------------------------
+def text_estilitzat(txt, font, dalt, baix, extrusio, vora, profunditat):
+    """Text amb degradat, vora fosca i relleu 3D. Retorna (superfície, màscara, desplaçament)."""
+    mascara = font.render(txt, False, BLANC).convert_alpha()   # 32 bits: el degradat no es quantitza
+    caixa = mascara.get_bounding_rect()
+    mascara = mascara.subsurface(caixa).copy()
+    w, h = mascara.get_size()
+    marge = vora + 2
+    out = pygame.Surface((w + 2 * marge, h + 2 * marge + profunditat), pygame.SRCALPHA)
+    fosc = font.render(txt, False, (12, 14, 26)).convert_alpha().subsurface(caixa).copy()
+    for dx in range(-vora, vora + 1):
+        for dy in range(-vora, vora + profunditat + 1):
+            if dx * dx + min(dy, 0) ** 2 <= vora * vora + 1:
+                out.blit(fosc, (marge + dx, marge + dy))
+    ext = font.render(txt, False, extrusio).convert_alpha().subsurface(caixa).copy()
+    for i in range(profunditat, 0, -1):
+        out.blit(ext, (marge, marge + i))
+    degradat = pygame.Surface((w, h), pygame.SRCALPHA)
+    for y in range(h):
+        k = y / max(1, h - 1)
+        pygame.draw.line(degradat, [int(dalt[i] + (baix[i] - dalt[i]) * k) for i in range(3)] + [255], (0, y), (w, y))
+    ple = mascara.copy()
+    ple.blit(degradat, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    out.blit(ple, (marge, marge))
+    # reflex a la part superior de les lletres
+    reflex = pygame.Surface((w, max(1, h // 7)), pygame.SRCALPHA)
+    reflex.fill((255, 255, 255, 90))
+    brillant = mascara.subsurface((0, 0, w, reflex.get_height())).copy()
+    brillant.blit(reflex, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    out.blit(brillant, (marge, marge))
+    return out, mascara, (marge, marge)
+
+
+def crear_platet(escala):
+    """Platet volant en pixel art (48x22) i escalat sense suavitzar."""
+    fotos = []
+    for encesa in range(3):
+        s = pygame.Surface((48, 22), pygame.SRCALPHA)
+        pygame.draw.ellipse(s, (60, 200, 255, 90), (14, 0, 20, 14))
+        pygame.draw.ellipse(s, (150, 225, 255), (16, 1, 16, 12))
+        pygame.draw.ellipse(s, (90, 200, 120), (21, 5, 6, 6))           # l'alienígena
+        pygame.draw.rect(s, (20, 60, 30), (22, 7, 1, 1))
+        pygame.draw.rect(s, (20, 60, 30), (25, 7, 1, 1))
+        pygame.draw.line(s, (235, 250, 255), (19, 3), (22, 2))
+        pygame.draw.ellipse(s, (70, 76, 100), (0, 9, 48, 11))
+        pygame.draw.ellipse(s, (160, 168, 192), (0, 7, 48, 10))
+        pygame.draw.line(s, (220, 225, 240), (6, 9), (42, 9))
+        pygame.draw.line(s, (40, 44, 64), (2, 15), (46, 15))
+        for i, x in enumerate((7, 15, 24, 33, 41)):
+            on = (i + encesa) % 3 == 0
+            color = (255, 230, 90) if on else (130, 110, 50)
+            pygame.draw.rect(s, color, (x - 1, 12, 3, 2))
+        pygame.draw.ellipse(s, (130, 255, 160), (18, 18, 12, 4))
+        fotos.append(pygame.transform.scale(s, (48 * escala, 22 * escala)))
+    return fotos
+
+
+def crear_planeta(ample, alt):
+    """Casquet del planeta Terra vist des de l'espai, en baixa resolució i escalat x2."""
+    w, h = ample // 2, alt // 2
+    s = pygame.Surface((w, h), pygame.SRCALPHA)
+    cx, cy, r = w // 2, h + int(w * 1.15), int(w * 1.25)
+    for i in range(5, 0, -1):                                       # atmosfera
+        pygame.draw.circle(s, (80, 170, 255, 18 * i), (cx, cy), r + i * 2)
+    pygame.draw.circle(s, (30, 90, 190), (cx, cy), r)
+    rnd = random.Random(7)
+    terra = pygame.Surface((w, h), pygame.SRCALPHA)
+    for _ in range(26):
+        bx, by = rnd.uniform(0, w), rnd.uniform(cy - r, cy - r + 40)
+        for _ in range(rnd.randint(3, 7)):
+            pygame.draw.circle(terra, rnd.choice(((60, 150, 70), (90, 170, 80), (150, 140, 80))),
+                               (int(bx + rnd.uniform(-9, 9)), int(by + rnd.uniform(-4, 4))), rnd.randint(2, 6))
+    for _ in range(12):                                             # núvols
+        bx, by = rnd.uniform(0, w), rnd.uniform(cy - r, cy - r + 40)
+        pygame.draw.ellipse(terra, (240, 245, 255, 200), (bx, by, rnd.randint(10, 26), 2))
+    clip = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.circle(clip, BLANC, (cx, cy), r - 1)
+    terra.blit(clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    s.blit(terra, (0, 0))
+    ombra = pygame.Surface((w, h), pygame.SRCALPHA)               # costat nocturn
+    for x in range(w):
+        a = int(150 * max(0.0, 1 - x / (w * 0.55)) ** 1.5)
+        pygame.draw.line(ombra, (0, 0, 20, a), (x, 0), (x, h))
+    ombra.blit(clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    s.blit(ombra, (0, 0))
+    pygame.draw.circle(s, (170, 220, 255), (cx, cy), r, 1)          # vora il·luminada
+    return pygame.transform.scale(s, (w * 2, h * 2))
+
+
+class Logo:
+    """INVASIÓ ALIENÍGENA: platet que abdueix el títol sobre el planeta."""
+
+    def __init__(self, ample=600):
+        k = ample / 600
+        self.k = k
+        self.w = int(600 * k)
+        f_gran = carregar_font("VT323-Regular.ttf", max(12, int(132 * k)))
+        f_mitja = carregar_font("VT323-Regular.ttf", max(10, int(86 * k)))
+        self.titol = text_estilitzat("INVASIÓ", f_gran, (215, 255, 90), (25, 150, 70), (15, 70, 40),
+                                     max(2, int(5 * k)), max(2, int(8 * k)))
+        self.subtitol = text_estilitzat("ALIENÍGENA", f_mitja, (255, 255, 255), (90, 190, 255), (25, 60, 130),
+                                        max(2, int(4 * k)), max(2, int(6 * k)))
+        self.lema = carregar_font("PressStart2P-Regular.ttf", max(8, int(13 * k)))
+        self.platet = crear_platet(max(1, round(3 * k)))
+        # disposició vertical calculada a partir de la mida real dels textos
+        self.y_titol = int(64 * k)
+        self.y_sub = self.y_titol + self.titol[0].get_height() - int(12 * k)
+        self.y_lema = self.y_sub + self.subtitol[0].get_height() + int(10 * k)
+        self.y_planeta = self.y_lema + int(10 * k)
+        self.planeta = crear_planeta(self.w, int(80 * k))
+        self.h = self.y_planeta + self.planeta.get_height()
+        self.capa_raig = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        self.estrelles = [(random.uniform(0, self.w), random.uniform(0, self.h * 0.7), random.uniform(0, 6))
+                          for _ in range(14)]
+
+    def _brillantor(self, surf, info, pos, t, retard):
+        """Franja de llum que recorre les lletres de tant en tant."""
+        _, mascara, (mx, my) = info
+        w, h = mascara.get_size()
+        cicle = (t + retard) % 300
+        x = cicle * (w + 200) / 90 - 100
+        if x > w + 100:
+            return
+        banda = pygame.Surface((w, h), pygame.SRCALPHA)
+        pygame.draw.polygon(banda, (255, 255, 255, 150), [(x, 0), (x + 26 * self.k + 8, 0),
+                                                        (x + 26 * self.k + 8 - h * 0.4, h), (x - h * 0.4, h)])
+        banda.blit(mascara, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        surf.blit(banda, (pos[0] + mx, pos[1] + my))
+
+    def dibuixar(self, surf, centre_x, dalt, t):
+        k = self.k
+        x0 = int(centre_x - self.w / 2)
+        for sx, sy, f in self.estrelles:                          # estrelles que parpellegen
+            a = 0.5 + 0.5 * math.sin(t * 0.06 + f)
+            if a > 0.55:
+                c = int(150 + 105 * a)
+                px, py = int(x0 + sx), int(dalt + sy)
+                pygame.draw.line(surf, (c, c, 255), (px - 2, py), (px + 2, py))
+                pygame.draw.line(surf, (c, c, 255), (px, py - 2), (px, py + 2))
+        surf.blit(self.planeta, (x0, int(dalt + self.y_planeta)))
+        # platet i raig tractor
+        bob = math.sin(t * 0.05) * 5 * k
+        plat = self.platet[(t // 10) % 3]
+        px = int(centre_x - plat.get_width() / 2 + math.sin(t * 0.021) * 18 * k)
+        py = int(dalt + 4 * k + bob)
+        raig = self.capa_raig
+        raig.fill((0, 0, 0, 0))
+        bx = px + plat.get_width() / 2 - x0
+        by = py + plat.get_height() - dalt - 4 * k
+        fons = self.y_planeta + 22 * k
+        pols = 0.5 + 0.5 * math.sin(t * 0.09)
+        pygame.draw.polygon(raig, (120, 255, 160, int(34 + 26 * pols)),
+                            [(bx - 12 * k, by), (bx + 12 * k, by), (bx + 170 * k, fons), (bx - 170 * k, fons)])
+        for i in range(6):                                         # anells que baixen pel raig
+            f = ((t * 1.5 + i * 40 * k) % (fons - by)) / (fons - by)
+            yy = by + f * (fons - by)
+            amp = 12 * k + f * 158 * k
+            pygame.draw.line(raig, (190, 255, 210, int(90 * (1 - f))), (bx - amp, yy), (bx + amp, yy), max(1, int(2 * k)))
+        surf.blit(raig, (x0, int(dalt)))
+        img_t = self.titol[0]
+        pos_t = (int(centre_x - img_t.get_width() / 2), int(dalt + self.y_titol))
+        surf.blit(img_t, pos_t)
+        self._brillantor(surf, self.titol, pos_t, t, 0)
+        img_s = self.subtitol[0]
+        pos_s = (int(centre_x - img_s.get_width() / 2), int(dalt + self.y_sub))
+        surf.blit(img_s, pos_s)
+        self._brillantor(surf, self.subtitol, pos_s, t, 150)
+        text(surf, "· JOC MILITAR ·", self.lema, GROC, (int(centre_x), int(dalt + self.y_lema)))
+        surf.blit(plat, (px, py))
+        l = llum(max(4, int(10 * k)), (130, 255, 160))
+        surf.blit(l, l.get_rect(center=(px + plat.get_width() // 2, py + plat.get_height() - int(2 * k))))
+
+
+# ---------------------------------------------------------------------------
 # Interfície
 # ---------------------------------------------------------------------------
 class Boto:
@@ -638,6 +1107,14 @@ class Jugador:
         self.baixar = 0          # travessar plataformes cap avall
         self.invulnerable = 0
         self.pas = 0.0
+        self.temps = 0
+        self.ombra_y = float(TERRA_Y)
+        # estat d'animació
+        self.aterratge = 0       # aixafament en tocar terra
+        self.retroces = 0        # retrocés del tret
+        self.flash_cano = 0      # flamarada del canó
+        self.mort_t = 0
+        self.events = set()      # "salt", "aterrar", "pas": per crear pols des del joc
 
     @property
     def rect(self):
@@ -647,13 +1124,24 @@ class Jugador:
     def centre(self):
         return self.x + self.W / 2, self.y + self.H / 2
 
-    def canons(self):
-        return self.x + self.W / 2 + self.direccio * 14, self.y + self.H * 0.38
+    def canons(self, arma):
+        """Posició real de la punta del canó de l'arma (d'allà surten les bales)."""
+        spr = SPR_JUGADOR.get(arma)
+        cx, peus = self.x + self.W / 2, self.y + self.H
+        if not spr:
+            return cx + self.direccio * 14, self.y + self.H * 0.38
+        return cx + self.direccio * spr.cano_dx, peus + spr.cano_dy
+
+    def disparat(self):
+        self.retroces = 4
+        self.flash_cano = 3
 
     def demanar_salt(self):
         self.buffer_salt = 8
 
     def actualitzar(self, esquerra, dreta, salt_mantingut, avall, plataformes, mirar_x):
+        self.temps += 1
+        self.events.clear()
         objectiu = (dreta - esquerra) * self.VELOCITAT
         self.vx += (objectiu - self.vx) * 0.35
         if abs(self.vx) < 0.05:
@@ -666,6 +1154,7 @@ class Jugador:
             self.buffer_salt = 0
             self.coyote = 0
             self.terra = False
+            self.events.add("salt")
         self.buffer_salt = max(0, self.buffer_salt - 1)
         if not salt_mantingut and self.vy < -4:     # salt variable: deixar anar = salt més curt
             self.vy = -4
@@ -676,6 +1165,8 @@ class Jugador:
 
         self.x = max(0.0, min(WIDTH - self.W, self.x + self.vx))
         bottom_abans = self.y + self.H
+        estava_a_terra = self.terra
+        vy_impacte = self.vy + self.GRAVETAT
         self.vy = min(self.vy + self.GRAVETAT, self.CAIGUDA_MAX)
         self.y += self.vy
 
@@ -694,23 +1185,91 @@ class Jugador:
             self.y = float(TERRA_Y - self.H)
             self.vy = 0.0
             self.terra = True
+        if self.terra and not estava_a_terra and vy_impacte > 3:
+            self.aterratge = 7
+            self.events.add("aterrar")
 
-        if self.terra and abs(self.vx) > 0.5:
-            self.pas += 0.3
+        # Superfície que hi ha just a sota (per a l'ombra)
+        cx, peus = self.x + self.W / 2, self.y + self.H
+        self.ombra_y = min((p.rect.top for p in plataformes
+                            if p.rect.left <= cx <= p.rect.right and p.rect.top >= peus - 1),
+                           default=float(TERRA_Y))
+
+        if self.terra and abs(self.vx) > 0.6:
+            pas_abans = int(self.pas)
+            self.pas += abs(self.vx) * 0.055
+            if int(self.pas) != pas_abans and int(self.pas) % 3 == 0:
+                self.events.add("pas")
         self.invulnerable = max(0, self.invulnerable - 1)
+        self.aterratge = max(0, self.aterratge - 1)
+        self.retroces = max(0, self.retroces - 1)
+        self.flash_cano = max(0, self.flash_cano - 1)
+
+    def fotograma(self, spr):
+        if not self.terra:
+            return spr.poses["salt" if self.vy < 0 else "caiguda"][0]
+        if abs(self.vx) > 0.6:
+            n = len(spr.poses["corre"])
+            i = int(self.pas) % n
+            if (self.vx > 0) != (self.direccio > 0):   # caminar enrere: animació al revés
+                i = (n - i) % n
+            return spr.poses["corre"][i]
+        return spr.poses["quiet"][(self.temps // 35) % 2]
+
+    def dibuixar_ombra(self, surf):
+        dist = self.ombra_y - (self.y + self.H)
+        if dist > 260:
+            return
+        f = 1 - max(0.0, dist) / 260
+        amp = max(6, int(34 * f))
+        ombra = pygame.Surface((amp, max(3, int(8 * f))), pygame.SRCALPHA)
+        pygame.draw.ellipse(ombra, (0, 0, 0, int(110 * f)), ombra.get_rect())
+        surf.blit(ombra, ombra.get_rect(center=(int(self.x + self.W / 2), int(self.ombra_y) + 1)))
 
     def dibuixar(self, surf, arma):
-        if self.invulnerable and (self.invulnerable // 4) % 2 == 0:
-            return
-        cx = self.x + self.W / 2
-        dades = SPR_JUGADOR.get(arma)
-        if dades:
-            img, peus = dades[self.direccio]
-            bob = int(abs(math.sin(self.pas)) * 2) if self.terra and abs(self.vx) > 0.5 else 0
-            pygame.draw.ellipse(surf, (0, 0, 0), (cx - 16, self.y + self.H - 4, 32, 7))
-            surf.blit(img, (int(cx - peus), int(self.y + self.H - img.get_height() - bob)))
-        else:
+        spr = SPR_JUGADOR.get(arma)
+        self.dibuixar_ombra(surf)
+        if not spr:
             pygame.draw.rect(surf, VERD, self.rect, border_radius=4)
+            return
+        img = self.fotograma(spr)[self.direccio]
+        ancora = spr.ancoratge(self.direccio)
+        if self.aterratge:                           # aixafament en aterrar
+            k = self.aterratge / 7
+            nw, nh = int(img.get_width() * (1 + 0.14 * k)), int(img.get_height() * (1 - 0.12 * k))
+            ancora *= nw / img.get_width()
+            img = pygame.transform.scale(img, (nw, nh))
+        cx = self.x + self.W / 2 - self.direccio * (2 if self.retroces > 1 else 0)
+        pos = (int(cx - ancora), int(self.y + self.H - img.get_height()))
+        if self.invulnerable and (self.invulnerable // 3) % 2 == 0:
+            ferit = img.copy()
+            ferit.fill((255, 70, 70, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            ferit.set_alpha(200)
+            surf.blit(ferit, pos)
+        else:
+            surf.blit(img, pos)
+        if self.flash_cano:
+            tx, ty = self.canons(arma)
+            r = 4 + self.flash_cano * 2
+            punts = []
+            for i in range(8):
+                a = i * math.tau / 8 + self.temps
+                rr = r if i % 2 == 0 else r * 0.45
+                punts.append((tx + self.direccio * r * 0.6 + math.cos(a) * rr, ty + math.sin(a) * rr))
+            pygame.draw.polygon(surf, (255, 200, 60), punts)
+            pygame.draw.circle(surf, BLANC, (int(tx + self.direccio * r * 0.6), int(ty)), max(2, r // 3))
+
+    def dibuixar_mort(self, surf, arma):
+        """El soldat cau d'esquena i s'esvaeix."""
+        spr = SPR_JUGADOR.get(arma)
+        self.mort_t += 1
+        if not spr:
+            return
+        img = spr.poses["quiet"][0][self.direccio]
+        angle = min(90, self.mort_t * 7) * self.direccio
+        rot = pygame.transform.rotate(img, angle)
+        rot.set_alpha(max(0, 255 - max(0, self.mort_t - 30) * 8))
+        surf.blit(rot, rot.get_rect(midbottom=(int(self.x + self.W / 2), int(self.y + self.H) + 4)))
 
 
 class Bala:
@@ -1015,6 +1574,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.estat = "loading"
         self.temps_estat = 0
+        self.t_global = 0
         self.fons_menu = FonsAnimat()
         self.fons_derrota = FonsAnimat((80, 24, 36), (24, 10, 16))
         self.capa = pygame.Surface((WIDTH, HEIGHT))
@@ -1084,14 +1644,14 @@ class Game:
         AUDIO.musica("menu")
         self.desar_progres()
         b = []
-        y = 230
+        y = 242
         opcions = [("Jugar", self.entrar_selector), ("Botiga", self.entrar_botiga),
                    ("Guia", self.entrar_guia), ("Crèdits", self.entrar_credits)]
         if not WEB:
             opcions.append(("Sortir", lambda: self.canviar_estat("quit")))
         for nom, accio in opcions:
-            b.append(Boto((WIDTH // 2 - 120, y, 240, 50), nom, accio))
-            y += 64
+            b.append(Boto((WIDTH // 2 - 120, y, 240, 46), nom, accio))
+            y += 58
         b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Esborrar progrés", self.esborrar_progres,
                       color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
@@ -1233,6 +1793,7 @@ class Game:
             y_dest = random.randint(60, 220)
             self.enemics.append(Enemic(tipus, vida, self.nivell_actual, min(x, WIDTH - ample - 10), y_dest))
         self.cap = next((e for e in self.enemics if e.es_boss), None)
+        self.ambient = Ambient(self.nivell_actual, self.escenari_actual)
         self.nom_cap = NOMS_CAPS.get((self.nivell_actual, self.escenari_actual), "")
         self.fase = "jugant"
         self.temps_fase = 0
@@ -1274,7 +1835,7 @@ class Game:
             self.avis_bales = 90
             self.cooldown = 18
             return
-        cx, cy = self.jugador.canons()
+        cx, cy = self.jugador.canons(arma["nom"])
         mx, my = pygame.mouse.get_pos()
         angle = math.atan2(my - cy, mx - cx) + math.radians(random.uniform(-arma["dispersio"], arma["dispersio"]))
         self.bales.append(Bala(cx, cy, math.cos(angle) * arma["vel"], math.sin(angle) * arma["vel"],
@@ -1284,10 +1845,35 @@ class Game:
         self.cooldown = arma["cadencia"]
         esclat(self.efectes, cx + math.cos(angle) * 8, cy + math.sin(angle) * 8, 4, [GROC, BLANC, TARONJA],
                vel=(1, 3), mida=(2, 3), vida=(5, 10))
+        # beina expulsada cap enrere
+        jx = self.jugador.x + self.jugador.W / 2
+        self.efectes.append(Particula(jx, cy + 2, -self.jugador.direccio * random.uniform(1.5, 3), random.uniform(-4, -2.5),
+                                      (230, 190, 70), vida=28, mida=2.2, gravetat=0.35))
+        self.jugador.disparat()
         AUDIO.tret(arma["so"])
+
+    def pols_jugador(self):
+        """Pols als peus en córrer, saltar i aterrar."""
+        j = self.jugador
+        ev = j.events
+        if not ev:
+            return
+        px, py = j.x + j.W / 2, j.y + j.H
+        color = [(170, 160, 140), (130, 125, 115), (200, 195, 180)]
+        if "aterrar" in ev:
+            for s in (-1, 1):
+                for _ in range(6):
+                    self.efectes.append(Particula(px + s * 6, py - 2, s * random.uniform(1, 3.5), random.uniform(-1.6, -0.3),
+                                                  random.choice(color), vida=random.randint(14, 24), mida=random.uniform(2, 4)))
+        if "salt" in ev:
+            esclat(self.efectes, px, py - 2, 6, color, vel=(0.5, 2), mida=(2, 3.5), vida=(10, 18))
+        if "pas" in ev:
+            self.efectes.append(Particula(px - j.direccio * 6, py - 2, -math.copysign(1, j.vx) * random.uniform(0.5, 1.5),
+                                          random.uniform(-1, -0.3), random.choice(color), vida=16, mida=2.5))
 
     def actualitzar_joc(self):
         self.temps_fase += 1
+        self.ambient.actualitzar()
         self.tremolor *= 0.85
         teclat = pygame.key.get_pressed()
         esq = teclat[pygame.K_a] or teclat[pygame.K_LEFT]
@@ -1299,6 +1885,7 @@ class Game:
 
         if self.fase != "mort":
             self.jugador.actualitzar(esq, dre, salt, avall, self.plataformes, mx)
+            self.pols_jugador()
 
         # Trets
         if self.esperar_alliberar and not ratoli:
@@ -1434,9 +2021,14 @@ class Game:
         c = self.capa
         fons = FONS_NIVELLS.get((self.nivell_actual, self.escenari_actual))
         if fons:
-            c.blit(fons, (0, 0))
+            # paral·laxi: el fons es desplaça una mica segons la posició del jugador
+            jx, jy = self.jugador.centre
+            ox = -20 - (jx / WIDTH - 0.5) * 36
+            oy = -10 - (jy / HEIGHT - 0.7) * 16
+            c.blit(fons, (int(max(-40, min(0, ox))), int(max(-20, min(0, oy)))))
         else:
             c.fill(FONS)
+        self.ambient.dibuixar_fons(c)
         for p in self.plataformes:
             p.dibuixar(c)
         for it in self.items:
@@ -1445,12 +2037,15 @@ class Game:
             e.dibuixar(c)
         if self.fase != "mort":
             self.jugador.dibuixar(c, ARMES[self.arma_actual]["nom"])
+        else:
+            self.jugador.dibuixar_mort(c, ARMES[self.arma_actual]["nom"])
         for b in self.bales:
             b.dibuixar(c)
         for b in self.bales_enemics:
             b.dibuixar(c)
         for fx in self.efectes:
             fx.dibuixar(c)
+        self.ambient.dibuixar_davant(c)
         for t in self.textos:
             t.dibuixar(c)
 
@@ -1515,12 +2110,7 @@ class Game:
 
     def dibuixar_menu(self, surf):
         self.fons_menu.dibuixar(surf)
-        if LOGO:
-            petit = LOGO_MENU
-            surf.blit(petit, petit.get_rect(center=(WIDTH // 2, 75)))
-            text(surf, "INVASIÓ ALIENÍGENA", F_TITOL, BLANC, (WIDTH // 2, 175))
-        else:
-            text(surf, "INVASIÓ ALIENÍGENA", F_TITOL, BLANC, (WIDTH // 2, 120))
+        LOGO_MENU.dibuixar(surf, WIDTH // 2, 2, self.t_global)
         text(surf, str(self.monedes), F_UI, GROC, (44, 26), ancora="midleft")
         dibuixar_moneda(surf, 28, 25)
         estat_so = "M: so OFF" if AUDIO.silenci else "M: so ON"
@@ -1553,7 +2143,7 @@ class Game:
             text(surf, arma["nom"].upper(), F_UI, BLANC, (carta.centerx, carta.top + 26))
             dades = SPR_JUGADOR.get(arma["nom"])
             if dades:
-                img = dades[1][0]
+                img = dades.poses["quiet"][0][1]
                 if not desb:
                     img = img.copy()
                     img.fill((60, 60, 60, 255), special_flags=pygame.BLEND_RGBA_MULT)
@@ -1613,15 +2203,14 @@ class Game:
 
     def dibuixar_loading(self, surf):
         self.fons_menu.dibuixar(surf)
-        if LOGO:
-            surf.blit(LOGO, LOGO.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 70)))
-        text(surf, "FET PER NACHO I ABEL", F_UI, BLANC, (WIDTH // 2, HEIGHT // 2 + 120))
+        LOGO_GRAN.dibuixar(surf, WIDTH // 2, 30, self.t_global)
+        text(surf, "FET PER NACHO I ABEL", F_UI, BLANC, (WIDTH // 2, 412))
         progres = min(1.0, self.temps_estat / (FPS * 2.5))
-        barra = pygame.Rect(WIDTH // 2 - 160, HEIGHT // 2 + 160, 320, 14)
+        barra = pygame.Rect(WIDTH // 2 - 160, 440, 320, 14)
         pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=4)
         pygame.draw.rect(surf, CIAN, (barra.x, barra.y, int(barra.w * progres), barra.h), border_radius=4)
         if progres >= 1 and (pygame.time.get_ticks() // 400) % 2:
-            text(surf, "Clica per començar", F_HUD, GROC, (WIDTH // 2, HEIGHT // 2 + 200))
+            text(surf, "Clica per començar", F_HUD, GROC, (WIDTH // 2, 485))
 
     def dibuixar_pausa(self, surf):
         self.dibuixar_joc(surf)
@@ -1690,6 +2279,7 @@ class Game:
     # ----- Bucle principal --------------------------------------------------
     def actualitzar(self):
         self.temps_estat += 1
+        self.t_global += 1
         if self.temps_missatge > 0:
             self.temps_missatge -= 1
             if self.temps_missatge == 0:
@@ -1750,7 +2340,15 @@ class Game:
 TIPUS_W = {k: (SPR_ENEMIC.get(k) or SPR_ENEMIC.get(("boss", 0)) or pygame.Surface((60, 60))).get_width()
            for k in ("dron", "lloctinent", "boss_final")}
 TIPUS_W["boss"] = 96
-LOGO_MENU = escalar(LOGO, 110 / LOGO.get_height()) if LOGO else None
+LOGO_MENU = Logo(380)
+LOGO_GRAN = Logo(600)
+VINYETA = crear_vinyeta()
+CAPA_TRANSPARENT = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+BANDA_ENERGIA = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
+for _i in range(40):
+    pygame.draw.line(BANDA_ENERGIA, (90, 230, 255, int(50 * math.sin(math.pi * _i / 40))), (0, _i), (WIDTH, _i))
+RESPLENDOR_FOC = crear_resplendor_foc()
+OVNI_LLUNYA = crear_ovni_llunya()
 FRANJA_HUD = pygame.Surface((WIDTH, 72), pygame.SRCALPHA)
 for _y in range(72):
     pygame.draw.line(FRANJA_HUD, (0, 0, 0, int(140 * (1 - _y / 72))), (0, _y), (WIDTH, _y))
