@@ -8475,9 +8475,9 @@ class Game:
         n, e = self.seguent_escenari()
         oberta = self.completats[0][2]
         b = [self.boto_tornar(),
-             Boto((60, 376, 260, 44), T("Continuar {s}").format(s=f"{n + 1}-{e + 1}"), lambda: self.mostrar_narrativa(n, e), VERD),
-             Boto((60, 426, 127, 30), "Elegir nivel", self.entrar_selector, BLAU, font=F_MINI),
-             Boto((193, 426, 127, 30), "Archivo", self.entrar_arxiu, (90, 70, 140), font=F_MINI),
+             Boto((52, 380, 256, 40), T("Continuar {s}").format(s=f"{n + 1}-{e + 1}"), lambda: self.mostrar_narrativa(n, e), VERD),
+             Boto((52, 426, 125, 30), "Elegir nivel", self.entrar_selector, BLAU, font=F_MINI),
+             Boto((183, 426, 125, 30), "Archivo", self.entrar_arxiu, (90, 70, 140), font=F_MINI),
              Boto((360, 404, 240, 46), "Jugar" if oberta else "Completa el sector 1",
                   self.entrar_supervivencia if oberta else None, TARONJA, font=F_HUD if oberta else F_MINI),
              Boto((660, 404, 240, 46), "Ver desafíos", self.entrar_desafiaments, GROC, font=F_HUD)]
@@ -8504,10 +8504,10 @@ class Game:
                     surf.blit(pygame.transform.scale(tros, vista.size), vista)
                 self._soldat_demo(surf, vista.x + 60 + (t * 2) % (vista.w - 80), vista.bottom - 8, "corre",
                                   ARMES[self.arma_actual]["id"], t)
-                text(surf, f"{T('SECTOR')} {n + 1}-{e + 1}", F_HUD, CIAN, (r.centerx, vista.bottom + 22))
-                text(surf, T(NOMS_SECTORS[n]), F_TEXT_P, BLANC, (r.centerx, vista.bottom + 46))
+                text(surf, f"{T('SECTOR')} {n + 1}-{e + 1}", F_HUD, CIAN, (r.centerx, vista.bottom + 18))
+                text(surf, T(NOMS_SECTORS[n]), F_TEXT_P, BLANC, (r.centerx, vista.bottom + 40))
                 for j, ple in enumerate(self.estrelles[n][e]):
-                    dibuixar_estrella(surf, r.centerx - 22 + j * 22, vista.bottom + 72, 8, ple)
+                    dibuixar_estrella(surf, r.centerx - 22 + j * 22, vista.bottom + 63, 8, ple)
             elif k == 1:
                 text(surf, "SUPERVIVENCIA", F_UI, BLANC, (r.centerx, r.y + 22))
                 pygame.draw.rect(surf, (20, 10, 30), vista)
