@@ -95,6 +95,16 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.5: mucho más por desbloquear**
+- **Maestría de armas**: cada arma sube del nivel 1 al 10 con las bajas que haces con ella (y da monedas en cada nivel). Desbloquea camuflajes de **bronce** (4), **plata** (7) y **oro** (10); con las cinco armas en oro, el camuflaje **diamante**, que brilla, y el título «Maestro de armas».
+- **Cosméticos nuevos** en *Tienda > Aspecto*, ahora por categorías: **estelas** de voltereta, **efectos de eliminación** (desintegrar, confeti, congelar, electrocutar, agujero negro, lluvia de oro), **puntos de mira** de colores, **temas del HUD**, **tarjetas de jugador** y **drones compañeros** que te siguen por el escenario. Más uniformes, un aspecto de arma y títulos nuevos.
+- **Rangos militares**: toda la XP cuenta para subir de Recluta a General de Galaxia (15 rangos), con insignia en la tarjeta del menú y una recompensa en cada ascenso.
+- **Battle Pass por temporadas**: 50 niveles, cada uno pide un poco más de XP (200 + 10 por nivel). Al completarlo empieza otra temporada y ganas una estrella de prestigio; lo que ya tienes se cambia por monedas.
+- **Bestiario** (en *Colección*): fichas de los 14 enemigos y jefes que se descubren al eliminarlos y una historia que se desbloquea al eliminar suficientes. Completo: tarjeta y título exclusivos.
+- **Desafíos** que se abren con estrellas (desde *Jugar*): **Sector secreto** (15 ★), **Jefes seguidos** (30 ★, los ocho jefes uno tras otro) y **Pesadilla** (45 ★, el Núcleo más fuerte que nunca). Premios exclusivos la primera vez y mejor tiempo.
+- **Diario**: tres **retos** nuevos cada día (200 monedas y 150 XP cada uno, y 300 más por hacer los tres) y cuatro **ofertas** de cosméticos que cambian cada día.
+- **Equilibrio**: las mejoras de nivel 2 y 3 cuestan más y el nivel 3 pide estrellas; la minigun cuesta 2500 y el plasma 4500; los logros dan XP; repetir un escenario ya completado da la mitad de monedas. Las partidas antiguas conservan todo lo conseguido.
+
 **Versión 3.4.1: combates más fluidos**
 - La Nave Nodriza ya no se inclina girando a saltos (con un sprite tan grande parecía que el juego fuera a menos FPS): se mueve entera y suave.
 - Las plataformas flotantes van a velocidad constante (1 píxel por fotograma) con una pausa en cada extremo, en vez de avanzar a batzegadas.
@@ -207,4 +217,4 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 - Gráficos originales del soldado y los enemigos de Abel; efectos de sonido y parte de la música libres de derechos.
 - Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy) y los sonidos del latido, el «ting» del escudo y la marca de impacto con `tools/generar_sons.py`.
 - Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
-- Los datos del juego (armas, niveles, historia, mejoras, Battle Pass y la lista de novedades `NOVETATS`) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.
+- Los datos del juego (armas, niveles, historia, mejoras, Battle Pass y la lista de novedades `NOVETATS`) están en `dades.py`, y el contenido desbloqueable (cosméticos, rangos, maestría, bestiario, desafíos y retos) en `contingut.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.

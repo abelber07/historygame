@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.4.1"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "3.5"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -35,11 +35,11 @@ ARMES = [
      "desc": "Automático y preciso."},
     # minigun: no gasta munición, pero se calienta (CALOR_DISPAR por tiro, se bloquea al llegar a 100),
     # tarda ARRENCADA fotogramas en llegar a su cadencia máxima y frena al soldado mientras dispara
-    {"id": "minigun", "nom": "Minigun", "dany": 9, "bales_max": None, "cost": 1800, "req": 6, "potencia": 4,
+    {"id": "minigun", "nom": "Minigun", "dany": 9, "bales_max": None, "cost": 2500, "req": 6, "potencia": 4,
      "cadencia": 5, "auto": True, "vel": 14, "dispersio": 7.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "minigun", "estil": "minigun",
      "desc": "Sin munición, pero se calienta. Tarda en arrancar y pesa."},
-    {"id": "plasma", "nom": "Cañón de plasma", "dany": 45, "bales_max": 30, "cost": 3000, "req": 10, "potencia": 5,
+    {"id": "plasma", "nom": "Cañón de plasma", "dany": 45, "bales_max": 30, "cost": 4500, "req": 10, "potencia": 5,
      "cadencia": 16, "auto": True, "vel": 16, "dispersio": 0.5, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": True, "so": "plasma", "estil": "plasma",
      "desc": "Atraviesa a los enemigos. Tecnología Xylothian."},
@@ -323,18 +323,19 @@ ARXIU = [
 # Mejoras de la tienda (cada nivel tiene un coste y un requisito de historia)
 # ---------------------------------------------------------------------------
 MILLORES = [
+    # "estrelles": estrelles necessàries per a cada nivell (el nivell 3 es guanya jugant bé)
     {"id": "blindatge", "nom": "Blindaje", "desc": "+20 de vida máxima por nivel",
-     "costos": [300, 700, 1400], "req": [0, 4, 9]},
+     "costos": [300, 1000, 2500], "req": [0, 4, 9], "estrelles": [0, 0, 18]},
     {"id": "potencia", "nom": "Potencia", "desc": "+15% de daño con todas las armas",
-     "costos": [400, 900, 1600], "req": [1, 5, 10]},
+     "costos": [400, 1200, 2800], "req": [1, 5, 10], "estrelles": [0, 0, 24]},
     {"id": "carregadors", "nom": "Cargadores", "desc": "+30% de munición máxima",
-     "costos": [250, 600, 1200], "req": [0, 3, 8]},
+     "costos": [250, 900, 2200], "req": [0, 3, 8], "estrelles": [0, 0, 15]},
     {"id": "iman", "nom": "Imán", "desc": "Atrae los objetos desde más lejos",
-     "costos": [200, 500, 1000], "req": [2, 5, 8]},
+     "costos": [200, 700, 1800], "req": [2, 5, 8], "estrelles": [0, 0, 12]},
     {"id": "reflexos", "nom": "Reflejos", "desc": "Más velocidad e invulnerabilidad",
-     "costos": [300, 700, 1300], "req": [2, 6, 11]},
+     "costos": [300, 1000, 2400], "req": [2, 6, 11], "estrelles": [0, 0, 21]},
     {"id": "doble_salt", "nom": "Propulsores", "desc": "Permite hacer un doble salto en el aire",
-     "costos": [1500], "req": [8]},
+     "costos": [2500], "req": [8], "estrelles": [10]},
 ]
 
 # ---------------------------------------------------------------------------
@@ -505,6 +506,16 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "3.5", "titol": "Mucho más por desbloquear", "punts": [
+        ("arma:fusell", "Maestría de armas: cada arma sube de nivel y gana camuflajes de bronce, plata, oro y diamante."),
+        ("dron", "Cosméticos nuevos: estelas, efectos de eliminación, puntos de mira, temas del HUD, tarjetas y drones."),
+        ("rang", "Rangos militares de Recluta a General de Galaxia, con recompensa en cada ascenso."),
+        ("pase", "Battle Pass de 50 niveles por temporadas, con estrella de prestigio al completarlo."),
+        ("llibre", "Bestiario: fichas e historias de todos los enemigos y jefes."),
+        ("estrella", "Desafíos con estrellas: Sector secreto (15), Jefes seguidos (30) y Pesadilla (45)."),
+        ("diari", "Diario: tres retos cada día y ofertas de cosméticos que cambian."),
+        ("moneda", "Mejoras más caras y el último nivel pide estrellas; repetir un escenario da la mitad de monedas."),
+    ]},
     {"versio": "3.4.1", "titol": "Combates más fluidos", "punts": [
         ("jefe", "La Nave Nodriza ya no va a tirones: se mueve entera y suave."),
         ("plataforma", "Las plataformas flotantes se mueven a velocidad constante, sin saltos."),
@@ -550,3 +561,14 @@ NOVETATS = [
         ("musica", "Música nueva para cada sector y para los jefes."),
     ]},
 ]
+
+
+# ---------------------------------------------------------------------------
+# Contingut desbloquejable de la versió 3.5 (vegeu contingut.py)
+# ---------------------------------------------------------------------------
+from contingut import UNIFORMES_NOUS, APARENCES_NOVES, TITOLS_NOUS, PASSI_50  # noqa: E402
+
+UNIFORMES.update(UNIFORMES_NOUS)
+APARENCES_ARMA.update(APARENCES_NOVES)
+TITOLS.update(TITOLS_NOUS)
+PASSI[:] = PASSI_50
