@@ -95,6 +95,16 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.6: menú nuevo**
+- **Menú rediseñado**: en vez de una columna de botones, cinco botones grandes con icono (*Jugar*, *Arsenal*, *Battle Pass*, *Colección* y *Diario*) y una barra de iconos arriba (idioma, logros, novedades, guía, opciones, créditos y salir). El fondo son los escenarios que ya has desbloqueado, que se van fundiendo.
+- **Tu soldado en el menú**, en grande sobre un pedestal y con todo lo que llevas equipado: de vez en cuando dispara a un dron de prácticas (con tu camuflaje y tu efecto de eliminación) o hace una voltereta con tu estela. El dron compañero le sigue.
+- **Panel Destacado** que va rotando: próxima recompensa del Battle Pass, reto de hoy, ofertas del día, próximo rango, maestría del arma equipada y desafíos. Al hacer clic te lleva a la pantalla correspondiente. Arriba, tu tarjeta de jugador con rango, temporada, monedas y estrellas.
+- **Pantalla Jugar** con tres tarjetas animadas: *Historia* (continuar el siguiente escenario o elegir nivel), *Supervivencia* y *Desafíos*.
+- **Revelaciones**: cada cosmético, rango, camuflaje o temporada nueva se presenta en una pantalla con rayos de luz y partículas antes de volver al menú (con *Saltar todo* si hay muchas).
+- **Puntos rojos** en los botones donde hay algo nuevo que todavía no has mirado.
+- **Guías animadas** de Maestría, Rangos, Bestiario, Desafíos y Diario, que salen solas la primera vez que entras (y todas en *Guía*).
+- Transición suave entre pantallas, botones que brillan al pasar el ratón y *Borrar progreso* movido a *Opciones*.
+
 **Versión 3.5: mucho más por desbloquear**
 - **Maestría de armas**: cada arma sube del nivel 1 al 10 con las bajas que haces con ella (y da monedas en cada nivel). Desbloquea camuflajes de **bronce** (4), **plata** (7) y **oro** (10); con las cinco armas en oro, el camuflaje **diamante**, que brilla, y el título «Maestro de armas».
 - **Cosméticos nuevos** en *Tienda > Aspecto*, ahora por categorías: **estelas** de voltereta, **efectos de eliminación** (desintegrar, confeti, congelar, electrocutar, agujero negro, lluvia de oro), **puntos de mira** de colores, **temas del HUD**, **tarjetas de jugador** y **drones compañeros** que te siguen por el escenario. Más uniformes, un aspecto de arma y títulos nuevos.

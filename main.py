@@ -261,9 +261,18 @@ def ratoli():
 # ---------------------------------------------------------------------------
 # Recursos (cada recurs es carrega per separat: si en falla un, la resta funciona)
 # ---------------------------------------------------------------------------
+# La Press Start 2P encongeix les majúscules accentuades fins que semblen minúscules (COLECCIóN):
+# amb aquesta font s'escriuen sense accent, que es llegeix molt millor.
+FONTS_PIXEL = set()
+SENSE_ACCENT = str.maketrans("ÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛ", "AAAAEEEEIIIIOOOOUUUU")
+
+
 def carregar_font(nom, mida):
     try:
-        return pygame.font.Font(ruta("fonts", nom), mida)
+        f = pygame.font.Font(ruta("fonts", nom), mida)
+        if nom.startswith("PressStart"):
+            FONTS_PIXEL.add(id(f))
+        return f
     except (OSError, pygame.error):
         return pygame.font.Font(None, int(mida * 1.5))
 
@@ -734,6 +743,8 @@ def render(txt, font, color):
     if s is None:
         if len(_CACHE_TEXT) > 800:
             _CACHE_TEXT.clear()
+        if id(font) in FONTS_PIXEL:
+            txt = txt.translate(SENSE_ACCENT)
         s = _CACHE_TEXT[clau] = font.render(txt, True, color)
     return s
 
@@ -1664,7 +1675,11 @@ class Boto:
         r = self.rect.move(0, desp)
         pygame.draw.rect(surf, NEGRE, self.rect.move(0, 4), border_radius=8)
         pygame.draw.rect(surf, color, r, border_radius=8)
-        pygame.draw.rect(surf, aclarir(color, 60), r, 2, border_radius=8)
+        if self.hover():                                   # vora que batega quan hi passes el ratolí
+            k = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() * 0.012)
+            pygame.draw.rect(surf, tuple(int(c + (255 - c) * k) for c in aclarir(color, 60)), r, 2, border_radius=8)
+        else:
+            pygame.draw.rect(surf, aclarir(color, 60), r, 2, border_radius=8)
         text(surf, T(self.txt), self.font, self.color_text if self.actiu else GRIS, r.center)
 
     def gestionar(self, event):
@@ -4299,6 +4314,217 @@ def dibuixar_targeta(surf, rect, ident, titol, rang, temporada, nivell_passi, pr
         dibuixar_estrella(surf, re.left - 10, re.centery, 6, True)
 
 
+
+# ---------------------------------------------------------------------------
+# Menú principal (v3.6): icones, aparador amb el soldat i revelacions
+# ---------------------------------------------------------------------------
+def dibuixar_icona_menu(surf, clau, cx, cy, t=0, color=BLANC):
+    """Icones dels botons grans i de la barra superior del menú."""
+    if clau == "jugar":
+        k = 1 + 0.08 * math.sin(t * 0.12)
+        p = [(cx - 9 * k, cy - 12 * k), (cx + 13 * k, cy), (cx - 9 * k, cy + 12 * k)]
+        pygame.draw.polygon(surf, NEGRE, [(x + 2, y + 2) for x, y in p])
+        pygame.draw.polygon(surf, color, p)
+    elif clau == "arsenal":
+        img = ICONES_ARMA["fusell"][2]
+        surf.blit(img, img.get_rect(center=(cx, cy + int(math.sin(t * 0.1)))))
+    elif clau == "passi":
+        r = pygame.Rect(cx - 17, cy - 12, 34, 24)
+        pygame.draw.rect(surf, NEGRE, r.move(0, 2), border_radius=5)
+        pygame.draw.rect(surf, (200, 80, 200), r, border_radius=5)
+        pygame.draw.rect(surf, (255, 170, 255), r, 2, border_radius=5)
+        text(surf, "BP", F_MINI, BLANC, r.center)
+    elif clau == "colleccio":
+        for k, dx in enumerate((-9, 0, 9)):
+            col = ((205, 127, 70), (215, 220, 235), (255, 205, 60))[k]
+            y = cy + 3 - (4 if k == 1 else 0) + int(1.5 * math.sin(t * 0.1 + k))
+            pygame.draw.circle(surf, NEGRE, (cx + dx, y + 2), 8)
+            pygame.draw.circle(surf, col, (cx + dx, y), 7)
+            pygame.draw.circle(surf, BLANC, (cx + dx - 2, y - 2), 2)
+    elif clau == "diari":
+        pygame.draw.rect(surf, NEGRE, (cx - 13, cy - 11, 28, 26), border_radius=3)
+        pygame.draw.rect(surf, (235, 232, 215), (cx - 14, cy - 13, 28, 26), border_radius=3)
+        pygame.draw.rect(surf, VERMELL, (cx - 14, cy - 13, 28, 8), border_top_left_radius=3, border_top_right_radius=3)
+        text(surf, str(time.localtime().tm_mday), F_MINI, NEGRE, (cx, cy + 4), ombra=False)
+    elif clau == "guia":
+        pygame.draw.rect(surf, (235, 230, 210), (cx - 13, cy - 10, 12, 20))
+        pygame.draw.rect(surf, (235, 230, 210), (cx + 1, cy - 10, 12, 20))
+        pygame.draw.line(surf, (120, 90, 60), (cx, cy - 10), (cx, cy + 10), 2)
+        for k in range(3):
+            pygame.draw.line(surf, GRIS, (cx - 10, cy - 5 + k * 5), (cx - 4, cy - 5 + k * 5))
+            pygame.draw.line(surf, GRIS, (cx + 4, cy - 5 + k * 5), (cx + 10, cy - 5 + k * 5))
+    elif clau == "opcions":
+        a0 = t * 0.02
+        for k in range(8):
+            a = a0 + k * math.tau / 8
+            pygame.draw.line(surf, (190, 196, 214), (cx, cy), (cx + math.cos(a) * 12, cy + math.sin(a) * 12), 5)
+        pygame.draw.circle(surf, (190, 196, 214), (cx, cy), 9)
+        pygame.draw.circle(surf, (30, 34, 66), (cx, cy), 4)
+    elif clau == "credits":
+        dibuixar_estrella(surf, cx, cy, 12, True, (255, 214, 64))
+    elif clau == "sortir":
+        pygame.draw.arc(surf, (255, 120, 120), (cx - 11, cy - 10, 22, 22), math.radians(125), math.radians(415), 3)
+        pygame.draw.line(surf, (255, 120, 120), (cx, cy - 13), (cx, cy - 1), 3)
+
+
+class AparadorMenu:
+    """El soldat del jugador en gran al menú, amb tot el que porta equipat. De tant en tant fa una
+    tombarella (amb l'estela) o dispara a un dron de pràctica (amb el camuflatge i l'efecte d'eliminació)."""
+
+    ESCALA = 2                    # sobre els fotogrames del soldat (que ja són x2): x4 en total
+
+    def __init__(self):
+        self.t = 0
+        self.efectes = []
+        self.restes = []
+        self.bales = []
+        self.accio = None
+        self.t_accio = 0
+        self.diana = None
+        self.n_accions = 0
+        self.dron = None
+        self.cache = {}
+
+    def imatge(self, img):
+        clau = id(img)
+        s = self.cache.get(clau)
+        if s is None:
+            if len(self.cache) > 40:
+                self.cache.clear()
+            s = self.cache[clau] = pygame.transform.scale(img, (img.get_width() * self.ESCALA, img.get_height() * self.ESCALA))
+        return s
+
+    def actualitzar(self, joc, cx, peus):
+        self.t += 1
+        if self.accio is None and self.t % 300 == 120:
+            self.accio = ("dispar", "voltereta")[self.n_accions % 2]
+            self.n_accions += 1
+            self.t_accio = 0
+            if self.accio == "dispar":
+                self.diana = {"x": cx + 330.0, "y": peus - 110.0, "viva": True}
+        if self.accio:
+            self.t_accio += 1
+            if self.accio == "voltereta":
+                if self.t_accio < 28:
+                    cols = colors_estela(joc.estela, self.t)
+                    for _ in range(2):
+                        self.efectes.append(Particula(cx + random.uniform(-30, 30), peus - 60 + random.uniform(-26, 26),
+                                                      random.uniform(-0.6, 0.6), random.uniform(-0.8, 0.2),
+                                                      random.choice(cols), vida=random.randint(14, 24), mida=random.uniform(3, 6)))
+                if self.t_accio >= 40:
+                    self.accio = None
+            else:
+                d = self.diana
+                if d and d["viva"]:
+                    d["x"] += (cx + 140 - d["x"]) * 0.06
+                if self.t_accio in (50, 58, 66) and d and d["viva"]:
+                    spr = self.spr(joc)
+                    bx, by = self.canó(spr, cx, peus)
+                    ang = math.atan2(d["y"] - by, d["x"] - bx)
+                    estil = ARMES[joc.arma_actual]["estil"]
+                    b = Bala(bx, by, math.cos(ang) * 12, math.sin(ang) * 12, 1, estil, color=joc.color_bala(), k=self.t_accio)
+                    self.bales.append(b)
+                    self.flash = 4
+                    AUDIO.tret(ARMES[joc.arma_actual]["so"])
+                for b in self.bales[:]:
+                    b.actualitzar()
+                    if d and d["viva"] and math.hypot(b.x - d["x"], b.y - d["y"]) < 22:
+                        self.bales.remove(b)
+                        esclat(self.efectes, b.x, b.y, 6, [b.color[:3], BLANC], vel=(1, 3), vida=(6, 12))
+                        if self.t_accio >= 66:
+                            d["viva"] = False
+                            enemic = type("DianaMenu", (), {})()
+                            enemic.sprite = SPR_ENEMIC.get("dron")
+                            enemic.centre = (d["x"], d["y"])
+                            if joc.efecte != "normal":
+                                self.restes.append(EfecteBaixa(enemic, joc.efecte, self.efectes))
+                            else:
+                                esclat(self.efectes, d["x"], d["y"], 22, [TARONJA, VERMELL, GROC, BLANC], vel=(2, 6),
+                                       vida=(14, 30))
+                                self.efectes.append(Anell(d["x"], d["y"], TARONJA, creix=3.5, vida=18))
+                            if self.dron:
+                                self.dron.celebrar(self.efectes)
+                    elif b.x > WIDTH + 20:
+                        self.bales.remove(b)
+                if self.t_accio >= 130:
+                    self.accio, self.diana, self.bales = None, None, []
+        for r in self.restes[:]:
+            if r.actualitzar(self):
+                self.restes.remove(r)
+        for fx in self.efectes[:]:
+            if fx.actualitzar():
+                self.efectes.remove(fx)
+        self.flash = max(0, getattr(self, "flash", 0) - 1)
+        # dron company
+        if joc.dron != "cap":
+            jug = type("JugadorMenu", (), {})()
+            jug.centre = (cx + 10, peus - 60)
+            jug.direccio = 1
+            if self.dron is None or self.dron.ident != joc.dron:
+                self.dron = DronCompany(joc.dron, jug)
+            self.dron.actualitzar(jug, cx + 300)
+        else:
+            self.dron = None
+
+    @staticmethod
+    def spr(joc):
+        i = joc.arma_actual
+        return sprites_jugador(ARMES[i]["id"], joc.uniforme, joc.aparenca, joc.nivell_millora("blindatge"), joc.camo_actual(i))
+
+    def canó(self, spr, cx, peus):
+        return cx + spr.cano_dx * self.ESCALA, peus + spr.cano_dy * self.ESCALA
+
+    def dibuixar(self, surf, joc, cx, peus):
+        # pedestal
+        pygame.draw.ellipse(surf, (10, 12, 26), (cx - 110, peus - 14, 220, 34))
+        pygame.draw.ellipse(surf, (40, 56, 110), (cx - 104, peus - 12, 208, 26), 3)
+        l = llum(70, (90, 140, 255))
+        l.set_alpha(70)
+        surf.blit(l, l.get_rect(center=(cx, peus)))
+        l.set_alpha(255)
+        spr = self.spr(joc)
+        if not spr:
+            return
+        if self.accio == "voltereta" and self.t_accio < 28:
+            k = self.t_accio / 28
+            img = self.imatge(spr.poses["salt"][0][1])
+            rot = pygame.transform.rotate(img, -360 * k)
+            surf.blit(rot, rot.get_rect(center=(cx, int(peus - img.get_height() / 2 - math.sin(k * math.pi) * 40))))
+        else:
+            img = self.imatge(spr.poses["quiet"][(self.t // 35) % 2][1])
+            ancora = spr.ancoratge(1) * self.ESCALA
+            surf.blit(img, (int(cx - ancora), int(peus - img.get_height())))
+            if getattr(self, "flash", 0):
+                tx, ty = self.canó(spr, cx, peus)
+                fogonazo(surf, tx, ty, 0.0, 26, 9, (255, 210, 70))
+            if joc.camo_actual() == "diamant" and self.t % 6 == 0:
+                tx, ty = self.canó(spr, cx, peus)
+                self.efectes.append(Particula(tx - random.uniform(0, 60), ty + random.uniform(-6, 6), 0, -0.3,
+                                              random.choice((BLANC, (170, 240, 255))), vida=16, mida=3))
+        d = self.diana
+        if d and d["viva"]:
+            img = SPR_ENEMIC.get("dron")
+            if img:
+                surf.blit(img, img.get_rect(center=(int(d["x"]), int(d["y"] + 4 * math.sin(self.t * 0.1)))))
+        for b in self.bales:
+            b.dibuixar(surf)
+        for r in self.restes:
+            r.dibuixar(surf)
+        for fx in self.efectes:
+            fx.dibuixar(surf)
+        if self.dron:
+            self.dron.dibuixar(surf)
+
+
+def raigs(surf, cx, cy, t, color, n=12, r=420):
+    """Raigs de llum que giren darrere d'una recompensa (es pinten directament: no cal cap capa)."""
+    for k in range(n):
+        a = t * 0.01 + k * math.tau / n
+        punts = [(cx, cy), (cx + math.cos(a - 0.11) * r, cy + math.sin(a - 0.11) * r),
+                 (cx + math.cos(a + 0.11) * r, cy + math.sin(a + 0.11) * r)]
+        pygame.draw.polygon(surf, color, punts)
+
+
 class Game:
     def __init__(self):
         self.clock = pygame.time.Clock()
@@ -4322,6 +4548,14 @@ class Game:
 
     # ----- Progrés -----------------------------------------------------------
     def carregar_progres(self):
+        self.carregant_partida = True              # el que es doni mentre es carrega no es «revela»
+        try:
+            self._carregar_progres()
+        finally:
+            self.carregant_partida = False
+        self.revelacions = []
+
+    def _carregar_progres(self):
         d = Desat.carregar()
         self.monedes = d.get("monedes", 0) if isinstance(d.get("monedes"), int) else 0
         armes = d.get("armes")
@@ -4429,7 +4663,7 @@ class Game:
     def esborrar_progres(self):
         if not self.confirmar_reinici:
             self.confirmar_reinici = True
-            self.entrar_menu()
+            self.entrar_opcions(self.entrar_menu)
             self.mostrar_missatge("Vuelve a hacer clic para confirmar")
             return
         Desat.esborrar()
@@ -4507,6 +4741,7 @@ class Game:
             self.xp_passi -= ACUM_PASSI[-1]                      # temporada nova: el passi torna a començar
             self.temporada += 1
             self.passi_reclamat = 0
+            self.revelar("temporada", self.temporada)
             self.avis(T("¡Temporada {t}! El Battle Pass vuelve a empezar. Ganas una estrella de prestigio.").format(
                 t=self.temporada), (190, 140, 255), 320)
         self.revisar_rangs()
@@ -4518,10 +4753,14 @@ class Game:
         return None
 
     # ----- Canvis d'estat ---------------------------------------------------
+    ESTATS_SENSE_FOS = ("joc", "intro", "loading", "quit", "pausa")
+
     def canviar_estat(self, estat):
         if estat != self.estat:
             self.missatge = ""
             self.temps_missatge = 0
+            if self.estat not in self.ESTATS_SENSE_FOS and estat not in self.ESTATS_SENSE_FOS:
+                self.transicio = [screen.copy(), 12]          # fos encadenat entre pantalles
         self.estat = estat
         self.temps_estat = 0
         pygame.mouse.set_visible(estat != "joc")
@@ -4541,36 +4780,28 @@ class Game:
     def entrar_menu(self):
         AUDIO.musica("menu")
         self.mode = "historia"
+        self.confirmar_reinici = False
+        self.revisar_rangs()
         self.desar_progres()
-        c = 700                                         # columna de botons (el logo va a l'esquerra)
-        b = [Boto((c - 170, 146, 340, 48), "Jugar", self.entrar_selector, VERD)]
-        oberta = self.completats[0][2]
-        graella = [("Supervivencia", self.entrar_supervivencia if oberta else
-                    (lambda: self.mostrar_missatge("Supervivencia: completa el sector 1")), ),
-                   ("Tienda", self.entrar_botiga), ("Battle Pass", self.entrar_passi),
-                   ("Colección", self.entrar_colleccio), ("Diario", self.entrar_diari),
-                   ("Historia", self.entrar_arxiu), ("Guía", self.entrar_guia),
-                   ("Opciones", self.entrar_opcions), ("Créditos", self.entrar_credits)]
-        if not WEB:
-            graella.append(("Salir", lambda: self.canviar_estat("quit")))
-        for k, (nom, accio) in enumerate(graella):
-            fila, col = divmod(k, 2)
-            ample = 165
-            x = c - ample - 5 if col == 0 else c + 5
-            if k == len(graella) - 1 and col == 0:          # l'últim, sol, centrat
-                x = c - ample // 2
-            color = (TARONJA if oberta else GRIS_FOSC) if k == 0 else BLAU
-            b.append(Boto((x, 204 + fila * 48, ample, 42), nom, accio, color,
-                          font=F_HUD if len(T(nom)) > 8 else None))
-        b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
-                      color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
-        b.append(Boto((16, 12, 44, 40), "", self.obrir_menu_idioma, invisible=True))     # icona d'idioma
-        b.append(Boto((68, 12, 44, 40), "", self.entrar_logros, invisible=True))         # icona de logros
-        b.append(Boto((120, 12, 44, 40), "", lambda: self.entrar_novetats(0, self.entrar_menu), invisible=True))
+        accions = {"jugar": self.entrar_jugar, "arsenal": self.entrar_botiga, "passi": self.entrar_passi,
+                   "colleccio": self.entrar_colleccio, "diari": self.entrar_diari}
+        b = []
+        for k, (ident, _) in enumerate(self.BOTONS_MENU):
+            b.append(Boto(self.rect_boto_menu(k), "", accions[ident], invisible=True))
+        barra = {"idioma": self.obrir_menu_idioma, "logros": self.entrar_logros,
+                 "novetats": lambda: self.entrar_novetats(0, self.entrar_menu), "guia": self.entrar_guia,
+                 "opcions": self.entrar_opcions, "credits": self.entrar_credits,
+                 "sortir": lambda: self.canviar_estat("quit")}
+        for k, ident in enumerate(self.icones_barra()):
+            b.append(Boto(self.rect_icona_barra(k), "", barra[ident], invisible=True))
+        b.append(Boto(self.rect_destacat(), "", self.obrir_destacat, invisible=True))
         self.botons = b
+        if getattr(self, "aparador", None) is None:
+            self.aparador = AparadorMenu()
         self.canviar_estat("menu")
         self.revisar_logros()
-        self.revisar_rangs()
+        if self.revelacions:
+            self.entrar_revelacio(self.entrar_menu)
 
     # ----- Supervivència ------------------------------------------------------
 
@@ -4584,7 +4815,7 @@ class Game:
                 color = VERD if self.completats[n][e] else BLAU
                 b.append(Boto((470 + e * 150, 94 + n * 76, 100, 44), txt,
                               (lambda n=n, e=e: self.mostrar_narrativa(n, e)) if obert else None, color))
-        b.append(self.boto_tornar())
+        b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_jugar, GRIS_FOSC))
         b.append(Boto((WIDTH - 250, HEIGHT - 66, 226, 42), "Desafíos", self.entrar_desafiaments, TARONJA))
         self.botons = b
         self.canviar_estat("selector")
@@ -4627,6 +4858,7 @@ class Game:
                     b.append(Boto(rect, T("Comprar {c}").format(c=cost), lambda m=m: self.comprar_millora(m), color, font=F_MINI))
         else:
             b += self.botons_aspecte()
+            self.marcar_vist("arsenal")
         b.append(self.boto_tornar())
         self.botons = b
         self.canviar_estat("botiga")
@@ -4690,6 +4922,7 @@ class Game:
         if pagina is None:
             pagina = min(self.nivell_passi(), len(PASSI) - 1) // 20
         self.pagina_passi = max(0, min((len(PASSI) - 1) // 20, pagina))
+        self.marcar_vist("passi")
         b = [self.boto_tornar()]
         if self.pagina_passi > 0:
             b.append(Boto((WIDTH // 2 - 130, 468, 60, 40), "<", lambda: self.entrar_passi(self.pagina_passi - 1)))
@@ -4713,7 +4946,7 @@ class Game:
         if escena and self.completats[self.entrada_arxiu][2]:
             b.append(Boto((730, 390, 176, 40), "Ver escena", lambda: self.veure_cinematica(escena, self.entrar_arxiu),
                           TARONJA, font=F_HUD))
-        b.append(self.boto_tornar())
+        b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_jugar, GRIS_FOSC))
         self.botons = b
         self.canviar_estat("arxiu")
 
@@ -4828,6 +5061,9 @@ class Game:
             b.append(Boto((450 + k * 110, 406, 100, 34), nom, lambda v=valor: self.posar_numeros(v),
                           VERD if self.numeros_dany == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
+        if self.tornada_opcions == self.entrar_menu:
+            b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
+                          color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
         self.canviar_estat("opcions")
 
@@ -5707,7 +5943,7 @@ class Game:
                           (lambda i=i: self.triar_arena(i)) if oberta else None,
                           VERD if i == self.arena else BLAU, font=F_HUD))
         b.append(Boto((60, 412, 300, 48), "¡A luchar!", self.iniciar_supervivencia, TARONJA))
-        b.append(self.boto_tornar())
+        b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_jugar, GRIS_FOSC))
         self.botons = b
         self.canviar_estat("supervivencia")
 
@@ -5929,13 +6165,18 @@ class Game:
 
     def dibuixar_icones_menu(self, surf):
         pos = ratoli()
-        for r, tipus in ((pygame.Rect(16, 12, 44, 40), "idioma"), (pygame.Rect(68, 12, 44, 40), "logros"),
-                         (pygame.Rect(120, 12, 44, 40), "novetats")):
+        for k, tipus in enumerate(self.icones_barra()):
+            r = self.rect_icona_barra(k)
             hover = r.collidepoint(pos) or (tipus == "idioma" and self.menu_idioma)
             pygame.draw.rect(surf, NEGRE, r.move(0, 3), border_radius=8)
             pygame.draw.rect(surf, (52, 60, 110) if hover else (30, 34, 66), r, border_radius=8)
             pygame.draw.rect(surf, BLAU_CLAR if hover else (80, 90, 140), r, 2, border_radius=8)
-            if tipus == "idioma":
+            if tipus in ("guia", "opcions", "credits", "sortir"):
+                dibuixar_icona_menu(surf, tipus, r.centerx, r.centery, self.t_global if hover else 0)
+                if hover:
+                    etiqueta = {"guia": "Guía", "opcions": "Opciones", "credits": "Créditos", "sortir": "Salir"}[tipus]
+                    text(surf, T(etiqueta), F_MINI, BLANC, (r.centerx, r.bottom + 12))
+            elif tipus == "idioma":
                 dibuixar_globus(surf, r.centerx, r.centery, 13)
             elif tipus == "novetats":                      # full de notícies
                 full = pygame.Rect(r.centerx - 10, r.centery - 13, 20, 26)
@@ -5993,7 +6234,7 @@ class Game:
         self.entrar_intro(self.entrar_tutorial_inicial)
 
     def entrar_tutorial_inicial(self):
-        self.iniciar_tutorial(lambda: self.entrar_ajuda(despres=self.entrar_menu))
+        self.iniciar_tutorial(lambda: self.entrar_ajuda(despres=self.entrar_menu, pagines=range(4)))
 
     def dibuixar_idioma_inicial(self, surf):
         self.fons_menu.dibuixar(surf)
@@ -6119,28 +6360,40 @@ class Game:
             text(surf, "¡Bien!", F_TITOL, VERD, (WIDTH // 2, caixa.bottom + 46))
 
     # ----- Com funciona (Battle Pass, millores, armes, logros) ---------------------------
-    PAGINES_AJUDA = ("BATTLE PASS", "MEJORAS", "ARMAS Y POTENCIA", "ESTRELLAS, LOGROS Y SUPERVIVENCIA")
-
-    def entrar_ajuda(self, pagina=0, despres=None):
+    def entrar_ajuda(self, pagina=0, despres=None, pagines=None):
         if despres is not None:
             self.ajuda_despres = despres
+            self.pagines_ajuda = list(pagines) if pagines is not None else list(range(len(self.PAGINES_AJUDA)))
+        elif pagines is not None:
+            self.pagines_ajuda = list(pagines)
+        llista = getattr(self, "pagines_ajuda", None) or list(range(len(self.PAGINES_AJUDA)))
+        self.pagines_ajuda = llista
+        pagina = max(0, min(len(llista) - 1, pagina))
         self.pagina_ajuda = pagina
-        ultima = pagina == len(self.PAGINES_AJUDA) - 1
-        b = [Boto((WIDTH // 2 + 20, HEIGHT - 62, 220, 46), "¡A jugar!" if ultima else "Siguiente  >",
+        ultima = pagina == len(llista) - 1
+        final = "¡A jugar!" if self.ajuda_despres == self.entrar_menu else "Entendido"
+        b = [Boto((WIDTH // 2 + 20, HEIGHT - 62, 220, 46), final if ultima else "Siguiente  >",
                   self.ajuda_despres if ultima else (lambda: self.entrar_ajuda(pagina + 1)), VERD if ultima else BLAU)]
         if pagina > 0:
             b.append(Boto((WIDTH // 2 - 240, HEIGHT - 62, 220, 46), "<  Anterior", lambda: self.entrar_ajuda(pagina - 1),
                           GRIS_FOSC))
-        b.append(Boto((WIDTH - 126, 16, 110, 30), "Saltar  >>", self.ajuda_despres, GRIS_FOSC, font=F_MINI))
+        if len(llista) > 1:
+            b.append(Boto((WIDTH - 126, 16, 110, 30), "Saltar  >>", self.ajuda_despres, GRIS_FOSC, font=F_MINI))
         self.botons = b
         self.canviar_estat("ajuda")
 
+    PAGINES_AJUDA = ("BATTLE PASS", "MEJORAS", "ARMAS Y POTENCIA", "ESTRELLAS, LOGROS Y SUPERVIVENCIA",
+                     "MAESTRÍA Y CAMUFLAJES", "RANGOS", "BESTIARIO", "DESAFÍOS", "DIARIO")
+
     def dibuixar_ajuda(self, surf):
         self.fons_menu.dibuixar(surf)
-        p = self.pagina_ajuda
-        text(surf, self.PAGINES_AJUDA[p], F_SUBTITOL, GROC, (WIDTH // 2, 40))
-        for k in range(len(self.PAGINES_AJUDA)):
-            pygame.draw.circle(surf, BLANC if k == p else GRIS_FOSC, (WIDTH // 2 - 30 + k * 20, 72), 5)
+        llista = self.pagines_ajuda
+        p = llista[self.pagina_ajuda]
+        text(surf, T(self.PAGINES_AJUDA[p]), F_SUBTITOL, GROC, (WIDTH // 2, 40))
+        if len(llista) > 1:
+            x0 = WIDTH // 2 - (len(llista) - 1) * 10
+            for k in range(len(llista)):
+                pygame.draw.circle(surf, BLANC if k == self.pagina_ajuda else GRIS_FOSC, (x0 + k * 20, 72), 5)
         r = pygame.Rect(40, 92, WIDTH - 80, 370)
         panell(surf, r, BLAU_CLAR, 200)
         getattr(self, f"_ajuda_{p}")(surf, r)
@@ -6229,7 +6482,7 @@ class Game:
             "Cada estrella nueva da +30 XP.",
             "Son 50 niveles por temporada y cada uno pide un poco más de XP.",
             "Cada nivel da monedas o algo exclusivo: aspectos, estelas, drones, tarjetas y más.",
-            "Lo conseguido se equipa en Tienda > Aspecto. No hay que pagar nada.",
+            "Lo conseguido se equipa en Arsenal > Aspecto. No hay que pagar nada.",
         ])
 
     def _ajuda_1(self, surf, r):
@@ -7131,10 +7384,16 @@ class Game:
         self.reptes = rep if isinstance(rep.get("llista"), list) else {}
         self.mode_desafiament = None
         TEMA_HUD[0] = TEMES_HUD.get(self.tema, TEMES_HUD["classic"])
+        self.revelacions = []
+        vistos = d.get("vistos") if isinstance(d.get("vistos"), dict) else None
+        if vistos is None:                       # primera vegada amb la v3.6: tot el que ja tenies compta com a vist
+            vistos = {"inicial": True, "ajudes": []}
+        self.vistos = vistos
 
     def dades_contingut(self):
         return {"xp_passi": self.xp_passi, "temporada": self.temporada, "baixes_arma": self.baixes_arma,
-                "rang_reclamat": self.rang_reclamat, "desafiaments": self.desafiaments, "reptes": self.reptes}
+                "rang_reclamat": self.rang_reclamat, "desafiaments": self.desafiaments, "reptes": self.reptes,
+                "vistos": self.vistos}
 
     def equipament(self):
         return {"uniforme": self.uniforme, "arma": self.aparenca, "titol": self.titol, "estela": self.estela,
@@ -7150,7 +7409,7 @@ class Game:
             return n, 1, 1
         return n, self.xp_passi - ACUM_PASSI[n], xp_nivell_passi(n)
 
-    def atorgar(self, tipus, valor):
+    def atorgar(self, tipus, valor, revelar=True):
         """Dona una recompensa. Torna False si era un cosmètic que ja tenies."""
         if tipus == "monedes":
             self.monedes += valor
@@ -7159,6 +7418,8 @@ class Game:
         if clau in self.cosmetics:
             return False
         self.cosmetics.add(clau)
+        if revelar:
+            self.revelar("cosmetic", (tipus, valor))
         return True
 
     # ----- Rangs ---------------------------------------------------------------------------
@@ -7172,6 +7433,7 @@ class Game:
             self.rang_reclamat = 0
         while self.rang_reclamat < rang:
             self.rang_reclamat += 1
+            self.revelar("rang", self.rang_reclamat)
             r = RANGS[self.rang_reclamat]
             for tipus, valor in r["premi"]:
                 self.atorgar(tipus, valor)
@@ -7205,9 +7467,11 @@ class Game:
             txt = T("¡{a}: maestría nivel {n}! +{m} monedas").format(a=nom, n=ara, m=50 * ara)
             if camo:
                 txt += " · " + T("Camuflaje {c} desbloqueado").format(c=T(CAMUFLATGES[camo]["nom"]))
+                self.revelar("camo", (arma_id, camo))
             self.avis(txt, (255, 200, 120), 280)
             AUDIO.so("passi")
         if not diamant_abans and self.tot_or():
+            self.revelar("camo", (arma_id, "diamant"))
             self.atorgar("titol", "mestre")
             self.avis(T("¡Todas las armas en oro! Camuflaje Diamante y título «Maestro de armas»"), (150, 230, 255), 360)
 
@@ -7329,7 +7593,7 @@ class Game:
             AUDIO.so("buit")
             return
         self.monedes -= preu
-        self.atorgar(tipus, ident)
+        self.atorgar(tipus, ident, revelar=False)
         self.mostrar_missatge(T("¡{c} desbloqueado! Equípalo en Tienda > Aspecto.").format(c=nom_premi(tipus, ident)), ok=True)
         AUDIO.so("moneda")
         self.desar_progres()
@@ -7647,9 +7911,12 @@ class Game:
 
     def entrar_colleccio(self, pestanya=None):
         self.confirmar_reinici = False
+        if self.ajuda_primera_vegada("colleccio", (4, 5, 6), self.entrar_colleccio):
+            return
         if pestanya:
             self.pestanya_col = pestanya
         self.pestanya_col = getattr(self, "pestanya_col", "mestria")
+        self.marcar_vist("colleccio")
         b = []
         for k, (ident, nom) in enumerate((("mestria", "Maestría"), ("rangs", "Rangos"), ("bestiari", "Bestiario"))):
             b.append(Boto((WIDTH // 2 - 265 + k * 180, 70, 170, 38), nom, lambda i=ident: self.entrar_colleccio(i),
@@ -7811,8 +8078,10 @@ class Game:
 
     def entrar_desafiaments(self):
         self.confirmar_reinici = False
+        if self.ajuda_primera_vegada("desafiaments", (7,), self.entrar_desafiaments):
+            return
         self.mode = "historia"
-        b = [Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_selector, GRIS_FOSC)]
+        b = [Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_jugar, GRIS_FOSC)]
         estrelles = self.estrelles_totals()
         for k, (ident, d) in enumerate(DESAFIAMENTS.items()):
             r = pygame.Rect(40 + k * 300, 92, 280, 380)
@@ -7875,7 +8144,10 @@ class Game:
 
     def entrar_diari(self):
         self.confirmar_reinici = False
+        if self.ajuda_primera_vegada("diari", (8,), self.entrar_diari):
+            return
         self.generar_reptes()
+        self.marcar_vist("diari")
         b = [self.boto_tornar()]
         for k, (tipus, ident, preu) in enumerate(self.ofertes_del_dia()):
             r = self.rect_oferta(k)
@@ -7956,6 +8228,604 @@ class Game:
                 f = fons
             Game.FONS_DESAFIAMENT[ident] = f
         return f
+
+    def rect_boto_menu(self, k):
+        return pygame.Rect(36, 262 + k * 48, 316, 42)
+
+    BOTONS_MENU = (("jugar", "JUGAR"), ("arsenal", "ARSENAL"), ("passi", "BATTLE PASS"), ("colleccio", "COLECCIÓN"),
+                   ("diari", "DIARIO"))
+    ICONES_BARRA = ("idioma", "logros", "novetats", "guia", "opcions", "credits", "sortir")
+
+    def icones_barra(self):
+        return [i for i in self.ICONES_BARRA if i != "sortir" or not WEB]
+
+    @staticmethod
+    def rect_icona_barra(k):
+        return pygame.Rect(16 + k * 52, 12, 44, 40)
+
+    @staticmethod
+
+    def rect_destacat():
+        return pygame.Rect(WIDTH - 316, 118, 300, 206)
+
+    # ----- Punts vermells de novetat ---------------------------------------------------------------
+
+    def novetats_menu(self):
+        v = self.vistos
+        if v.pop("inicial", False):
+            for que in ("arsenal", "passi", "colleccio"):
+                self.marcar_vist(que)
+        camos = sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap")
+        fitxes = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
+        reptes = self.reptes.get("llista", []) if self.reptes.get("data") == self.data_avui() else []
+        return {"arsenal": bool(self.cosmetics - set(v.get("cosmetics", []))) or camos > v.get("camos", 0),
+                "passi": self.passi_reclamat > v.get("passi", 0) and self.temporada == v.get("temporada", 1)
+                or self.temporada > v.get("temporada", 1),
+                "colleccio": fitxes > v.get("bestiari", 0) or self.rang_actual() > v.get("rang", 0),
+                "diari": v.get("diari") != self.data_avui() or any(r["fet"] for r in reptes) and not v.get("diari_fets"),
+                "jugar": False}
+
+    def marcar_vist(self, que):
+        v = self.vistos
+        if que == "arsenal":
+            v["cosmetics"] = sorted(self.cosmetics)
+            v["camos"] = sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap")
+        elif que == "passi":
+            v["passi"], v["temporada"] = self.passi_reclamat, self.temporada
+        elif que == "colleccio":
+            v["bestiari"] = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
+            v["rang"] = self.rang_actual()
+        elif que == "diari":
+            v["diari"] = self.data_avui()
+            v["diari_fets"] = True
+
+    # ----- Dibuix del menú ---------------------------------------------------------------------------
+    FONS_VIUS = {}
+
+    def fons_viu(self, surf):
+        """Fons del menú: els escenaris ja desbloquejats, foscos i desenfocats, que es fonen l'un amb l'altre."""
+        oberts = [(n, e) for n in range(NUM_SECTORS) for e in range(3) if self.nivells_desbloquejats[n][e] and e == 0] or [(0, 0)]
+        cicle = 600
+        i = (self.t_global // cicle) % len(oberts)
+        k = (self.t_global % cicle) / 120
+        def fons(clau):
+            f = Game.FONS_VIUS.get(clau)
+            if f is None:
+                img = FONS_NIVELLS.get(clau)
+                if img is None:
+                    return None
+                petit = pygame.transform.smoothscale(img, (img.get_width() // 4, img.get_height() // 4))
+                f = pygame.transform.smoothscale(petit, (WIDTH + 40, HEIGHT + 20))
+                f.fill((95, 95, 120), special_flags=pygame.BLEND_RGB_MULT)
+                Game.FONS_VIUS[clau] = f
+            return f
+        actual = fons(oberts[i])
+        desp = int((self.t_global % cicle) / cicle * 40)
+        if actual is None:
+            self.fons_menu.dibuixar(surf)
+            return
+        surf.blit(actual, (-desp, -10))
+        if k < 1 and len(oberts) > 1:
+            anterior = fons(oberts[(i - 1) % len(oberts)])
+            anterior.set_alpha(int(255 * (1 - k)))
+            surf.blit(anterior, (-40, -10))
+            anterior.set_alpha(255)
+        surf.blit(DEGRADAT_MENU, (0, 0))
+        for x, y, c in self.fons_menu.estrelles[:40]:
+            pygame.draw.rect(surf, (150, 150, 190), (int(x), int(y), c, c))
+
+    def actualitzar_menu(self):
+        if self.estat == "menu" and getattr(self, "aparador", None):
+            self.aparador.actualitzar(self, 506, 450)
+
+    # ----- Panell «Destacat» ---------------------------------------------------------------------------
+
+    def diapositives_destacat(self):
+        d = []
+        nivell = self.nivell_passi()
+        if nivell < len(PASSI):
+            d.append("passi")
+        self.generar_reptes()
+        d.append("repte")
+        if any(PREFIX_COSMETIC[t] + i not in self.cosmetics for t, i, _ in self.ofertes_del_dia()):
+            d.append("oferta")
+        if self.rang_actual() < len(RANGS) - 1:
+            d.append("rang")
+        d.append("mestria")
+        d.append("desafiament")
+        return d
+
+    def obrir_destacat(self):
+        dia = self.diapositives_destacat()
+        actual = dia[(self.t_global // 300) % len(dia)]
+        {"passi": self.entrar_passi, "repte": self.entrar_diari, "oferta": self.entrar_diari,
+         "rang": lambda: self.entrar_colleccio("rangs"), "mestria": lambda: self.entrar_colleccio("mestria"),
+         "desafiament": self.entrar_desafiaments}[actual]()
+
+    def dibuixar_destacat(self, surf, r):
+        dia = self.diapositives_destacat()
+        t = self.t_global
+        idx = (t // 300) % len(dia)
+        f = t % 300
+        hover = r.collidepoint(ratoli())
+        panell(surf, r, GROC if hover else BLAU_CLAR, 225)
+        text(surf, T("DESTACADO"), F_MINI, GROC, (r.x + 14, r.y + 14), ancora="midleft")
+        for k in range(len(dia)):
+            pygame.draw.circle(surf, BLANC if k == idx else GRIS_FOSC, (r.right - 16 - (len(dia) - 1 - k) * 12, r.y + 14), 3)
+        # entrada lliscant
+        dx = int(40 * (1 - min(1.0, f / 14)) ** 2)
+        clip = surf.get_clip()
+        surf.set_clip(r.inflate(-4, -4))
+        zona = pygame.Rect(r.x + 12 + dx, r.y + 28, r.w - 24, r.h - 40)
+        getattr(self, "_dest_" + dia[idx])(surf, zona, f)
+        surf.set_clip(clip)
+
+    def _dest_titol(self, surf, zona, txt, color=BLANC):
+        txt = T(txt)
+        font = F_HUD if F_HUD.size(txt)[0] <= zona.w - 16 else F_MINI
+        text(surf, txt, font, color, (zona.centerx, zona.y + 10))
+
+    def _barra_dest(self, surf, zona, fr, txt, color):
+        barra = pygame.Rect(zona.x + 10, zona.bottom - 30, zona.w - 20, 10)
+        pygame.draw.rect(surf, (40, 42, 60), barra, border_radius=5)
+        pygame.draw.rect(surf, color, (barra.x, barra.y, int(barra.w * max(0.0, min(1.0, fr))), barra.h), border_radius=5)
+        text(surf, txt, F_MINI, BLANC, (barra.centerx, barra.bottom + 10))
+
+    def _dest_passi(self, surf, zona, f):
+        nivell, fet, cal = self.progres_passi()
+        self._dest_titol(surf, zona, T("PRÓXIMA RECOMPENSA · NIVEL {n}").format(n=nivell + 1), (255, 200, 255))
+        tipus, valor = PASSI[nivell][0]
+        cx, cy = zona.centerx, zona.y + 72
+        l = llum(44, (255, 130, 255))
+        l.set_alpha(int(120 + 60 * math.sin(f * 0.08)))
+        surf.blit(l, l.get_rect(center=(cx, cy)))
+        l.set_alpha(255)
+        if tipus in ("estela", "efecte", "mira", "tema", "targeta", "dron"):
+            self.previsualitzar(surf, tipus, valor, pygame.Rect(cx - 70, cy - 50, 140, 110), f)
+        else:
+            self.dibuixar_recompensa(surf, tipus, valor, (cx, cy), f)
+        text(surf, nom_premi(tipus, valor), F_TEXT_PP, BLANC, (cx, zona.bottom - 50))
+        self._barra_dest(surf, zona, fet / cal, f"{fet}/{cal} XP", (255, 130, 255))
+
+    def _dest_repte(self, surf, zona, f):
+        self._dest_titol(surf, zona, "RETO DE HOY", VERD)
+        reptes = self.reptes.get("llista", [])
+        pendents = [r for r in reptes if not r["fet"]]
+        if not pendents:
+            dibuixar_estrella(surf, zona.centerx, zona.y + 76, 26 + int(3 * math.sin(f * 0.1)), True)
+            text(surf, T("¡Retos de hoy completados!"), F_TEXT_P, VERD, (zona.centerx, zona.y + 124))
+            return
+        rep = pendents[0]
+        for j, linia in enumerate(ajustar_linies(self.text_repte(rep), F_TEXT_P, zona.w - 10)[:3]):
+            text(surf, linia, F_TEXT_P, BLANC, (zona.centerx, zona.y + 46 + j * 22))
+        rm = text(surf, f"+{PREMI_REPTE[0]}", F_HUD, GROC, (zona.centerx + 10, zona.y + 116))
+        dibuixar_moneda(surf, rm.left - 12, zona.y + 116)
+        self._barra_dest(surf, zona, rep["progres"] / rep["objectiu"], f"{rep['progres']}/{rep['objectiu']}", VERD)
+
+    def _dest_oferta(self, surf, zona, f):
+        self._dest_titol(surf, zona, "OFERTA DEL DÍA", (255, 190, 110))
+        ofertes = [o for o in self.ofertes_del_dia() if PREFIX_COSMETIC[o[0]] + o[1] not in self.cosmetics]
+        tipus, ident, preu = ofertes[(f // 100) % len(ofertes)]
+        self.previsualitzar(surf, tipus, ident, pygame.Rect(zona.centerx - 80, zona.y + 24, 160, 110), f)
+        text(surf, nom_premi(tipus, ident), F_TEXT_PP, BLANC, (zona.centerx, zona.bottom - 40))
+        rm = text(surf, str(preu), F_HUD, GROC, (zona.centerx + 10, zona.bottom - 16))
+        dibuixar_moneda(surf, rm.left - 12, zona.bottom - 16)
+
+    def _dest_rang(self, surf, zona, f):
+        rang = self.rang_actual()
+        self._dest_titol(surf, zona, "PRÓXIMO RANGO", GROC)
+        dibuixar_insignia(surf, zona.centerx - 60, zona.y + 76, rang, 44)
+        pygame.draw.polygon(surf, BLANC, [(zona.centerx - 12, zona.y + 70), (zona.centerx + 4, zona.y + 78),
+                                          (zona.centerx - 12, zona.y + 86)])
+        k = 1 + 0.08 * math.sin(f * 0.12)
+        dibuixar_insignia(surf, zona.centerx + 60, zona.y + 76, rang + 1, int(48 * k))
+        seg = RANGS[rang + 1]
+        text(surf, T(seg["nom"]), F_TEXT_P, BLANC, (zona.centerx, zona.y + 124))
+        fr = (self.xp - RANGS[rang]["xp"]) / (seg["xp"] - RANGS[rang]["xp"])
+        self._barra_dest(surf, zona, fr, f"{self.xp}/{seg['xp']} XP", GROC)
+
+    def _dest_mestria(self, surf, zona, f):
+        self._dest_titol(surf, zona, "MAESTRÍA", (255, 200, 120))
+        candidats = [a for a in ARMES if a["id"] in self.armes_propies and self.nivell_mestria(a["id"]) < 10] or \
+            [a for a in ARMES if a["id"] in self.armes_propies]
+        arma = max(candidats, key=lambda a: self.baixes_arma.get(a["id"], 0))
+        nivell = self.nivell_mestria(arma["id"])
+        seg = next((c for c in ("bronze", "plata", "or") if CAMUFLATGES[c]["nivell"] > nivell), None)
+        img = mostra_soldat(arma["id"], self.uniforme, self.aparenca, seg if (f // 40) % 2 and seg else self.camo_actual(ARMA_PER_ID[arma["id"]]))
+        surf.blit(img, img.get_rect(center=(zona.centerx, zona.y + 70)))
+        text(surf, T(arma["nom"]) + " · " + T("Nivel {n}/10").format(n=nivell), F_TEXT_PP, BLANC, (zona.centerx, zona.y + 118))
+        b = self.baixes_arma.get(arma["id"], 0)
+        if nivell < 10:
+            ini, fi = MAESTRIA[nivell - 1], MAESTRIA[nivell]
+            txt = f"{b}/{fi}" + (f" → {T(CAMUFLATGES[seg]['nom'])}" if seg else "")
+            self._barra_dest(surf, zona, (b - ini) / (fi - ini), txt, (255, 200, 120))
+        else:
+            self._barra_dest(surf, zona, 1, T("¡Oro!"), GROC)
+
+    def _dest_desafiament(self, surf, zona, f):
+        self._dest_titol(surf, zona, "DESAFÍOS", GROC)
+        estrelles = self.estrelles_totals()
+        seg = next(((i, d) for i, d in DESAFIAMENTS.items() if not self.desafiaments.get(i, {}).get("fet")), None)
+        if seg is None:
+            dibuixar_trofeu(surf, zona.centerx, zona.y + 72, 50)
+            text(surf, T("¡Todos superados!"), F_TEXT_P, GROC, (zona.centerx, zona.y + 124))
+            return
+        ident, d = seg
+        clau = {"secret": ("boss", 3), "rush": ("boss", 1), "malson": "final_nucli"}[ident]
+        img = self.imatge_novetat(("dest_des", ident), SPR_ENEMIC.get(clau), 70)
+        if img:
+            surf.blit(img, img.get_rect(center=(zona.centerx, zona.y + 68 + int(3 * math.sin(f * 0.08)))))
+            if estrelles < d["estrelles"]:
+                dibuixar_cadenat(surf, zona.centerx + 34, zona.y + 46)
+        text(surf, T(d["nom"]), F_TEXT_P, BLANC, (zona.centerx, zona.y + 118))
+        self._barra_dest(surf, zona, estrelles / d["estrelles"], f"{min(estrelles, d['estrelles'])}/{d['estrelles']} ★", GROC)
+
+    # ----- Pantalla JUGAR ---------------------------------------------------------------------------------
+
+    def seguent_escenari(self):
+        for n in range(NUM_SECTORS):
+            for e in range(3):
+                if self.nivells_desbloquejats[n][e] and not self.completats[n][e]:
+                    return n, e
+        return NUM_SECTORS - 1, 2
+
+    def entrar_jugar(self):
+        self.confirmar_reinici = False
+        self.mode = "historia"
+        n, e = self.seguent_escenari()
+        oberta = self.completats[0][2]
+        b = [self.boto_tornar(),
+             Boto((60, 376, 260, 44), T("Continuar {s}").format(s=f"{n + 1}-{e + 1}"), lambda: self.mostrar_narrativa(n, e), VERD),
+             Boto((60, 426, 127, 30), "Elegir nivel", self.entrar_selector, BLAU, font=F_MINI),
+             Boto((193, 426, 127, 30), "Archivo", self.entrar_arxiu, (90, 70, 140), font=F_MINI),
+             Boto((360, 404, 240, 46), "Jugar" if oberta else "Completa el sector 1",
+                  self.entrar_supervivencia if oberta else None, TARONJA, font=F_HUD if oberta else F_MINI),
+             Boto((660, 404, 240, 46), "Ver desafíos", self.entrar_desafiaments, GROC, font=F_HUD)]
+        self.botons = b
+        self.canviar_estat("jugar")
+
+    def dibuixar_jugar(self, surf):
+        self.fons_viu(surf)
+        t = self.temps_estat
+        text(surf, "JUGAR", F_SUBTITOL, BLANC, (WIDTH // 2, 40))
+        n, e = self.seguent_escenari()
+        cartes = [pygame.Rect(40 + k * 300, 84, 280, 382) for k in range(3)]
+        for k, r in enumerate(cartes):
+            entrada = max(0.0, min(1.0, (t - k * 5) / 16))
+            r.y += int(40 * (1 - entrada) ** 2)
+            panell(surf, r, (VERD, TARONJA, GROC)[k], 220)
+            vista = pygame.Rect(r.x + 10, r.y + 44, r.w - 20, 170)
+            if k == 0:
+                text(surf, "HISTORIA", F_UI, BLANC, (r.centerx, r.y + 22))
+                fons = FONS_NIVELLS.get((n, e))
+                if fons:
+                    x = int((t * 0.3) % max(1, fons.get_width() - vista.w * 2))
+                    tros = fons.subsurface((min(x, fons.get_width() - vista.w * 2), 140, vista.w * 2, vista.h * 2))
+                    surf.blit(pygame.transform.scale(tros, vista.size), vista)
+                self._soldat_demo(surf, vista.x + 60 + (t * 2) % (vista.w - 80), vista.bottom - 8, "corre",
+                                  ARMES[self.arma_actual]["id"], t)
+                text(surf, f"{T('SECTOR')} {n + 1}-{e + 1}", F_HUD, CIAN, (r.centerx, vista.bottom + 22))
+                text(surf, T(NOMS_SECTORS[n]), F_TEXT_P, BLANC, (r.centerx, vista.bottom + 46))
+                for j, ple in enumerate(self.estrelles[n][e]):
+                    dibuixar_estrella(surf, r.centerx - 22 + j * 22, vista.bottom + 72, 8, ple)
+            elif k == 1:
+                text(surf, "SUPERVIVENCIA", F_UI, BLANC, (r.centerx, r.y + 22))
+                pygame.draw.rect(surf, (20, 10, 30), vista)
+                clip = surf.get_clip()
+                surf.set_clip(vista)
+                for j in range(4):
+                    img = SPR_ENEMIC.get(("dron", "soldat", "cacador", "kamikaze")[j])
+                    if img:
+                        x = vista.x + ((t * (1.2 + j * 0.4) + j * 70) % (vista.w + 60)) - 30
+                        surf.blit(img, img.get_rect(center=(int(x), vista.y + 40 + j * 36)))
+                surf.set_clip(clip)
+                onada = 1 + (t // 60) % 20
+                text(surf, T("OLEADA {o}").format(o=onada), F_GRAN, TARONJA, (r.centerx, vista.centery))
+                millor = max((rr["punts"] for rr in self.records), default=0)
+                text(surf, T("Récord: {p} puntos").format(p=millor), F_HUD, GROC, (r.centerx, vista.bottom + 30))
+                text(surf, "Oleadas sin fin", F_TEXT_P, BLANC, (r.centerx, vista.bottom + 56))
+            else:
+                text(surf, "DESAFÍOS", F_UI, BLANC, (r.centerx, r.y + 22))
+                pygame.draw.rect(surf, (24, 8, 16), vista)
+                for j, (ident, d) in enumerate(DESAFIAMENTS.items()):
+                    clau = {"secret": ("boss", 3), "rush": ("boss", 1), "malson": "final_nucli"}[ident]
+                    img = self.imatge_novetat(("jug_des", ident), SPR_ENEMIC.get(clau), 58)
+                    if img:
+                        cx = vista.x + 44 + j * 86
+                        surf.blit(img, img.get_rect(center=(cx, vista.centery - 10 + int(4 * math.sin(t * 0.07 + j)))))
+                        obert = self.estrelles_totals() >= d["estrelles"]
+                        if not obert:
+                            dibuixar_cadenat(surf, cx, vista.centery + 30)
+                        text(surf, f"{d['estrelles']}★", F_MINI, VERD if obert else GRIS, (cx, vista.bottom - 14))
+                text(surf, f"{self.estrelles_totals()}/45 ★", F_HUD, GROC, (r.centerx, vista.bottom + 30))
+                text(surf, "Premios exclusivos", F_TEXT_P, BLANC, (r.centerx, vista.bottom + 56))
+
+    # ----- Revelacions de premis ---------------------------------------------------------------------------
+
+    def revelar(self, tipus, valor=None):
+        if getattr(self, "carregant_partida", False):
+            return
+        if len(self.revelacions) < 8:
+            self.revelacions.append((tipus, valor))
+        elif self.revelacions[-1][0] != "mes":
+            self.revelacions.append(("mes", 1))
+        else:
+            self.revelacions[-1] = ("mes", self.revelacions[-1][1] + 1)
+
+    def entrar_revelacio(self, despres):
+        self.despres_revelacio = despres
+        self.revelacio = self.revelacions.pop(0)
+        self.particules_rev = []
+        self.botons = [Boto((WIDTH // 2 - 110, HEIGHT - 70, 220, 46), "Continuar", self.seguent_revelacio, VERD)]
+        if self.revelacions:
+            self.botons.append(Boto((WIDTH - 170, HEIGHT - 50, 150, 30), T("Saltar todo ({n})").format(n=len(self.revelacions) + 1),
+                                    self.saltar_revelacions, GRIS_FOSC, font=F_MINI))
+        AUDIO.so("passi")
+        self.canviar_estat("revelacio")
+
+    def seguent_revelacio(self):
+        if self.revelacions:
+            self.entrar_revelacio(self.despres_revelacio)
+        else:
+            self.despres_revelacio()
+
+    def saltar_revelacions(self):
+        self.revelacions.clear()
+        self.despres_revelacio()
+
+    def dibuixar_revelacio(self, surf):
+        t = self.temps_estat
+        surf.fill((10, 8, 24))
+        tipus, valor = self.revelacio
+        color = {"rang": (70, 56, 20), "camo": (60, 46, 20), "temporada": (50, 30, 70)}.get(tipus, (34, 30, 70))
+        cx, cy = WIDTH // 2, 214
+        raigs(surf, cx, cy, t, color)
+        l = llum(150, (255, 220, 140) if tipus in ("rang", "camo") else (190, 140, 255))
+        l.set_alpha(int(110 + 40 * math.sin(t * 0.08)))
+        surf.blit(l, l.get_rect(center=(cx, cy)))
+        l.set_alpha(255)
+        # entrada amb rebot
+        k = min(1.0, t / 22)
+        escala = 0.2 + 0.8 * k + (0.18 * math.sin(k * math.pi) if k < 1 else 0.03 * math.sin(t * 0.1))
+        capa = pygame.Surface((240, 170), pygame.SRCALPHA)
+        etiqueta, nom = "", ""
+        if tipus == "rang":
+            dibuixar_insignia(capa, 120, 80, valor, 110)
+            etiqueta, nom = T("¡ASCENSO!"), T(RANGS[valor]["nom"])
+        elif tipus == "camo":
+            arma, camo = valor
+            img = mostra_soldat(arma, self.uniforme, self.aparenca, camo)
+            img = pygame.transform.scale(img, (img.get_width() * 2, img.get_height() * 2))
+            capa.blit(img, img.get_rect(center=(120, 85)))
+            etiqueta = T("CAMUFLAJE DESBLOQUEADO")
+            nom = f"{T(CAMUFLATGES[camo]['nom'])} · {T(ARMES[ARMA_PER_ID[arma]]['nom'])}"
+        elif tipus == "temporada":
+            r = pygame.Rect(40, 40, 160, 90)
+            pygame.draw.rect(capa, (200, 80, 200), r, border_radius=12)
+            pygame.draw.rect(capa, (255, 170, 255), r, 3, border_radius=12)
+            text(capa, "BP", F_GRAN, BLANC, (120, 74))
+            dibuixar_estrella(capa, 120, 132, 18, True, (190, 140, 255))
+            etiqueta, nom = T("¡NUEVA TEMPORADA!"), T("Temporada {t}").format(t=valor)
+        elif tipus == "mes":
+            dibuixar_trofeu(capa, 120, 80, 90)
+            etiqueta, nom = T("¡Y MÁS!"), T("{n} recompensas más").format(n=valor)
+        else:
+            cat, ident = valor
+            if cat in ("uniforme", "arma", "titol", "estela", "efecte", "mira", "tema", "targeta", "dron"):
+                self.previsualitzar(capa, cat, ident, capa.get_rect(), t)
+            etiqueta = T("¡NUEVO!") + "  " + T({"uniforme": "Uniforme", "arma": "Aspecto de arma", "titol": "Título",
+                                                 "estela": "Estela", "efecte": "Eliminación", "mira": "Punto de mira",
+                                                 "tema": "HUD", "targeta": "Tarjeta", "dron": "Dron"}[cat]).upper()
+            nom = nom_cosmetic(cat, ident)
+        img = pygame.transform.scale(capa, (int(240 * escala * 1.5), int(170 * escala * 1.5)))
+        surf.blit(img, img.get_rect(center=(cx, cy)))
+        # espurnes
+        if t % 3 == 0:
+            a = random.uniform(0, math.tau)
+            self.particules_rev.append(Particula(cx + math.cos(a) * 60, cy + math.sin(a) * 50, math.cos(a) * 2.5,
+                                                 math.sin(a) * 2.5, random.choice((GROC, BLANC, (255, 170, 255))), 40, 3))
+        for p in self.particules_rev[:]:
+            if p.actualitzar():
+                self.particules_rev.remove(p)
+            else:
+                p.dibuixar(surf)
+        if t > 10:
+            text(surf, etiqueta, F_HUD, GROC, (cx, 368))
+            text(surf, nom, F_SUBTITOL, BLANC, (cx, 404))
+        if tipus not in ("rang", "temporada", "mes", "camo"):
+            text(surf, self.origen_cosmetic(*valor), F_TEXT_PP, GRIS, (cx, 436))
+        if self.revelacions:
+            text(surf, T("Quedan {n}").format(n=len(self.revelacions)), F_MINI, GRIS, (cx, HEIGHT - 86))
+
+    def ajuda_primera_vegada(self, clau, pagines, tornada):
+        """La primera vegada que entres a una pantalla nova, abans t'explica com funciona."""
+        vistes = self.vistos.setdefault("ajudes", [])
+        if clau in vistes:
+            return False
+        vistes.append(clau)
+        self.desar_progres()
+        self.entrar_ajuda(0, tornada, pagines)
+        return True
+
+    def _ajuda_4(self, surf, r):
+        """Maestria: les baixes amb una arma la pugen de nivell i el camuflatge canvia de color."""
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        cicle = 420
+        f = self.temps_estat % cicle
+        baixes = min(320, int(f * 1.05))
+        nivell = sum(baixes >= m for m in MAESTRIA)
+        camo = "cap"
+        for c in ("bronze", "plata", "or"):
+            if nivell >= CAMUFLATGES[c]["nivell"]:
+                camo = c
+        if f > 330:
+            camo = "diamant"
+        img = mostra_soldat("fusell", self.uniforme, "estandard", None if camo == "cap" else camo)
+        if img:
+            img = pygame.transform.scale(img, (img.get_width() * 2, img.get_height() * 2))
+            surf.blit(img, img.get_rect(midbottom=(caixa.centerx, caixa.bottom - 34)))
+        if camo == "diamant" and (self.temps_estat // 4) % 2:
+            for k in range(3):
+                a = self.temps_estat * 0.07 + k * 2.1
+                dibuixar_estrella(surf, int(caixa.centerx + math.cos(a) * 70), int(caixa.y + 200 + math.sin(a) * 50), 5,
+                                  True, (190, 245, 255))
+        barra = pygame.Rect(caixa.x + 30, caixa.y + 52, caixa.w - 60, 12)
+        ant = MAESTRIA[nivell - 1]
+        seg = MAESTRIA[nivell] if nivell < len(MAESTRIA) else ant + 1
+        k = 1.0 if nivell >= len(MAESTRIA) else (baixes - ant) / (seg - ant)
+        pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=6)
+        pygame.draw.rect(surf, (120, 200, 255), (barra.x, barra.y, int(barra.w * k), barra.h), border_radius=6)
+        text(surf, T("Nivel {n}").format(n=nivell) + f" · {baixes} " + T("bajas"), F_HUD, BLANC, (barra.centerx, barra.y - 16))
+        nom = T(CAMUFLATGES[camo]["nom"])
+        color = CAMUFLATGES[camo]["tint"] or GRIS
+        text(surf, nom, F_UI, color, (caixa.centerx, caixa.y + 92))
+        for i, c in enumerate(("bronze", "plata", "or", "diamant")):
+            x = caixa.x + 60 + i * 60
+            obert = c == camo or ("bronze", "plata", "or", "diamant").index(c) < \
+                ("cap", "bronze", "plata", "or", "diamant").index(camo)
+            pygame.draw.circle(surf, CAMUFLATGES[c]["tint"] if obert else GRIS_FOSC, (x, caixa.y + 126), 10)
+            pygame.draw.circle(surf, NEGRE, (x, caixa.y + 126), 10, 2)
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
+            "Cada arma sube de nivel de maestría con las bajas que consigues con ella.",
+            "En los niveles 4, 7 y 10 desbloqueas los camuflajes de Bronce, Plata y Oro.",
+            "Con todas las armas en Oro consigues el camuflaje Diamante para todas.",
+            "Los camuflajes se equipan en Arsenal > Aspecto, y también cambian el color de las balas.",
+        ], salt=18)
+
+    def _ajuda_5(self, surf, r):
+        """Rangs: la insígnia puja amb l'XP total."""
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        cicle = 150
+        idx, f = (self.temps_estat // cicle) % min(6, len(RANGS)), self.temps_estat % cicle
+        centre = (caixa.centerx, caixa.y + 150)
+        if f < 40:
+            clip = surf.get_clip()
+            surf.set_clip(caixa.inflate(-4, -4))
+            raigs(surf, centre[0], centre[1], self.temps_estat, (40, 46, 90), n=10, r=220)
+            surf.set_clip(clip)
+            l = llum(90, (255, 220, 120))
+            surf.blit(l, l.get_rect(center=centre))
+        mida = 60 + (int(20 * (1 - f / 40)) if f < 40 else 0)
+        dibuixar_insignia(surf, centre[0], centre[1], idx, mida)
+        text(surf, T(RANGS[idx]["nom"]), F_SUBTITOL, GROC, (caixa.centerx, caixa.y + 230))
+        if f < 60 and idx > 0:
+            text(surf, "¡ASCENSO!", F_UI, (255, 220, 120), (caixa.centerx, caixa.y + 40 - max(0, 20 - f)))
+        barra = pygame.Rect(caixa.x + 40, caixa.y + 268, caixa.w - 80, 10)
+        pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=5)
+        pygame.draw.rect(surf, GROC, (barra.x, barra.y, int(barra.w * f / cicle), barra.h), border_radius=5)
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
+            "Toda la XP que ganas suma a tu rango, y nunca se reinicia.",
+            "Hay 15 rangos, desde Recluta hasta General.",
+            "Cada ascenso da un premio: monedas, miras, temas del HUD, tarjetas y más.",
+            "Tu rango sale en la tarjeta del menú, al lado de tu nombre.",
+        ], salt=18)
+
+    def _ajuda_6(self, surf, r):
+        """Bestiari: una fitxa que es descobreix a mesura que abats aquell enemic."""
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        cicle = 260
+        n, f = (self.temps_estat // cicle) % 3, self.temps_estat % cicle
+        e = BESTIARI[n]
+        baixes = min(e["cal"], f // 8)
+        base = self.sprite_bestiari(e["clau"])
+        img = self.imatge_novetat(("best_g", e["clau"]), base, 100) if base is not None else None
+        if img is not None:
+            if baixes == 0:
+                img = Game.IMATGES_NOVETAT.get(("ombra_g", e["clau"]))
+                if img is None:
+                    img = self.imatge_novetat(("best_g", e["clau"]), base, 100).copy()
+                    img.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                    Game.IMATGES_NOVETAT[("ombra_g", e["clau"])] = img
+            surf.blit(img, img.get_rect(center=(caixa.centerx, caixa.y + 78 + int(4 * math.sin(self.temps_estat * 0.08)))))
+        text(surf, T(e["nom"]) if baixes else "???", F_UI, BLANC, (caixa.centerx, caixa.y + 146))
+        barra = pygame.Rect(caixa.x + 40, caixa.y + 166, caixa.w - 80, 10)
+        pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=5)
+        pygame.draw.rect(surf, VERD, (barra.x, barra.y, int(barra.w * baixes / e["cal"]), barra.h), border_radius=5)
+        text(surf, f"{baixes}/{e['cal']}", F_MINI, BLANC, (caixa.centerx, barra.bottom + 12))
+        if baixes >= e["cal"]:
+            linies = ajustar_linies(T(e["lore"]), F_MINI, caixa.w - 30)[:4]
+            for i, l in enumerate(linies):
+                text(surf, l, F_MINI, (200, 220, 255), (caixa.centerx, caixa.y + 212 + i * 18))
+        else:
+            dibuixar_cadenat(surf, caixa.centerx, caixa.y + 236, GRIS)
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
+            "Al eliminar por primera vez un tipo de enemigo se abre su ficha.",
+            "Con suficientes bajas descubres su historia secreta.",
+            "Completar todas las fichas da un título especial.",
+            "En Colección también tienes la maestría de tus armas y los rangos.",
+        ], salt=18)
+
+    def _ajuda_7(self, surf, r):
+        """Desafiaments: les estrelles obren el cadenat."""
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        cicle = 240
+        f = self.temps_estat % cicle
+        estrelles = min(15, f // 8)
+        obert = estrelles >= 15
+        c = pygame.Rect(caixa.x + 50, caixa.y + 60, caixa.w - 100, 200)
+        fons = Game.IMATGES_NOVETAT.get(("ajuda_desaf", c.size))
+        if fons is None and FONS_NIVELLS.get((1, 1)) is not None:
+            fons = pygame.transform.smoothscale(FONS_NIVELLS[(1, 1)], c.size)
+            Game.IMATGES_NOVETAT[("ajuda_desaf", c.size)] = fons
+        if fons is not None:
+            surf.blit(fons, c)
+        else:
+            pygame.draw.rect(surf, (40, 20, 30), c, border_radius=8)
+        if not obert:
+            capa = pygame.Surface(c.size, pygame.SRCALPHA)
+            capa.fill((0, 0, 0, 150))
+            surf.blit(capa, c)
+            dibuixar_cadenat(surf, c.centerx, c.centery - int(max(0, f - 110) * 0.3))
+        else:
+            k = min(1.0, (f - 120) / 20)
+            l = llum(int(60 + 40 * k), (255, 160, 80))
+            surf.blit(l, l.get_rect(center=c.center))
+            text(surf, "¡ABIERTO!", F_UI, TARONJA, c.center)
+        pygame.draw.rect(surf, TARONJA if obert else GRIS, c, 2, border_radius=8)
+        dibuixar_estrella(surf, caixa.centerx - 30, caixa.y + 290, 12)
+        text(surf, f"{estrelles}/15", F_UI, GROC, (caixa.centerx + 10, caixa.y + 290), ancora="midleft")
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
+            "Los desafíos son niveles especiales que se abren con estrellas.",
+            "Hay tres: el nivel secreto, un combate contra todos los jefes seguidos y el modo Pesadilla.",
+            "Cada uno da premios exclusivos que no salen en ningún otro sitio.",
+            "Entra desde Jugar > Ver desafíos.",
+        ], salt=18)
+
+    def _ajuda_8(self, surf, r):
+        """Diari: tres reptes que s'omplen, monedes i l'oferta del dia."""
+        caixa = pygame.Rect(r.x + 20, r.y + 20, 300, 330)
+        self._caixa_demo(surf, caixa)
+        cicle = 300
+        f = self.temps_estat % cicle
+        reptes = (("Elimina {n} enemigos", 40), ("Haz {n} volteretas", 25), ("Derrota a un jefe", 1))
+        for i, (txt, n) in enumerate(reptes):
+            inici = i * 70
+            k = max(0.0, min(1.0, (f - inici) / 60))
+            fila = pygame.Rect(caixa.x + 14, caixa.y + 24 + i * 76, caixa.w - 28, 64)
+            fet = k >= 1
+            panell(surf, fila, VERD if fet else (80, 90, 140), 210)
+            text(surf, T(txt).format(n=n), F_MINI, BLANC, (fila.x + 10, fila.y + 16), ancora="midleft")
+            b = pygame.Rect(fila.x + 10, fila.y + 34, fila.w - 80, 10)
+            pygame.draw.rect(surf, GRIS_FOSC, b, border_radius=5)
+            pygame.draw.rect(surf, VERD if fet else GROC, (b.x, b.y, int(b.w * k), b.h), border_radius=5)
+            text(surf, f"{int(n * k)}/{n}", F_MINI, BLANC, (b.centerx, b.bottom + 9))
+            dibuixar_moneda(surf, fila.right - 46, fila.centery, 8)
+            text(surf, "200", F_MINI, GROC, (fila.right - 34, fila.centery), ancora="midleft")
+            if fet and f - inici - 60 < 24:
+                h = (f - inici - 60) / 24
+                dibuixar_moneda(surf, int(fila.right - 46 + 20 * h), int(fila.centery - 60 * h), 8)
+        if f > 220 and (f // 10) % 2:
+            text(surf, "+300", F_UI, GROC, (caixa.centerx, caixa.bottom - 40))
+        self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
+            "Cada día tienes tres retos nuevos. Cada uno da monedas y XP.",
+            "Si completas los tres, te llevas un premio extra.",
+            "En el Diario también hay ofertas del día: cosméticos que van cambiando.",
+            "Los retos se renuevan a medianoche.",
+        ], salt=18)
 
     def dibuixar_joc(self, surf):
         c = self.capa
@@ -8106,15 +8976,42 @@ class Game:
         surf.blit(img, img.get_rect(center=caixa.center))
 
     def dibuixar_menu(self, surf):
-        self.fons_menu.dibuixar(surf)
-        LOGO_MENU.dibuixar(surf, 268, 112, self.t_global)
-        # targeta del jugador, a dalt a la dreta
-        dibuixar_targeta(surf, (WIDTH - 316, 12, 300, 90), self.targeta, self.titol, self.rang_actual(), self.temporada,
-                         self.nivell_passi(), self.temporada - 1, self.monedes, self.estrelles_totals())
-        estat_so = "M: sonido OFF" if AUDIO.silenci else "M: sonido ON"
-        text(surf, estat_so, F_MINI, GRIS, (20, HEIGHT - 28), ancora="midleft")
-        self.dibuixar_avisos(surf, HEIGHT - 150, x=268, font=F_MINI, ample=500, pas=20)
+        self.fons_viu(surf)
+        t = self.t_global
+        LOGO_PETIT.dibuixar(surf, 194, 52, t)
+        pos = ratoli()
+        nous = self.novetats_menu()
+        for k, (ident, nom) in enumerate(self.BOTONS_MENU):
+            r = self.rect_boto_menu(k)
+            hover = r.collidepoint(pos)
+            entrada = max(0.0, min(1.0, (self.temps_estat - k * 4) / 14))
+            r = r.move(int(-60 * (1 - entrada) ** 2) + (8 if hover else 0), 0)
+            principal = ident == "jugar"
+            base = (40, 150, 80) if principal else (34, 44, 92)
+            color = aclarir(base, 40) if hover else base
+            pygame.draw.rect(surf, NEGRE, r.move(0, 4), border_radius=8)
+            pygame.draw.rect(surf, color, r, border_radius=8)
+            pygame.draw.rect(surf, aclarir(color, 80) if hover else aclarir(color, 40), r, 2, border_radius=8)
+            if hover:
+                pygame.draw.rect(surf, BLANC, (r.x, r.y + 6, 4, r.h - 12))
+            dibuixar_icona_menu(surf, ident, r.x + 34, r.centery, t if hover else 0)
+            text(surf, T(nom), F_UI if principal else F_HUD, BLANC, (r.x + 70, r.centery), ancora="midleft")
+            if nous.get(ident):
+                cx, cy = r.right - 14, r.y + 10
+                pygame.draw.circle(surf, NEGRE, (cx, cy + 1), 7)
+                pygame.draw.circle(surf, VERMELL, (cx, cy), 6 + (1 if (t // 20) % 2 else 0))
+                pygame.draw.circle(surf, (255, 180, 180), (cx - 2, cy - 2), 2)
         self.dibuixar_icones_menu(surf)
+        # soldat
+        cx, peus = 506, 450
+        self.aparador.dibuixar(surf, self, cx, peus)
+        # targeta i destacat
+        dibuixar_targeta(surf, (WIDTH - 316, 14, 300, 90), self.targeta, self.titol, self.rang_actual(), self.temporada,
+                         self.nivell_passi(), self.temporada - 1, self.monedes, self.estrelles_totals())
+        self.dibuixar_destacat(surf, self.rect_destacat())
+        estat_so = "M: sonido OFF" if AUDIO.silenci else "M: sonido ON"
+        text(surf, estat_so, F_MINI, GRIS, (20, HEIGHT - 20), ancora="midleft")
+        self.dibuixar_avisos(surf, HEIGHT - 120, x=WIDTH - 166, font=F_MINI, ample=300, pas=20)
 
     def dibuixar_selector(self, surf):
         self.fons_menu.dibuixar(surf)
@@ -8557,9 +9454,17 @@ class Game:
                 self.entrar_novetats(self.pagina_novetats + 1)
         elif self.estat == "desafiaments":
             if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_ESCAPE, pygame.K_g):
-                self.entrar_selector()
-        elif self.estat in ("selector", "botiga", "guia", "credits", "passi", "arxiu", "supervivencia", "logros",
-                            "colleccio", "diari"):
+                self.entrar_jugar()
+        elif self.estat == "revelacio":
+            if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE):
+                self.seguent_revelacio()
+        elif self.estat == "jugar":
+            if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_ESCAPE, pygame.K_g):
+                self.entrar_menu()
+        elif self.estat in ("selector", "arxiu", "supervivencia"):
+            if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_ESCAPE, pygame.K_g):
+                self.entrar_jugar()
+        elif self.estat in ("botiga", "guia", "credits", "passi", "logros", "colleccio", "diari"):
             if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_ESCAPE, pygame.K_g):
                 self.entrar_menu()
 
@@ -8567,6 +9472,7 @@ class Game:
     def actualitzar(self):
         self.temps_estat += 1
         self.t_global += 1
+        self.actualitzar_menu()
         if self.temps_missatge > 0:
             self.temps_missatge -= 1
             if self.temps_missatge == 0:
@@ -8600,6 +9506,7 @@ class Game:
             "idioma_inicial": self.dibuixar_idioma_inicial, "ajuda": self.dibuixar_ajuda,
             "novetats": self.dibuixar_novetats, "colleccio": self.dibuixar_colleccio,
             "desafiaments": self.dibuixar_desafiaments, "diari": self.dibuixar_diari,
+            "jugar": self.dibuixar_jugar, "revelacio": self.dibuixar_revelacio,
         }.get(self.estat)
         if dibuix:
             dibuix(surf)
@@ -8616,6 +9523,13 @@ class Game:
                 text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 60, HEIGHT - 28))
         if self.avisos_logro and self.estat != "loading":
             self.dibuixar_avisos_logro(surf)
+        trans = getattr(self, "transicio", None)
+        if trans:
+            trans[0].set_alpha(int(255 * (trans[1] / 12) ** 1.5))
+            surf.blit(trans[0], (0, -int((12 - trans[1]) * 1.5)))
+            trans[1] -= 1
+            if trans[1] <= 0:
+                self.transicio = None
 
     def pas(self):
         """Un fotograma complet (també l'utilitzen les proves automàtiques)."""
@@ -8647,14 +9561,16 @@ class Game:
 
 LOGO_MENU = Logo(440)
 LOGO_GRAN = Logo(560)
+LOGO_PETIT = Logo(320)
 
 
 def canviar_idioma(codi):
     """Canvia l'idioma i torna a dibuixar els logotips (tenen el títol del joc)."""
-    global LOGO_MENU, LOGO_GRAN
+    global LOGO_MENU, LOGO_GRAN, LOGO_PETIT
     posar_idioma(codi)
     LOGO_MENU = Logo(440)
     LOGO_GRAN = Logo(560)
+    LOGO_PETIT = Logo(320)
 VINYETA = crear_vinyeta()
 
 
@@ -8667,6 +9583,18 @@ def crear_degradat(alt, cap_avall):
 
 
 DEGRADAT_DALT = crear_degradat(70, True)
+
+
+def crear_degradat_menu():
+    """Enfosqueix el fons viu del menú (més a l'esquerra, on hi ha els botons)."""
+    s = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    for x in range(WIDTH):
+        k = 1 - x / WIDTH
+        s.fill((6, 8, 20, int(110 + 110 * k ** 1.5)), (x, 0, 1, HEIGHT))
+    return s
+
+
+DEGRADAT_MENU = crear_degradat_menu()
 DEGRADAT_BAIX = crear_degradat(90, False)
 ALARMA = crear_vinyeta_color((255, 20, 20))
 PULSACIO = crear_vinyeta_color((190, 40, 255))

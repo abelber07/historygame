@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.5"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "3.6"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -506,6 +506,14 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "3.6", "titol": "Menú nuevo", "punts": [
+        ("hud", "Menú rediseñado: cinco botones grandes con iconos y una barra de iconos arriba."),
+        ("arma:fusell", "Tu soldado sale en grande con todo lo equipado: dispara a un dron y hace volteretas con tu estela."),
+        ("estrella", "Panel Destacado: próxima recompensa, reto de hoy, oferta, rango, maestría y desafíos."),
+        ("trofeu", "Cada cosmético, rango, camuflaje o temporada nueva se presenta con una animación."),
+        ("bandera", "Pantalla Jugar con Historia, Supervivencia y Desafíos; puntos rojos en lo que es nuevo."),
+        ("llibre", "Guías animadas de Maestría, Rangos, Bestiario, Desafíos y Diario la primera vez que entras."),
+    ]},
     {"versio": "3.5", "titol": "Mucho más por desbloquear", "punts": [
         ("arma:fusell", "Maestría de armas: cada arma sube de nivel y gana camuflajes de bronce, plata, oro y diamante."),
         ("dron", "Cosméticos nuevos: estelas, efectos de eliminación, puntos de mira, temas del HUD, tarjetas y drones."),

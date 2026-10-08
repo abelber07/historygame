@@ -1504,3 +1504,150 @@ EN = {
     "Órbita: la Nave Nodriza": "Orbit: the Mothership",
     "Última iniciativa del Ejército Unificado, creada por la doctora Vega bajo el mando del comandante Reyes. Un soldado voluntario con implantes que lo hacen inmune a la señal mental Xylothian. Era el único que podía acercarse a sus líderes sin ser dominado. Nadie esperaba que volviera.": "The Unified Army's last initiative, created by Dr. Vega under the command of Commander Reyes. A volunteer soldier with implants that make him immune to the Xylothian mind signal. He was the only one who could get close to their leaders without being controlled. No one expected him to come back.",
 }
+
+# ---- v3.6: menú nou, revelacions i ajudes -------------------------------------------------------
+CA.update({
+    "JUGAR": "JUGAR",
+    "ARSENAL": "ARSENAL",
+    "DESTACADO": "DESTACAT",
+    "PRÓXIMA RECOMPENSA · NIVEL {n}": "PROPERA RECOMPENSA · NIVELL {n}",
+    "RETO DE HOY": "REPTE D'AVUI",
+    "OFERTA DEL DÍA": "OFERTA DEL DIA",
+    "PRÓXIMO RANGO": "PROPER RANG",
+    "MAESTRÍA": "MESTRIA",
+    "¡Oro!": "Or!",
+    "¡Todos superados!": "Tots superats!",
+    "¡Retos de hoy completados!": "Reptes d'avui completats!",
+    "Continuar {s}": "Continuar {s}",
+    "Elegir nivel": "Triar nivell",
+    "Ver desafíos": "Veure desafiaments",
+    "Completa el sector 1": "Completa el sector 1",
+    "Récord: {p} puntos": "Rècord: {p} punts",
+    "Oleadas sin fin": "Onades sense fi",
+    "Premios exclusivos": "Premis exclusius",
+    "¡ASCENSO!": "ASCENS!",
+    "CAMUFLAJE DESBLOQUEADO": "CAMUFLATGE DESBLOQUEJAT",
+    "¡NUEVA TEMPORADA!": "NOVA TEMPORADA!",
+    "Temporada {t}": "Temporada {t}",
+    "¡Y MÁS!": "I MÉS!",
+    "{n} recompensas más": "{n} recompenses més",
+    "Saltar todo ({n})": "Saltar-ho tot ({n})",
+    "Quedan {n}": "En queden {n}",
+    "¡ABIERTO!": "OBERT!",
+    "Entendido": "Entesos",
+    "bajas": "baixes",
+    "MAESTRÍA Y CAMUFLAJES": "MESTRIA I CAMUFLATGES",
+    "RANGOS": "RANGS",
+    "BESTIARIO": "BESTIARI",
+    "Lo conseguido se equipa en Arsenal > Aspecto. No hay que pagar nada.":
+        "El que aconsegueixes s'equipa a Arsenal > Aspecte. No cal pagar res.",
+    "Cada arma sube de nivel de maestría con las bajas que consigues con ella.":
+        "Cada arma puja de nivell de mestria amb les baixes que hi aconsegueixes.",
+    "En los niveles 4, 7 y 10 desbloqueas los camuflajes de Bronce, Plata y Oro.":
+        "Als nivells 4, 7 i 10 desbloqueges els camuflatges de Bronze, Plata i Or.",
+    "Con todas las armas en Oro consigues el camuflaje Diamante para todas.":
+        "Amb totes les armes en Or aconsegueixes el camuflatge Diamant per a totes.",
+    "Los camuflajes se equipan en Arsenal > Aspecto, y también cambian el color de las balas.":
+        "Els camuflatges s'equipen a Arsenal > Aspecte, i també canvien el color de les bales.",
+    "Toda la XP que ganas suma a tu rango, y nunca se reinicia.":
+        "Tota l'XP que guanyes suma al teu rang, i mai no es reinicia.",
+    "Hay 15 rangos, desde Recluta hasta General.": "Hi ha 15 rangs, des de Recluta fins a General.",
+    "Cada ascenso da un premio: monedas, miras, temas del HUD, tarjetas y más.":
+        "Cada ascens dona un premi: monedes, punts de mira, temes de l'HUD, targetes i més.",
+    "Tu rango sale en la tarjeta del menú, al lado de tu nombre.":
+        "El teu rang surt a la targeta del menú, al costat del teu nom.",
+    "Al eliminar por primera vez un tipo de enemigo se abre su ficha.":
+        "Quan elimines per primer cop un tipus d'enemic se n'obre la fitxa.",
+    "Con suficientes bajas descubres su historia secreta.": "Amb prou baixes en descobreixes la història secreta.",
+    "Completar todas las fichas da un título especial.": "Completar totes les fitxes dona un títol especial.",
+    "En Colección también tienes la maestría de tus armas y los rangos.":
+        "A Col·lecció també tens la mestria de les teves armes i els rangs.",
+    "Los desafíos son niveles especiales que se abren con estrellas.":
+        "Els desafiaments són nivells especials que s'obren amb estrelles.",
+    "Hay tres: el nivel secreto, un combate contra todos los jefes seguidos y el modo Pesadilla.":
+        "N'hi ha tres: el nivell secret, un combat contra tots els caps seguits i el mode Malson.",
+    "Cada uno da premios exclusivos que no salen en ningún otro sitio.":
+        "Cadascun dona premis exclusius que no surten enlloc més.",
+    "Entra desde Jugar > Ver desafíos.": "Entra-hi des de Jugar > Veure desafiaments.",
+    "Cada día tienes tres retos nuevos. Cada uno da monedas y XP.":
+        "Cada dia tens tres reptes nous. Cadascun dona monedes i XP.",
+    "Si completas los tres, te llevas un premio extra.": "Si completes els tres, t'emportes un premi extra.",
+    "En el Diario también hay ofertas del día: cosméticos que van cambiando.":
+        "Al Diari també hi ha ofertes del dia: cosmètics que van canviant.",
+    "Los retos se renuevan a medianoche.": "Els reptes es renoven a mitjanit.",
+})
+EN.update({
+    "JUGAR": "PLAY",
+    "ARSENAL": "ARSENAL",
+    "DESTACADO": "FEATURED",
+    "PRÓXIMA RECOMPENSA · NIVEL {n}": "NEXT REWARD · LEVEL {n}",
+    "RETO DE HOY": "TODAY'S CHALLENGE",
+    "OFERTA DEL DÍA": "DEAL OF THE DAY",
+    "PRÓXIMO RANGO": "NEXT RANK",
+    "MAESTRÍA": "MASTERY",
+    "¡Oro!": "Gold!",
+    "¡Todos superados!": "All cleared!",
+    "¡Retos de hoy completados!": "Today's challenges done!",
+    "Continuar {s}": "Continue {s}",
+    "Elegir nivel": "Choose level",
+    "Ver desafíos": "View challenges",
+    "Completa el sector 1": "Clear sector 1",
+    "Récord: {p} puntos": "Best: {p} points",
+    "Oleadas sin fin": "Endless waves",
+    "Premios exclusivos": "Exclusive rewards",
+    "¡ASCENSO!": "PROMOTED!",
+    "CAMUFLAJE DESBLOQUEADO": "CAMO UNLOCKED",
+    "¡NUEVA TEMPORADA!": "NEW SEASON!",
+    "Temporada {t}": "Season {t}",
+    "¡Y MÁS!": "AND MORE!",
+    "{n} recompensas más": "{n} more rewards",
+    "Saltar todo ({n})": "Skip all ({n})",
+    "Quedan {n}": "{n} left",
+    "¡ABIERTO!": "UNLOCKED!",
+    "Entendido": "Got it",
+    "bajas": "kills",
+    "MAESTRÍA Y CAMUFLAJES": "MASTERY AND CAMOS",
+    "RANGOS": "RANKS",
+    "BESTIARIO": "BESTIARY",
+    "Lo conseguido se equipa en Arsenal > Aspecto. No hay que pagar nada.":
+        "Everything you earn is equipped in Arsenal > Looks. You don't pay anything.",
+    "Cada arma sube de nivel de maestría con las bajas que consigues con ella.":
+        "Each weapon gains mastery levels from the kills you get with it.",
+    "En los niveles 4, 7 y 10 desbloqueas los camuflajes de Bronce, Plata y Oro.":
+        "At levels 4, 7 and 10 you unlock the Bronze, Silver and Gold camos.",
+    "Con todas las armas en Oro consigues el camuflaje Diamante para todas.":
+        "Get every weapon to Gold to unlock the Diamond camo for all of them.",
+    "Los camuflajes se equipan en Arsenal > Aspecto, y también cambian el color de las balas.":
+        "Camos are equipped in Arsenal > Looks, and they also change your bullet colour.",
+    "Toda la XP que ganas suma a tu rango, y nunca se reinicia.":
+        "All the XP you earn counts towards your rank, and it never resets.",
+    "Hay 15 rangos, desde Recluta hasta General.": "There are 15 ranks, from Recruit to General.",
+    "Cada ascenso da un premio: monedas, miras, temas del HUD, tarjetas y más.":
+        "Every promotion gives a reward: coins, crosshairs, HUD themes, cards and more.",
+    "Tu rango sale en la tarjeta del menú, al lado de tu nombre.":
+        "Your rank is shown on your card in the menu, next to your name.",
+    "Al eliminar por primera vez un tipo de enemigo se abre su ficha.":
+        "The first time you defeat a type of enemy, its entry opens.",
+    "Con suficientes bajas descubres su historia secreta.": "With enough kills you uncover its secret story.",
+    "Completar todas las fichas da un título especial.": "Completing every entry gives a special title.",
+    "En Colección también tienes la maestría de tus armas y los rangos.":
+        "Collection also shows your weapon mastery and the ranks.",
+    "Los desafíos son niveles especiales que se abren con estrellas.":
+        "Challenges are special levels that unlock with stars.",
+    "Hay tres: el nivel secreto, un combate contra todos los jefes seguidos y el modo Pesadilla.":
+        "There are three: the secret level, a fight against every boss in a row and Nightmare mode.",
+    "Cada uno da premios exclusivos que no salen en ningún otro sitio.":
+        "Each one gives exclusive rewards you can't get anywhere else.",
+    "Entra desde Jugar > Ver desafíos.": "Open them from Play > View challenges.",
+    "Cada día tienes tres retos nuevos. Cada uno da monedas y XP.":
+        "Every day you get three new challenges. Each one gives coins and XP.",
+    "Si completas los tres, te llevas un premio extra.": "Complete all three for an extra reward.",
+    "En el Diario también hay ofertas del día: cosméticos que van cambiando.":
+        "The Daily screen also has deals of the day: cosmetics that keep changing.",
+    "Los retos se renuevan a medianoche.": "Challenges reset at midnight.",
+})
+
+CA.update({'Menú nuevo': 'Menú nou', 'Menú rediseñado: cinco botones grandes con iconos y una barra de iconos arriba.': "Menú redissenyat: cinc botons grans amb icones i una barra d'icones a dalt.", 'Tu soldado sale en grande con todo lo equipado: dispara a un dron y hace volteretas con tu estela.': 'El teu soldat surt en gran amb tot el que porta equipat: dispara a un dron i fa tombarelles amb la teva estela.', 'Panel Destacado: próxima recompensa, reto de hoy, oferta, rango, maestría y desafíos.': "Panell Destacat: propera recompensa, repte d'avui, oferta, rang, mestria i desafiaments.", 'Cada cosmético, rango, camuflaje o temporada nueva se presenta con una animación.': 'Cada cosmètic, rang, camuflatge o temporada nova es presenta amb una animació.', 'Pantalla Jugar con Historia, Supervivencia y Desafíos; puntos rojos en lo que es nuevo.': 'Pantalla Jugar amb Història, Supervivència i Desafiaments; punts vermells en el que és nou.', 'Guías animadas de Maestría, Rangos, Bestiario, Desafíos y Diario la primera vez que entras.': 'Guies animades de Mestria, Rangs, Bestiari, Desafiaments i Diari el primer cop que hi entres.'})
+EN.update({'Menú nuevo': 'New menu', 'Menú rediseñado: cinco botones grandes con iconos y una barra de iconos arriba.': 'Redesigned menu: five big buttons with icons and an icon bar at the top.', 'Tu soldado sale en grande con todo lo equipado: dispara a un dron y hace volteretas con tu estela.': 'Your soldier is shown big with everything equipped: shooting a drone and dodge rolling with your trail.', 'Panel Destacado: próxima recompensa, reto de hoy, oferta, rango, maestría y desafíos.': "Featured panel: next reward, today's challenge, deal, rank, mastery and challenges.", 'Cada cosmético, rango, camuflaje o temporada nueva se presenta con una animación.': 'Every new cosmetic, rank, camo or season is revealed with an animation.', 'Pantalla Jugar con Historia, Supervivencia y Desafíos; puntos rojos en lo que es nuevo.': 'Play screen with Story, Survival and Challenges; red dots on anything new.', 'Guías animadas de Maestría, Rangos, Bestiario, Desafíos y Diario la primera vez que entras.': 'Animated guides for Mastery, Ranks, Bestiary, Challenges and Daily the first time you open them.'})
+CA.update({"Archivo": "Arxiu"})
+EN.update({"Archivo": "Archive"})
