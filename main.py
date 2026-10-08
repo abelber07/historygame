@@ -607,6 +607,7 @@ class Audio:
     def __init__(self, vol_musica=0.3, vol_efectes=0.8):
         self.sons = {}
         self.musica_actual = None
+        self.pausada = False
         self.silenci = False
         self.ultim = {}
         self.vol_musica = vol_musica          # 0-1, ho tria el jugador a Opciones
@@ -637,7 +638,10 @@ class Audio:
         pygame.mixer.Channel(0).play(self.sons[nom])
 
     def musica(self, nom):
-        if not AUDIO_OK or nom == self.musica_actual:
+        if not AUDIO_OK:
+            return
+        self.reprendre()
+        if nom == self.musica_actual:
             return
         self.musica_actual = nom
         fitxer = ruta("musica", nom + ".ogg")
@@ -658,11 +662,31 @@ class Audio:
             pygame.mixer.music.load(fitxer)
             pygame.mixer.music.set_volume(0 if self.silenci else self.vol_musica)
             pygame.mixer.music.play(-1)
+            if self.pausada:                     # ha arribat una descàrrega amb el joc en pausa
+                pygame.mixer.music.pause()
         except (OSError, pygame.error) as err:
             print(f"No s'ha pogut reproduir la música {fitxer}: {err}")
 
+    def pausar(self):
+        """Pausa la música (menú de pausa); reprendre() la continua des del mateix punt."""
+        if AUDIO_OK and not self.pausada:
+            self.pausada = True
+            try:
+                pygame.mixer.music.pause()
+            except pygame.error:
+                pass
+
+    def reprendre(self):
+        if AUDIO_OK and self.pausada:
+            self.pausada = False
+            try:
+                pygame.mixer.music.unpause()
+            except pygame.error:
+                pass
+
     def aturar_musica(self):
         self.musica_actual = None
+        self.pausada = False
         if AUDIO_OK:
             pygame.mixer.music.stop()
 
@@ -4768,6 +4792,9 @@ class Game:
     # ----- Canvis d'estat ---------------------------------------------------
     ESTATS_SENSE_FOS = ("joc", "intro", "loading", "quit", "pausa")
 
+    ESTATS_MUSICA_MENU = ("menu", "jugar", "selector", "supervivencia", "botiga", "passi", "colleccio", "diari",
+                          "desafiaments", "guia", "arxiu", "logros", "novetats", "revelacio", "idioma_inicial", "ajuda")
+
     def canviar_estat(self, estat):
         if estat != self.estat:
             self.missatge = ""
@@ -4777,6 +4804,13 @@ class Game:
         self.estat = estat
         self.temps_estat = 0
         pygame.mouse.set_visible(estat != "joc")
+        # música: en pausa s'atura; tornant a jugar continua; a qualsevol pantalla de menú, la del menú
+        if estat == "pausa":
+            AUDIO.pausar()
+        elif estat == "joc":
+            AUDIO.reprendre()
+        elif estat in self.ESTATS_MUSICA_MENU:
+            AUDIO.musica("menu")
 
     def boto_tornar(self):
         return Boto((30, HEIGHT - 62, 140, 42), "< Menú", self.entrar_menu, GRIS_FOSC)
