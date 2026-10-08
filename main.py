@@ -8983,7 +8983,7 @@ class Game:
     def dibuixar_menu(self, surf):
         self.fons_viu(surf)
         t = self.t_global
-        LOGO_PETIT.dibuixar(surf, 311, 2, t)
+        LOGO_PETIT.dibuixar(surf, 311, 16, t)
         pos = ratoli()
         nous = self.novetats_menu()
         for k, (ident, nom) in enumerate(self.BOTONS_MENU):
@@ -9566,7 +9566,7 @@ class Game:
 
 LOGO_MENU = Logo(440)
 LOGO_GRAN = Logo(560)
-MIDA_LOGO_MENU = (606, 0.66)               # logo del menú: planeta de 606 px d'ample i text a escala 0.66
+MIDA_LOGO_MENU = (606, 0.64)               # logo del menú: planeta de 606 px d'ample i text a escala 0.66
 LOGO_PETIT = Logo(*MIDA_LOGO_MENU)
 
 
