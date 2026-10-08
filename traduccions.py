@@ -1,6 +1,11 @@
 """Traducciones del juego (generadas a partir de los textos en español). Clave: texto en español."""
 
 CA = {
+    "Combates más fluidos": "Combats més fluids",
+    "La Nave Nodriza ya no va a tirones: se mueve entera y suave.": "La Nau Mare ja no va a batzegades: es mou sencera i suau.",
+    "Las plataformas flotantes se mueven a velocidad constante, sin saltos.": "Les plataformes flotants es mouen a velocitat constant, sense salts.",
+    "Los golpes fuertes a los jefes ya no congelan la imagen: el jefe retrocede y la pantalla tiembla.": "Els cops forts als caps ja no congelen la imatge: el cap recula i la pantalla tremola.",
+    "El escenario de la Nave Nodriza se dibuja más rápido.": "L'escenari de la Nau Mare es dibuixa més ràpid.",
     "ÚLTIMAS ACTUALIZACIONES": "ÚLTIMES ACTUALITZACIONS",
     "¡NUEVO!": "NOU!",
     "Interfaz nueva": "Interfície nova",
@@ -540,6 +545,11 @@ CA = {
 
 
 EN = {
+    "Combates más fluidos": "Smoother fights",
+    "La Nave Nodriza ya no va a tirones: se mueve entera y suave.": "The Mothership no longer stutters: it moves as one, smoothly.",
+    "Las plataformas flotantes se mueven a velocidad constante, sin saltos.": "Floating platforms move at a steady speed, with no jerks.",
+    "Los golpes fuertes a los jefes ya no congelan la imagen: el jefe retrocede y la pantalla tiembla.": "Heavy hits on bosses no longer freeze the screen: the boss recoils and the screen shakes.",
+    "El escenario de la Nave Nodriza se dibuja más rápido.": "The Mothership stage renders faster.",
     "ÚLTIMAS ACTUALIZACIONES": "LATEST UPDATES",
     "¡NUEVO!": "NEW!",
     "Interfaz nueva": "New interface",

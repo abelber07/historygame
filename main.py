@@ -1419,12 +1419,15 @@ class Ambient:
                 surf.blit(ALARMA, (0, 0))
             for bx in (24, WIDTH - 24):
                 a = t * 0.08 + (0 if bx < 100 else math.pi)
-                capa = CAPA_TRANSPARENT
-                capa.fill((0, 0, 0, 0))
                 p1 = (bx + math.cos(a - 0.25) * 260, 20 + abs(math.sin(a - 0.25)) * 260)
                 p2 = (bx + math.cos(a + 0.25) * 260, 20 + abs(math.sin(a + 0.25)) * 260)
-                pygame.draw.polygon(capa, (255, 40, 40, 34), [(bx, 20), p1, p2])
-                surf.blit(capa, (0, 0))
+                # el focus es dibuixa en una capa just de la mida del triangle (abans era tota la pantalla)
+                punts = [(bx, 20), p1, p2]
+                x0, y0 = int(min(p[0] for p in punts)), int(min(p[1] for p in punts))
+                x1, y1 = int(max(p[0] for p in punts)) + 2, int(max(p[1] for p in punts)) + 2
+                capa = pygame.Surface((max(1, x1 - x0), max(1, y1 - y0)), pygame.SRCALPHA)
+                pygame.draw.polygon(capa, (255, 40, 40, 34), [(px - x0, py - y0) for px, py in punts])
+                surf.blit(capa, (x0, y0))
                 pygame.draw.circle(surf, (255, 80, 80), (bx, 20), 5)
         if "pulsacio" in self.tipus:
             PULSACIO.set_alpha(int(70 + 70 * math.sin(t * 0.05)))
@@ -1738,9 +1741,24 @@ class Plataforma:
         """Mou la plataforma i retorna "trencada" el fotograma en què es trenca."""
         self.dx = self.dy = 0
         if self.mov:
+            # Anada i tornada a velocitat constant (1 píxel per fotograma) amb una pausa a cada extrem.
+            # Abans era un sinus arrodonit a píxels: avançava a batzegades (0 o 1 píxel segons el fotograma)
+            # i semblava que el joc anés a menys FPS.
             self.t += 1
-            ax, ay, periode = self.mov
-            fase = math.sin(self.t * math.tau / periode)
+            ax, ay = self.mov[0], self.mov[1]
+            recorregut = 2 * max(abs(ax), abs(ay))
+            pausa = 24
+            cicle = 2 * (recorregut + pausa)
+            u = (self.t + pausa + recorregut // 2) % cicle     # comença al centre (com abans)
+            if u < pausa:
+                d = 0
+            elif u < pausa + recorregut:
+                d = u - pausa
+            elif u < 2 * pausa + recorregut:
+                d = recorregut
+            else:
+                d = recorregut - (u - 2 * pausa - recorregut)
+            fase = d / recorregut * 2 - 1 if recorregut else 0.0
             nx, ny = round(self.base[0] + ax * fase), round(self.base[1] + ay * fase)
             self.dx, self.dy = nx - self.rect.x, ny - self.rect.y
             self.rect.topleft = (nx, ny)
@@ -2336,9 +2354,11 @@ class Enemic:
         falta = self.cadencia - self.temps_atac
         return 1 - falta / 28 if 0 <= falta <= 28 and self.temps_atac > 0 else 0.0
 
-    def ferir(self, dany):
+    def ferir(self, dany, empenta=(0.0, 0.0)):
         self.vida -= dany
         self.flash = 5
+        # retrocés visual (només el dibuix: la caixa de col·lisió no es mou)
+        self.recul = (getattr(self, "recul", (0.0, 0.0))[0] + empenta[0], getattr(self, "recul", (0.0, 0.0))[1] + empenta[1])
 
     # ----- moviment ---------------------------------------------------------
     def actualitzar(self, jugador, altres, efectes, plataformes=()):
@@ -2729,6 +2749,10 @@ class Enemic:
         return self.sprite, self.clau
 
     def dibuixar(self, surf, desplaçament=(0, 0), forçar_flash=False):
+        rx, ry = getattr(self, "recul", (0.0, 0.0))
+        if rx or ry:
+            desplaçament = (desplaçament[0] + round(rx), desplaçament[1] + round(ry))
+            self.recul = (rx * 0.6, ry * 0.6) if abs(rx) + abs(ry) > 0.3 else (0.0, 0.0)
         if self.terrestre:
             self._dibuixar_terra(surf, desplaçament, forçar_flash)
             return
@@ -2754,7 +2778,7 @@ class Enemic:
             objectiu = -math.degrees(math.atan2(self.vy, self.vx)) if abs(self.vx) + abs(self.vy) > 0.5 else 0
             if abs(objectiu) > 90:
                 objectiu = objectiu - 180 if objectiu > 0 else objectiu + 180
-        elif self.tipus in ("final_nucli",):
+        elif self.tipus in ("final_nucli", "final_nau"):
             objectiu = 0
         else:
             objectiu = max(-14, min(14, -self.vx * 5))
@@ -2762,6 +2786,8 @@ class Enemic:
         if self.tipus == "final_nucli":                                      # batec
             k = 1 + 0.035 * math.sin(self.t * 5)
             img = pygame.transform.scale(img, (int(self.w * k), int(self.h * k)))
+        elif self.tipus == "final_nau":                                     # sense girar: es mou sencera i neta
+            pass
         else:
             img = rotat(img, self.angle, clau)
         if self.tipus == "cacador" and self.vx < -0.5:
@@ -4793,7 +4819,8 @@ class Game:
         AUDIO.so("moneda")
         if e.es_boss:
             self.restes.append(MortCap(e))
-            self.aturada = max(self.aturada, 10)
+            self.flaix = max(self.flaix, 10)                   # sense congelar: flaix i sacseig
+            self.tremolor = max(self.tremolor, 12)
             return
         self.aturada = max(self.aturada, 2)
         if e.tipus == "kamikaze":
@@ -4910,9 +4937,8 @@ class Game:
                     and self.cap.vida < self.cap.vida_max / 2):
                 self.radio_cap = True                     # el cap s'enfurisma
                 self.radio.afegir(RADIO.get(clau, {}).get("cap", []))
-                self.aturada = max(self.aturada, 6)
-                self.flaix = max(self.flaix, 6)
-                self.tremolor = max(self.tremolor, 8)
+                self.flaix = max(self.flaix, 8)                    # fúria: flaix i sacseig, sense congelar
+                self.tremolor = max(self.tremolor, 10)
 
         # Bales del jugador
         pesada = ARMES[self.arma_actual]["id"] in ("escopeta", "plasma")
@@ -4939,7 +4965,9 @@ class Game:
                         AUDIO.so("ting", 90)
                         self.bales.remove(b)
                         break
-                    e.ferir(b.dany)
+                    v = math.hypot(b.vx, b.vy) or 1.0
+                    k = (2.5 if pesada else 1.0) * (0.6 if e.es_final else 1.0)
+                    e.ferir(b.dany, (b.vx / v * k, b.vy / v * k))
                     e.cop_esquena = (b.x - (e.x + e.w / 2)) * e.dir < 0
                     espurnes(self.efectes, b.x, b.y, rebot, 6, [b.color[:3], BLANC, GROC])
                     self.efectes.append(Anell(b.x, b.y, BLANC, r=2, creix=1.6, vida=5))
@@ -4948,7 +4976,7 @@ class Game:
                     AUDIO.so("impacte", 70)
                     AUDIO.so("marca", 70)
                     if e.es_boss and pesada and self.t_global - self.ultima_aturada > 14:
-                        self.aturada = max(self.aturada, 2)       # els trets pesats "pesen"
+                        self.tremolor = max(self.tremolor, 2.5)    # els trets pesats "pesen" (sense congelar)
                         self.ultima_aturada = self.t_global
                     if b.perfora:
                         b.tocats.add(id(e))
@@ -6620,6 +6648,14 @@ class Game:
                 pygame.draw.line(surf, NEGRE, (p0[0] + ux * q, p0[1] + uy * q),
                                  (p0[0] + ux * (q + 3) + px * 6, p0[1] + uy * (q + 3) + py * 6), 2)
             pygame.draw.polygon(surf, NEGRE, punts, 1)
+        elif clau == "plataforma":                     # plataforma flotant que va i ve
+            d = int(8 * (((t // 2) % 32) / 16 - 1 if (t // 2) % 32 < 16 else 1 - ((t // 2) % 32 - 16) / 16))
+            r = pygame.Rect(cx - 22 + d, cy - 4, 44, 9)
+            pygame.draw.rect(surf, (52, 56, 82), r, border_radius=3)
+            pygame.draw.rect(surf, (230, 180, 40), (r.x, r.y, r.w, 3), border_radius=2)
+            for fx in (0.25, 0.75):
+                l = llum(6, (120, 210, 255))
+                surf.blit(l, (r.x + int(r.w * fx) - 6, r.bottom - 3))
         elif clau == "musica":
             for k, (dx, fase) in enumerate(((-9, 0), (7, 1.5))):
                 y = cy + 6 + int(2 * math.sin(t * 0.15 + fase))

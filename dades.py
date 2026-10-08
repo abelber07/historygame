@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.4"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "3.4.1"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -505,6 +505,12 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "3.4.1", "titol": "Combates más fluidos", "punts": [
+        ("jefe", "La Nave Nodriza ya no va a tirones: se mueve entera y suave."),
+        ("plataforma", "Las plataformas flotantes se mueven a velocidad constante, sin saltos."),
+        ("arma:plasma", "Los golpes fuertes a los jefes ya no congelan la imagen: el jefe retrocede y la pantalla tiembla."),
+        ("opcions", "El escenario de la Nave Nodriza se dibuja más rápido."),
+    ]},
     {"versio": "3.4", "titol": "Interfaz nueva", "punts": [
         ("hud", "HUD nuevo en paneles: vida, mejoras y Battle Pass arriba; arma y munición abajo."),
         ("arma:minigun", "Cada arma tiene su icono, la munición se ve en balitas y las bloqueadas llevan candado."),

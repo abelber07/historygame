@@ -95,6 +95,12 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.4.1: combates más fluidos**
+- La Nave Nodriza ya no se inclina girando a saltos (con un sprite tan grande parecía que el juego fuera a menos FPS): se mueve entera y suave.
+- Las plataformas flotantes van a velocidad constante (1 píxel por fotograma) con una pausa en cada extremo, en vez de avanzar a batzegadas.
+- Los golpes de las armas pesadas a los jefes, la fase de furia y la muerte de un jefe ya no congelan la imagen: el jefe retrocede unos píxeles, hay destello y la pantalla tiembla.
+- Los focos de alarma de la Nave Nodriza se dibujan en capas pequeñas en vez de capas de pantalla entera.
+
 **Versión 3.4: interfaz nueva**
 - **Últimas actualizaciones**: si ya habías jugado, al abrir una versión nueva aparece antes del menú una pantalla animada con las novedades (y las de versiones anteriores). También se puede abrir con el icono del periódico, arriba a la izquierda del menú. Quien juega por primera vez no la ve.
 - **HUD rediseñado** en paneles: arriba a la izquierda la vida, la voltereta, las mejoras activas y el Battle Pass; arriba a la derecha las monedas (que suben contando), el sector, los enemigos y el cronómetro; abajo a la izquierda el arma con su icono y la munición en balitas (o la barra de calor de la minigun), y abajo a la derecha las cinco ranuras con icono, munición y un candado si el escenario no deja usar esa arma.
