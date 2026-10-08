@@ -497,3 +497,50 @@ DETALL_ARMES = {
     "minigun": "No gasta munición, pero se calienta: suelta el gatillo antes de que se bloquee.",
     "plasma": "La más potente: atraviesa a los enemigos y también los escudos.",
 }
+
+
+# ---------------------------------------------------------------------------
+# Novedades (pantalla «Últimas actualizaciones» antes del menú, la primera versión es la más reciente)
+# Cada punto: (icono, texto). Iconos: hud, vida, bala, mira, jefe, opcions, pase, llibre, globus, trofeu,
+# estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
+# ---------------------------------------------------------------------------
+NOVETATS = [
+    {"versio": "3.4", "titol": "Interfaz nueva", "punts": [
+        ("hud", "HUD nuevo en paneles: vida, mejoras y Battle Pass arriba; arma y munición abajo."),
+        ("arma:minigun", "Cada arma tiene su icono, la munición se ve en balitas y las bloqueadas llevan candado."),
+        ("vida", "La vida perdida se vacía en blanco y, con poca vida, la pantalla late en rojo."),
+        ("bala", "Cada arma dispara sus propias balas; las enemigas tienen formas fáciles de distinguir."),
+        ("mira", "Punto de mira distinto para cada arma y marca de impacto (roja al eliminar)."),
+        ("jefe", "Barra del jefe con su retrato y aviso de ¡FURIA! cuando pasa del 50%."),
+        ("millora:blindatge", "Las mejoras se ven en el soldado: blindaje, imán, propulsores y reflejos."),
+        ("opcions", "Números de daño sobre los enemigos (se pueden quitar en Opciones)."),
+    ]},
+    {"versio": "3.3", "titol": "«Cómo funciona», animado", "punts": [
+        ("pase", "Las páginas de «Cómo funciona» ahora están animadas."),
+        ("millora:iman", "Cada mejora se ve en acción y cada arma dispara contra drones."),
+        ("globus", "Arreglada la intro: ya sale entera en inglés y en catalán."),
+        ("llibre", "En el entrenamiento ya no te quedas atascado al cambiar de arma."),
+        ("bandera", "La bandera inglesa ya no se sale por las esquinas."),
+    ]},
+    {"versio": "3.2", "titol": "Minigun, créditos y entrenamiento", "punts": [
+        ("arma:minigun", "Minigun rediseñada: no gasta munición, pero se calienta y tarda en arrancar."),
+        ("arma:plasma", "El cañón de plasma hace más daño."),
+        ("globus", "La primera vez que abres el juego eliges el idioma antes de la intro."),
+        ("llibre", "Entrenamiento de controles y páginas que explican el Battle Pass y las mejoras."),
+        ("estrella", "Créditos y pantalla de carga nuevos."),
+    ]},
+    {"versio": "3.1", "titol": "Logros e idiomas", "punts": [
+        ("trofeu", "28 logros por desbloquear, algunos secretos y muy difíciles."),
+        ("globus", "Cambia el idioma desde el planeta del menú: castellano, català o English."),
+        ("millora:iman", "El imán ya no atrae objetos que no necesitas."),
+        ("cine", "Las cinemáticas solo se saltan con el botón «Saltar»: ya no se pasan sin querer."),
+    ]},
+    {"versio": "3.0", "titol": "Gran actualización", "punts": [
+        ("enemic", "Enemigos de tierra (soldados, escudos y kamikazes), oleadas y peligros en los escenarios."),
+        ("millora:reflexos", "Voltereta con MAYÚS o clic derecho: mientras ruedas no te hacen daño."),
+        ("estrella", "Tres estrellas por escenario, modo supervivencia y niveles de dificultad."),
+        ("radio", "Mensajes de radio durante las misiones y presentaciones de los jefes."),
+        ("cine", "Una cinemática después de cada jefe final."),
+        ("musica", "Música nueva para cada sector y para los jefes."),
+    ]},
+]

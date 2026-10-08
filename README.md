@@ -96,7 +96,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 ## Novedades
 
 **Versión 3.4: interfaz nueva**
-- **Versión para Windows con launcher propio**, que instala el juego y lo actualiza solo (ver más abajo).
+- **Últimas actualizaciones**: si ya habías jugado, al abrir una versión nueva aparece antes del menú una pantalla animada con las novedades (y las de versiones anteriores). También se puede abrir con el icono del periódico, arriba a la izquierda del menú. Quien juega por primera vez no la ve.
 - **HUD rediseñado** en paneles: arriba a la izquierda la vida, la voltereta, las mejoras activas y el Battle Pass; arriba a la derecha las monedas (que suben contando), el sector, los enemigos y el cronómetro; abajo a la izquierda el arma con su icono y la munición en balitas (o la barra de calor de la minigun), y abajo a la derecha las cinco ranuras con icono, munición y un candado si el escenario no deja usar esa arma.
 - **Vida**: los corazones tiemblan al recibir un golpe y la vida perdida se vacía poco a poco en blanco. Con poca vida la pantalla late en rojo y suena el corazón.
 - **Voltereta**: un indicador que se rellena mientras se recarga y destella cuando vuelve a estar lista.
@@ -173,18 +173,6 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - La música se cargaba entera en memoria; ahora se reproduce en streaming (OGG).
 - Recursos optimizados de 46 MB a unos 10 MB y guardado automático del progreso.
 
-## Versión para Windows (con launcher)
-
-Además de jugarlo en el navegador, hay una versión para Windows con **launcher propio**:
-
-1. Descarga **[InvasionAlienigena.exe](https://github.com/abelber07/historygame/releases/latest/download/InvasionAlienigena.exe)** y ábrelo. La primera vez Windows puede avisar («Windows protegió su PC»): pulsa *Más información → Ejecutar de todas formas*.
-2. El launcher descarga el juego, enseña las novedades y lo abre con **JUGAR**.
-3. Cada vez que se abre comprueba si hay una versión nueva y la instala sola (también se actualiza a sí mismo). Si no hay internet, se juega con la versión instalada.
-
-La partida se guarda en `%APPDATA%\InvasionAlienigena` y el juego se instala en `%LOCALAPPDATA%\InvasionAlienigena`, así que las actualizaciones nunca borran el progreso. Si el juego se cierra por un error, queda anotado en `%APPDATA%\InvasionAlienigena\error.log`.
-
-La versión de Windows se compila con **Nuitka** (Python convertido a C), así que el paquete no lleva el código legible. Cada cambio en el código hace que GitHub Actions (`.github/workflows/windows.yml`) compile el juego y el launcher, los pruebe sin pantalla y publique una *Release* nueva con su `version.json`, que es lo que consulta el launcher.
-
 ## Ejecutarlo en el ordenador
 
 ```bash
@@ -213,4 +201,4 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 - Gráficos originales del soldado y los enemigos de Abel; efectos de sonido y parte de la música libres de derechos.
 - Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy) y los sonidos del latido, el «ting» del escudo y la marca de impacto con `tools/generar_sons.py`.
 - Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
-- Los datos del juego (armas, niveles, historia, mejoras y Battle Pass) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.
+- Los datos del juego (armas, niveles, historia, mejoras, Battle Pass y la lista de novedades `NOVETATS`) están en `dades.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.
