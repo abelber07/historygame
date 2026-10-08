@@ -144,7 +144,7 @@ NIVELLS = {
     (4, 1): {"plataformes": [(168, 390, 168), (408, 300, 144), (624, 390, 168)], "temps": 170,
              "onades": [[("escut", 170), ("soldat", 110), ("soldat", 110), ("kamikaze", 50)],
                         [("boss", 450), ("cacador", 80), ("cacador", 80)]],
-             "perills": [("acid", [(40, 110), (820, 110)])]},
+             "perills": [("acid", [(200, 110), (650, 110)])]},     # lluny de l'inici (x = 60)
     (4, 2): {"plataformes": _P_XYLOS, "temps": 200, "fragils": [1],
              "onades": [[("final_nucli", 2400)]]},
 }

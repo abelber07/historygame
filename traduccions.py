@@ -1653,3 +1653,7 @@ CA.update({"Archivo": "Arxiu"})
 EN.update({"Archivo": "Archive"})
 CA.update({'Todas las partidas empiezan de cero con esta versión (se conservan el idioma y las opciones).': "Totes les partides comencen de zero amb aquesta versió (es conserven l'idioma i les opcions)."})
 EN.update({'Todas las partidas empiezan de cero con esta versión (se conservan el idioma y las opciones).': "Every save starts from scratch with this version (your language and options are kept)."})
+CA.update({"Estrellas: cada escenario da tres, por completarlo, por acabarlo a tiempo y por no recibir daño.":
+           "Estrelles: cada escenari en dona tres, per completar-lo, per acabar-lo a temps i per no rebre dany."})
+EN.update({"Estrellas: cada escenario da tres, por completarlo, por acabarlo a tiempo y por no recibir daño.":
+           "Stars: each stage gives three, for clearing it, for finishing in time and for taking no damage."})

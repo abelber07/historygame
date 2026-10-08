@@ -41,7 +41,7 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 
 ## Estrellas, supervivencia y dificultad
 
-- Cada escenario da hasta **3 estrellas**: completarlo, hacerlo sin recibir daño y acabarlo antes de un tiempo (el cronómetro está arriba a la derecha). Cada estrella nueva da 30 XP para el Battle Pass.
+- Cada escenario da hasta **3 estrellas**: completarlo, acabarlo antes de un tiempo (el cronómetro está arriba a la derecha) y hacerlo sin recibir daño. Cada estrella nueva da 30 XP para el Battle Pass.
 - **Supervivencia** (se desbloquea al completar el sector 1): oleadas infinitas en la arena que elijas, cada vez más difíciles y con un jefe cada cinco. Se guardan los 5 mejores récords. Da la mitad de monedas y XP.
 - **Dificultad** Fácil, Normal o Difícil en Opciones: cambia la vida, el daño y la cadencia de los enemigos (y las monedas que ganas).
 - **Idioma**: español, catalán o inglés, en Opciones o con el icono del planeta arriba a la izquierda del menú (salen las banderas).

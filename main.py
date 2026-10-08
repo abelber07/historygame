@@ -4621,6 +4621,9 @@ class Game:
                     for e, v in enumerate(fila[:3]):
                         if isinstance(v, list):
                             self.estrelles[n][e] = [bool(x) for x in (list(v) + [False] * 3)[:3]]
+                            if d.get("ordre_estrelles") != 2:     # abans: completat, sense mal, temps
+                                est_ne = self.estrelles[n][e]
+                                est_ne[1], est_ne[2] = est_ne[2], est_ne[1]
         for n in range(NUM_SECTORS):                  # partides antigues: completat = primera estrella
             for e in range(3):
                 if self.completats[n][e]:
@@ -4659,7 +4662,7 @@ class Game:
             "intro_vista": self.intro_vista,
             "tutorial_vist": self.tutorial_vist,
             "novetats_vistes": self.novetats_vistes,
-            "estrelles": self.estrelles,
+            "estrelles": self.estrelles, "ordre_estrelles": 2,
             "records": self.records,
             "logros": sorted(self.logros),
             "estadistiques": self.estadistiques,
@@ -5749,8 +5752,8 @@ class Game:
             self.nivells_desbloquejats[n][e + 1] = True
         elif n < NUM_SECTORS - 1:
             self.nivells_desbloquejats[n + 1][0] = True
-        # estrelles: completar, sense rebre mal, i abans del temps
-        noves = [True, self.dany_rebut == 0, self.temps_joc <= TEMPS_ESTRELLA[(n, e)] * FPS]
+        # estrelles: completar, abans del temps i sense rebre mal (la més difícil, l'última)
+        noves = [True, self.temps_joc <= TEMPS_ESTRELLA[(n, e)] * FPS, self.dany_rebut == 0]
         self.progres_repte("escenaris")
         if self.dany_rebut == 0:
             self.progres_repte("sense_dany")
@@ -6683,7 +6686,7 @@ class Game:
         peus = caixa.bottom - 30
         if escena == 0:                                       # estrelles
             text(surf, "¡SECTOR LIMPIO!", F_SUBTITOL, VERD, (caixa.centerx, caixa.y + 40))
-            noms = ["Completado", "Sin recibir daño", "A tiempo"]
+            noms = ["Completado", "A tiempo", "Sin recibir daño"]
             for i in range(3):
                 inici = 25 + i * 30
                 if f < inici:
@@ -6730,7 +6733,7 @@ class Game:
             if onada >= 10 and (f // 8) % 2:
                 text(surf, "¡NUEVO RÉCORD!", F_UI, VERD, (caixa.centerx, peus - 20))
         self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
-            "Estrellas: cada escenario da tres, por completarlo, por no recibir daño y por acabarlo a tiempo.",
+            "Estrellas: cada escenario da tres, por completarlo, por acabarlo a tiempo y por no recibir daño.",
             "Logros: hay 28, y algunos son secretos. Busca placas escondidas y cosas raras en los escenarios.",
             "Supervivencia: oleadas sin fin para batir tus récords (se abre al completar el sector 1).",
             "El planeta del menú cambia el idioma; en Opciones eliges dificultad, volumen y pantalla.",
@@ -6923,8 +6926,8 @@ class Game:
             limit = TEMPS_ESTRELLA[(self.nivell_actual, self.escenari_actual)]
             a_temps = self.temps_joc // FPS <= limit
             r2 = text(surf, rellotge, F_MINI, (255, 220, 120) if a_temps else GRIS, (r.right - 10, 58), ancora="midright")
-            dibuixar_estrella(surf, r2.left - 10, 58, 6, a_temps)
-            dibuixar_estrella(surf, r2.left - 26, 58, 6, self.dany_rebut == 0, (255, 140, 140))
+            dibuixar_estrella(surf, r2.left - 26, 58, 6, a_temps)                  # mateix ordre que al final:
+            dibuixar_estrella(surf, r2.left - 10, 58, 6, self.dany_rebut == 0, (255, 140, 140))   # temps, sense mal
 
     def _hud_arma(self, surf):
         """Panell de baix a l'esquerra: icona de l'arma, munició en bales o barra de calor."""
@@ -8954,7 +8957,7 @@ class Game:
             if self.estrelles_noves:
                 noves, guanyades = self.estrelles_noves
                 limit = TEMPS_ESTRELLA[(self.nivell_actual, self.escenari_actual)]
-                noms = [T("Completado"), T("Sin recibir daño"), T("En menos de {s} s").format(s=limit)]
+                noms = [T("Completado"), T("En menos de {s} s").format(s=limit), T("Sin recibir daño")]
                 for i in range(3):
                     if self.temps_fase < 30 + i * 22:
                         continue
