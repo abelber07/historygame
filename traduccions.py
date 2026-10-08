@@ -1,6 +1,7 @@
 """Traducciones del juego (generadas a partir de los textos en español). Clave: texto en español."""
 
 CA = {
+    "Versión": "Versi\u00f3",
     "+{n} VIDA": "+{n} VIDA",
     "+{n} BALAS": "+{n} BALES",
     "¡SIN BALAS!": "SENSE BALES!",
@@ -504,6 +505,7 @@ CA = {
 
 
 EN = {
+    "Versión": "Version",
     "+{n} VIDA": "+{n} HEALTH",
     "+{n} BALAS": "+{n} AMMO",
     "¡SIN BALAS!": "NO AMMO!",

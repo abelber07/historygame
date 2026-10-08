@@ -19,13 +19,38 @@ from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORI
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
-                   XP_ESCENARI, XP_ESTRELLA, XP_PER_NIVELL, XP_PRIMERA_VEGADA, nom_escenari, nom_recompensa)
+                   XP_ESCENARI, XP_ESTRELLA, XP_PER_NIVELL, XP_PRIMERA_VEGADA, VERSIO, nom_escenari, nom_recompensa)
 
 # ---------------------------------------------------------------------------
 # Configuració general
 # ---------------------------------------------------------------------------
 WEB = sys.platform == "emscripten"
 BASE = os.path.dirname(os.path.abspath(__file__))
+# Versió compilada per a Windows (Nuitka, la instal·la el launcher): la partida va a la carpeta d'usuari
+COMPILAT = "__compiled__" in globals() or bool(getattr(sys, "frozen", False))
+
+
+def carpeta_usuari():
+    """On es desa la partida a la versió compilada (%APPDATA%\\InvasionAlienigena a Windows)."""
+    if os.environ.get("JOC_DADES"):
+        return os.environ["JOC_DADES"]
+    if os.name == "nt":
+        arrel = os.environ.get("APPDATA") or os.path.expanduser("~")
+    else:
+        arrel = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(arrel, "InvasionAlienigena")
+
+
+def llegir_versio():
+    """Número de versió complet (p. ex. 3.4.12): el posa la compilació automàtica a versio.txt."""
+    try:
+        with open(os.path.join(BASE, "versio.txt"), encoding="utf-8") as f:
+            return f.read().strip() or VERSIO
+    except OSError:
+        return VERSIO
+
+
+VERSIO_JOC = llegir_versio()
 
 WIDTH, HEIGHT = 960, 540       # 16:9; x2 = 1920x1080 exactos (cada píxel del juego son 2x2 de pantalla)
 FPS = 60
@@ -57,7 +82,7 @@ class Desat:
     """Desa el progrés: localStorage al navegador, fitxer JSON a l'escriptori."""
 
     CLAU = "invasio_alienigena_v1"
-    FITXER = os.path.join(BASE, "partida.json")
+    FITXER = os.path.join(carpeta_usuari() if COMPILAT or os.environ.get("JOC_DADES") else BASE, "partida.json")
 
     @staticmethod
     def _storage():
@@ -94,8 +119,11 @@ class Desat:
                 if st is not None:
                     st.setItem(cls.CLAU, txt)
             else:
-                with open(cls.FITXER, "w", encoding="utf-8") as f:
+                os.makedirs(os.path.dirname(cls.FITXER), exist_ok=True)
+                temporal = cls.FITXER + ".tmp"           # primer a un fitxer temporal: mai queda a mitges
+                with open(temporal, "w", encoding="utf-8") as f:
                     f.write(txt)
+                os.replace(temporal, cls.FITXER)
         except Exception as err:
             print(f"No s'ha pogut desar la partida: {err}")
 
@@ -5512,7 +5540,7 @@ class Game:
             ("seccio", "TIPOGRAFÍAS"), ("text", "Press Start 2P · VT323 (SIL Open Font License)"),
             ("seccio", "HECHO CON"), ("text", "Python · pygame-ce · pygbag"),
             ("seccio", "AGRADECIMIENTOS"), ("text", "A todos los que juegan y prueban el juego"),
-            ("espai", 70), ("gracies", "¡Gracias por jugar!"), ("text", "Versión 3.4"), ("espai", 60),
+            ("espai", 70), ("gracies", "¡Gracias por jugar!"), ("text", f"{T('Versión')} {VERSIO_JOC}"), ("espai", 60),
         ]
 
     def entrar_idioma_inicial(self):
@@ -7032,9 +7060,15 @@ class Game:
             AUDIO.musica("menu")
         if WEB:
             self.descarrega = asyncio.create_task(DESCARREGUES.executar())    # música en segon pla
+        prova = int(os.environ.get("JOC_PROVA_FOTOGRAMES", "0") or 0)    # prova automàtica (compilació de Windows)
+        fotogrames = 0
         while self.pas():
             self.clock.tick(FPS)
             await asyncio.sleep(0)      # imprescindible al navegador: retorna el control al bucle d'esdeveniments
+            fotogrames += 1
+            if prova and fotogrames >= prova:
+                print(f"PROVA OK: {fotogrames} fotogrames, versió {VERSIO_JOC}")
+                break
         pygame.quit()
         if not WEB:
             sys.exit()
@@ -7076,5 +7110,23 @@ for _y in range(72):
     pygame.draw.line(FRANJA_HUD, (0, 0, 0, int(140 * (1 - _y / 72))), (0, _y), (WIDTH, _y))
 
 
+def desar_error():
+    """A la versió compilada no hi ha consola: si el joc peta, l'error queda a error.log (carpeta d'usuari)."""
+    import traceback
+    try:
+        os.makedirs(carpeta_usuari(), exist_ok=True)
+        with open(os.path.join(carpeta_usuari(), "error.log"), "w", encoding="utf-8") as f:
+            f.write(f"Versió {VERSIO_JOC}\n{traceback.format_exc()}")
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
-    asyncio.run(Game().main())
+    if WEB or not COMPILAT:
+        asyncio.run(Game().main())
+    else:
+        try:
+            asyncio.run(Game().main())
+        except Exception:
+            desar_error()
+            raise

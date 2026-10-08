@@ -4,3 +4,9 @@ partida.json
 build/
 _web/
 .DS_Store
+
+# compilació de Nuitka
+*.build/
+*.dist/
+*.onefile-build/
+versio.txt

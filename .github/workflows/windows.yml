@@ -1,0 +1,123 @@
+name: Compilar per a Windows i publicar l'actualització
+
+# Compila el joc i el launcher per a Windows amb Nuitka (Python -> C, el codi no queda llegible),
+# els prova sense finestra i publica una Release nova. El launcher dels jugadors la troba a
+# releases/latest/download/version.json i s'actualitza sol.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "main.py"
+      - "dades.py"
+      - "idiomes.py"
+      - "traduccions.py"
+      - "assets/**"
+      - "launcher/**"
+      - "tools/manifest.py"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instal·lar dependències
+        run: pip install pygame-ce==2.5.8 nuitka==4.2.2 ordered-set zstandard
+
+      - name: Número de versió
+        run: |
+          BASE=$(python -c "import dades; print(dades.VERSIO)")
+          VERSIO="$BASE.${{ github.run_number }}"
+          echo "VERSIO=$VERSIO" >> $GITHUB_ENV
+          echo "TAG=windows-v$VERSIO" >> $GITHUB_ENV
+          echo "$VERSIO" > versio.txt
+          echo "Versió $VERSIO"
+
+      - name: Compilar el joc
+        run: >
+          python -m nuitka main.py --standalone --assume-yes-for-downloads
+          --windows-console-mode=attach
+          --include-data-dir=assets=assets --include-data-files=versio.txt=versio.txt
+          --windows-icon-from-ico=tools/icona.ico
+          --company-name=Abel --product-name="Invasion Alienigena"
+          --file-version=$VERSIO --product-version=$VERSIO --file-description="Invasion Alienigena"
+          --output-dir=build --output-filename=Juego.exe
+
+      - name: Provar el joc (sense finestra)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          JOC_PROVA_FOTOGRAMES: "300"
+        run: |
+          ./build/main.dist/Juego.exe
+          echo "Codi de sortida: $?"
+
+      - name: Compilar el launcher
+        run: >
+          python -m nuitka launcher/launcher.py --onefile --assume-yes-for-downloads
+          --windows-console-mode=attach
+          --include-data-files=assets/fonts/PressStart2P-Regular.ttf=fonts/PressStart2P-Regular.ttf
+          --include-data-files=assets/fonts/VT323-Regular.ttf=fonts/VT323-Regular.ttf
+          --include-data-files=logo.png=logo.png --include-data-files=favicon.png=favicon.png
+          --windows-icon-from-ico=tools/icona.ico
+          --company-name=Abel --product-name="Invasion Alienigena Launcher"
+          --file-version=$VERSIO --product-version=$VERSIO --file-description="Invasion Alienigena"
+          --output-dir=build --output-filename=InvasionAlienigena.exe
+
+      - name: Provar el launcher (sense finestra ni xarxa)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          LAUNCHER_PROVA_FOTOGRAMES: "60"
+          LAUNCHER_DIR: ${{ runner.temp }}/prova-launcher
+          LAUNCHER_MANIFEST: http://127.0.0.1:9/version.json
+        run: ./build/InvasionAlienigena.exe
+
+      - name: Empaquetar
+        run: |
+          cd build/main.dist
+          7z a -tzip -mx=7 ../../joc-windows.zip . > /dev/null
+          cd ../..
+          ls -la joc-windows.zip build/InvasionAlienigena.exe
+          python tools/manifest.py "$VERSIO" joc-windows.zip build/InvasionAlienigena.exe "${{ github.repository }}" "$TAG" version.json
+
+      - name: Publicar la Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'EOF'
+          import json
+          m = json.load(open("version.json", encoding="utf-8"))
+          notes = ["Versión " + m["versio"] + " para Windows.", "",
+                   "Descarga **InvasionAlienigena.exe** (el launcher) y ábrelo: instala el juego y lo mantiene actualizado.", ""]
+          notes += ["- " + l for l in m["novetats"].get("es", [])]
+          open("notes.md", "w", encoding="utf-8").write("\n".join(notes))
+          EOF
+          gh release create "$TAG" joc-windows.zip build/InvasionAlienigena.exe version.json \
+            --title "Invasión Alienígena $VERSIO (Windows)" --notes-file notes.md --latest --target "${{ github.sha }}"
+
+      - name: Esborrar versions antigues (es queden les 5 últimes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[].tagName' \
+            | grep '^windows-v' | tail -n +6 | while read -r t; do
+              echo "Esborrant $t"; gh release delete "$t" --yes --cleanup-tag
+            done
