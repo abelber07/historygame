@@ -513,6 +513,7 @@ NOVETATS = [
         ("trofeu", "Cada cosmético, rango, camuflaje o temporada nueva se presenta con una animación."),
         ("bandera", "Pantalla Jugar con Historia, Supervivencia y Desafíos; puntos rojos en lo que es nuevo."),
         ("llibre", "Guías animadas de Maestría, Rangos, Bestiario, Desafíos y Diario la primera vez que entras."),
+        ("bandera", "Todas las partidas empiezan de cero con esta versión (se conservan el idioma y las opciones)."),
     ]},
     {"versio": "3.5", "titol": "Mucho más por desbloquear", "punts": [
         ("arma:fusell", "Maestría de armas: cada arma sube de nivel y gana camuflajes de bronce, plata, oro y diamante."),

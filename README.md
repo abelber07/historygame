@@ -103,6 +103,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - **Revelaciones**: cada cosmético, rango, camuflaje o temporada nueva se presenta en una pantalla con rayos de luz y partículas antes de volver al menú (con *Saltar todo* si hay muchas).
 - **Puntos rojos** en los botones donde hay algo nuevo que todavía no has mirado.
 - **Guías animadas** de Maestría, Rangos, Bestiario, Desafíos y Diario, que salen solas la primera vez que entras (y todas en *Guía*).
+- **Reinicio general**: con esta versión todas las partidas guardadas empiezan de cero una sola vez (se conservan el idioma y las opciones).
 - Transición suave entre pantallas, botones que brillan al pasar el ratón y *Borrar progreso* movido a *Opciones*.
 
 **Versión 3.5: mucho más por desbloquear**

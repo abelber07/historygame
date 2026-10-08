@@ -62,6 +62,9 @@ class Desat:
 
     CLAU = "invasio_alienigena_v1"
     FITXER = os.path.join(BASE, "partida.json")
+    # Reinici general: les partides desades amb un número diferent es buiden un sol cop (només es conserven
+    # l'idioma i les opcions). Puja'l només si mai cal tornar a començar tothom de zero.
+    REINICI = 1
 
     @staticmethod
     def _storage():
@@ -84,7 +87,13 @@ class Desat:
             if not txt or str(txt) in ("null", "undefined"):
                 return {}
             dades = json.loads(str(txt))
-            return dades if isinstance(dades, dict) else {}
+            if not isinstance(dades, dict):
+                return {}
+            if dades.get("reinici") != cls.REINICI:
+                opcions = dades.get("opcions")
+                dades = {"opcions": opcions} if isinstance(opcions, dict) else {}
+                cls.desar(dades)                         # desa-ho ja amb el número nou: no es tornarà a buidar
+            return dades
         except Exception as err:
             print(f"No s'ha pogut carregar la partida: {err}")
             return {}
@@ -92,6 +101,7 @@ class Desat:
     @classmethod
     def desar(cls, dades):
         try:
+            dades = dict(dades, reinici=cls.REINICI)
             txt = json.dumps(dades)
             if WEB:
                 st = cls._storage()
