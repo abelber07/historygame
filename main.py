@@ -1568,10 +1568,10 @@ def crear_planeta(ample, alt):
 class Logo:
     """INVASIÓ ALIENÍGENA: platet que abdueix el títol sobre el planeta."""
 
-    def __init__(self, ample=600):
-        k = ample / 600
+    def __init__(self, ample=600, escala=None):
+        k = escala if escala is not None else ample / 600
         self.k = k
-        self.w = int(600 * k)
+        self.w = int(ample)
         f_gran = carregar_font("VT323-Regular.ttf", max(12, int(132 * k)))
         f_mitja = carregar_font("VT323-Regular.ttf", max(10, int(86 * k)))
         self.titol = text_estilitzat(T("INVASIÓN"), f_gran, (215, 255, 90), (25, 150, 70), (15, 70, 40),
@@ -6143,8 +6143,13 @@ class Game:
         text(surf, "Bronce 50 · Plata 150 · Oro 400 · Platino 1000 monedas", F_MINI, GRIS, (WIDTH - 20, 520),
              ancora="midright")
 
+    def caixa_idioma(self):
+        r = self.rect_icona_barra(0)
+        return pygame.Rect(r.x, r.y - 154, 216, 146)
+
     def rects_idioma(self):
-        return {codi: pygame.Rect(22, 66 + k * 44, 200, 38) for k, codi in enumerate(IDIOMES)}
+        c = self.caixa_idioma()
+        return {codi: pygame.Rect(c.x + 8, c.y + 8 + k * 44, 200, 38) for k, codi in enumerate(IDIOMES)}
 
     def gestionar_menu_idioma(self, ev):
         """Amb el desplegable d'idiomes obert, el clic tria una bandera o el tanca."""
@@ -6175,7 +6180,7 @@ class Game:
                 dibuixar_icona_menu(surf, tipus, r.centerx, r.centery, self.t_global if hover else 0)
                 if hover:
                     etiqueta = {"guia": "Guía", "opcions": "Opciones", "credits": "Créditos", "sortir": "Salir"}[tipus]
-                    text(surf, T(etiqueta), F_MINI, BLANC, (r.centerx, r.bottom + 12))
+                    text(surf, T(etiqueta), F_MINI, BLANC, (r.centerx, r.y - 12))
             elif tipus == "idioma":
                 dibuixar_globus(surf, r.centerx, r.centery, 13)
             elif tipus == "novetats":                      # full de notícies
@@ -6190,7 +6195,7 @@ class Game:
                 fets = len(self.logros & set(LOGRO_PER_ID))
                 text(surf, str(fets), F_MINI, GROC, (r.right - 4, r.bottom - 4), ancora="bottomright")
         if self.menu_idioma:
-            caixa = pygame.Rect(14, 58, 216, 146)
+            caixa = self.caixa_idioma()
             panell(surf, caixa, BLAU_CLAR, 235)
             for codi, r in self.rects_idioma().items():
                 actiu = idioma() == codi
@@ -8239,9 +8244,9 @@ class Game:
     def icones_barra(self):
         return [i for i in self.ICONES_BARRA if i != "sortir" or not WEB]
 
-    @staticmethod
-    def rect_icona_barra(k):
-        return pygame.Rect(16 + k * 52, 12, 44, 40)
+    def rect_icona_barra(self, k):
+        n = len(self.icones_barra())
+        return pygame.Rect(WIDTH - 16 - 44 - (n - 1 - k) * 52, HEIGHT - 54, 44, 40)
 
     @staticmethod
 
@@ -8978,7 +8983,7 @@ class Game:
     def dibuixar_menu(self, surf):
         self.fons_viu(surf)
         t = self.t_global
-        LOGO_PETIT.dibuixar(surf, 194, 52, t)
+        LOGO_PETIT.dibuixar(surf, 311, 2, t)
         pos = ratoli()
         nous = self.novetats_menu()
         for k, (ident, nom) in enumerate(self.BOTONS_MENU):
@@ -9011,7 +9016,7 @@ class Game:
         self.dibuixar_destacat(surf, self.rect_destacat())
         estat_so = "M: sonido OFF" if AUDIO.silenci else "M: sonido ON"
         text(surf, estat_so, F_MINI, GRIS, (20, HEIGHT - 20), ancora="midleft")
-        self.dibuixar_avisos(surf, HEIGHT - 120, x=WIDTH - 166, font=F_MINI, ample=300, pas=20)
+        self.dibuixar_avisos(surf, 346, x=WIDTH - 166, font=F_MINI, ample=300, pas=20)
 
     def dibuixar_selector(self, surf):
         self.fons_menu.dibuixar(surf)
@@ -9561,7 +9566,8 @@ class Game:
 
 LOGO_MENU = Logo(440)
 LOGO_GRAN = Logo(560)
-LOGO_PETIT = Logo(320)
+MIDA_LOGO_MENU = (606, 0.66)               # logo del menú: planeta de 606 px d'ample i text a escala 0.66
+LOGO_PETIT = Logo(*MIDA_LOGO_MENU)
 
 
 def canviar_idioma(codi):
@@ -9570,7 +9576,7 @@ def canviar_idioma(codi):
     posar_idioma(codi)
     LOGO_MENU = Logo(440)
     LOGO_GRAN = Logo(560)
-    LOGO_PETIT = Logo(320)
+    LOGO_PETIT = Logo(*MIDA_LOGO_MENU)
 VINYETA = crear_vinyeta()
 
 
