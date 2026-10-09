@@ -275,4 +275,5 @@ MONEDES_REPETICIO = 0.5
 #         qualsevol cosmètic com ("uniforme", "daurat"), ("estela", "foc"), ("dron", "ovni")...,
 #         ("tot", None): desbloqueja tot el joc (mode administrador).
 CODIS = {
+    "9f8a8bc5f83960323ba91e9bab4109e0cb1c74e90c48b522a3e78ea91ed14964": {"nom": "Modo administrador", "premis": [("tot", 1)]},
 }
