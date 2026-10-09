@@ -1853,3 +1853,36 @@ CA.update({"El tiempo para la estrella de cada escenario se ha alargado para la 
            "El temps per a l'estrella de cada escenari s'ha allargat per a la nova dificultat."})
 EN.update({"El tiempo para la estrella de cada escenario se ha alargado para la nueva dificultad.":
            "The time limit for each stage's star has been extended to match the new difficulty."})
+
+CA.update({
+    "Enemigos más peligrosos": "Enemics més perillosos",
+    "Los disparos y golpes de los enemigos hacen un 30% más de daño. Disparan igual de seguido, así que si esquivas bien la estrella sin daño sigue siendo posible.":
+        "Els trets i cops dels enemics fan un 30% més de dany. Disparen igual de sovint, així que si esquives bé l'estrella sense dany continua sent possible.",
+    "Los jefes finales (Comandante Supremo, Nave Nodriza y Núcleo de Xylos) aguantan el doble que en la 4.0.":
+        "Els caps finals (Comandant Suprem, Nau Mare i Nucli de Xylos) aguanten el doble que a la 4.0.",
+    "La pistola vuelve a tener cargador (12 balas), pero se recarga sola: recupera una bala por segundo mientras no la disparas.":
+        "La pistola torna a tenir carregador (12 bales), però es recarrega sola: recupera una bala per segon mentre no la dispares.",
+    "El objeto de vida cura 15 en lugar de 20.": "L'objecte de vida cura 15 en lloc de 20.",
+    "Tiempos de la estrella de los jefes finales ajustados a su nueva vida.":
+        "Temps de l'estrella dels caps finals ajustats a la seva nova vida.",
+    "Ligera y fiable. Se recarga sola poco a poco.": "Lleugera i fiable. Es recarrega sola a poc a poc.",
+    "Fiable y precisa. Si no disparas, recupera una bala por segundo. La única que se puede usar en todas partes.":
+        "Fiable i precisa. Si no dispares, recupera una bala per segon. L'única que es pot fer servir a tot arreu.",
+    "se recarga sola": "es recarrega sola",
+})
+EN.update({
+    "Enemigos más peligrosos": "Deadlier enemies",
+    "Los disparos y golpes de los enemigos hacen un 30% más de daño. Disparan igual de seguido, así que si esquivas bien la estrella sin daño sigue siendo posible.":
+        "Enemy shots and hits deal 30% more damage. They fire just as often, so if you dodge well the no-damage star is still possible.",
+    "Los jefes finales (Comandante Supremo, Nave Nodriza y Núcleo de Xylos) aguantan el doble que en la 4.0.":
+        "The final bosses (Supreme Commander, Mothership and Xylos Core) have twice the health they had in 4.0.",
+    "La pistola vuelve a tener cargador (12 balas), pero se recarga sola: recupera una bala por segundo mientras no la disparas.":
+        "The pistol has a magazine again (12 rounds), but it reloads itself: one round per second while you're not firing it.",
+    "El objeto de vida cura 15 en lugar de 20.": "Health pickups heal 15 instead of 20.",
+    "Tiempos de la estrella de los jefes finales ajustados a su nueva vida.":
+        "Star time limits for the final bosses adjusted to their new health.",
+    "Ligera y fiable. Se recarga sola poco a poco.": "Light and reliable. Slowly reloads itself.",
+    "Fiable y precisa. Si no disparas, recupera una bala por segundo. La única que se puede usar en todas partes.":
+        "Reliable and accurate. When you're not firing, it recovers one round per second. The only weapon allowed everywhere.",
+    "se recarga sola": "reloads itself",
+})

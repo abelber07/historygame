@@ -21,7 +21,7 @@ from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
 from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
-                   REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
+                   REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
@@ -2674,7 +2674,7 @@ class Enemic:
         if self.terrestre:
             self.vy = 0.0
         # dificultat
-        self.dany = max(1, round(self.dany * dif["dany"]))
+        self.dany = max(1, round(self.dany * dif["dany"] * DANY_ENEMICS))
         if not self.es_final:
             self.cadencia = max(30, int(self.cadencia * self.k_cadencia))
         # atacs especials que el joc ha de recollir (ones, impactes, tremolor, làser) i mort animada
@@ -6616,7 +6616,7 @@ class Game:
         if nivell is None:
             nivell = self.nivell_enemics
         if self.mode != "tutorial":
-            vida *= VIDA_CAPS if tipus == "boss" or tipus.startswith("final_") else VIDA_ENEMICS
+            vida *= VIDA_FINALS if tipus.startswith("final_") else VIDA_CAPS if tipus == "boss" else VIDA_ENEMICS
         vida = max(1, round(vida * self.dificultat()["vida"]))
         e = Enemic(tipus, vida, nivell, 0, random.randint(60, 220), self.dificultat())
         if x is None:
@@ -6640,6 +6640,7 @@ class Game:
         self.bales, self.bales_enemics, self.items, self.efectes, self.textos, self.restes = [], [], [], [], [], []
         self.ones_xoc = []
         self.bales_armes = [self.bales_max(i) for i in range(len(ARMES))]
+        self.t_recarrega = {}
         mobils, fragils = dades.get("mobils", {}), dades.get("fragils", ())
         self.plataformes = [Plataforma(0, TERRA_Y, WIDTH, HEIGHT - TERRA_Y, terra=True)]
         self.plataformes += [Plataforma(x, y, w, mov=mobils.get(i), fragil=i in fragils)
@@ -6745,6 +6746,21 @@ class Game:
             return "vida"
         self.items_generats += 1
         return "vida" if self.items_generats % 2 else "bales"
+
+    def recarregar_sola(self, premut):
+        """Les armes amb "recarrega" (la pistola) recuperen una bala cada tants fotogrames mentre no les dispares."""
+        rec = self.__dict__.setdefault("t_recarrega", {})
+        for i, a in enumerate(ARMES):
+            if not a.get("recarrega"):
+                continue
+            disparant = i == self.arma_actual and (premut or self.cooldown)
+            if self.bales_armes[i] >= self.bales_max(i) or disparant:
+                rec[i] = 0
+                continue
+            rec[i] = rec.get(i, 0) + 1
+            if rec[i] >= a["recarrega"]:
+                rec[i] = 0
+                self.bales_armes[i] += 1
 
     def armes_per_recarregar(self):
         """Armes que es poden fer servir aquí, amb munició limitada i sense el carregador ple."""
@@ -7030,6 +7046,7 @@ class Game:
         if self.esperar_alliberar and not premut:
             self.esperar_alliberar = False
         self.cooldown = max(0, self.cooldown - 1)
+        self.recarregar_sola(premut)
         self.clic_pendent = max(0, self.clic_pendent - 1)
         arma = ARMES[self.arma_actual]
         minigun = arma["id"] == "minigun"
@@ -7181,8 +7198,8 @@ class Game:
             agafat = False
             bmax = self.bales_max(i)
             if it.tipus == "vida" and j.vida < j.vida_max:
-                guany = min(20, j.vida_max - j.vida)
-                j.vida = min(j.vida_max, j.vida + 20)
+                guany = min(CURA_ITEM, j.vida_max - j.vida)
+                j.vida = min(j.vida_max, j.vida + CURA_ITEM)
                 agafat, etiqueta, color = True, T("+{n} VIDA").format(n=guany), VERD
             elif it.tipus == "bales" and bmax is not None and self.bales_armes[i] < bmax:
                 guany = bmax - self.bales_armes[i]
@@ -10867,7 +10884,7 @@ class Game:
              arma["dany"] * arma["perdigons"] / maxims["dany"]),
             ("Disparos por segundo", str(round(FPS / arma["cadencia"], 1)), (FPS / arma["cadencia"]) / maxims["cad"]),
             ("Cargador", (T("Sin límite (se calienta)") if arma["id"] == "minigun" else T("Sin límite")) if bmax is None
-             else str(bmax),
+             else str(bmax) + (" · " + T("se recarga sola") if arma.get("recarrega") else ""),
              1.0 if bmax is None else min(1.0, bmax / 40)),
             ("Precisión", ["", "Muy alta", "Alta", "Media", "Baja", "Muy baja"][min(5, max(1, round(arma["dispersio"] / 1.5) + 1))],
              max(0.1, 1 - arma["dispersio"] / 8)),

@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.1"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.2"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -21,11 +21,11 @@ def nom_escenari(index):
 # Armas. "potencia" (1-5) decide en qué escenarios se pueden usar.
 # ---------------------------------------------------------------------------
 ARMES = [
-    # la pistola no gasta munició: és l'arma de reserva quan les altres es queden sense bales
-    {"id": "pistola", "nom": "Pistola", "dany": 5, "bales_max": None, "cost": 0, "req": -1, "potencia": 1,
+    # pistola: "recarrega" = fotogrames per recuperar una bala tota sola mentre no la dispares (arma de reserva)
+    {"id": "pistola", "nom": "Pistola", "dany": 5, "bales_max": 12, "recarrega": 60, "cost": 0, "req": -1, "potencia": 1,
      "cadencia": 10, "auto": False, "vel": 12, "dispersio": 1.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "pistola", "estil": "pistola",
-     "desc": "Ligera, fiable y con balas infinitas."},
+     "desc": "Ligera y fiable. Se recarga sola poco a poco."},
     {"id": "escopeta", "nom": "Escopeta", "dany": 6, "bales_max": 12, "cost": 500, "req": 1, "potencia": 2,
      "cadencia": 34, "auto": False, "vel": 12, "dispersio": 3.0, "perdigons": 6, "obertura": 26,
      "vida_bala": 30, "perfora": False, "so": "escopeta", "estil": "escopeta",
@@ -132,14 +132,14 @@ NIVELLS = {
     (2, 1): {"plataformes": _P2, "temps": 235,
              "onades": [[("soldat", 70), ("soldat", 70), ("escut", 110)], [("dron", 80), ("dron", 80), ("boss", 250)]],
              "perills": [("electric", [(40, 150), (400, 150), (760, 150)], 300)]},
-    (2, 2): {"plataformes": _P1, "temps": 270,
+    (2, 2): {"plataformes": _P1, "temps": 360,
              "onades": [[("final_comandant", 1200)]]},
     (3, 0): {"plataformes": _P_ORBITA, "temps": 175, "mobils": {1: (70, 0, 300), 3: (0, 60, 240)},
              "onades": [[("dron", 100)] * 2 + [("cacador", 60)] * 2, [("soldat", 90), ("soldat", 90), ("escut", 140)]]},
     (3, 1): {"plataformes": [(108, 390, 192), (360, 280, 240), (672, 360, 192)], "temps": 275,
              "onades": [[("cacador", 70)] * 3 + [("dron", 100)], [("lloctinent", 160), ("escut", 140), ("soldat", 90), ("soldat", 90)]],
              "perills": [("electric", [(0, 130), (300, 160), (620, 130)], 280)]},
-    (3, 2): {"plataformes": _P_ORBITA, "temps": 300, "mobils": {0: (40, 0, 260), 2: (60, 0, 320)},
+    (3, 2): {"plataformes": _P_ORBITA, "temps": 400, "mobils": {0: (40, 0, 260), 2: (60, 0, 320)},
              "onades": [[("final_nau", 1800)]]},
     (4, 0): {"plataformes": _P_XYLOS, "temps": 175, "fragils": [0, 2],
              "onades": [[("dron", 120)] * 2 + [("cacador", 80)] * 2,
@@ -148,7 +148,7 @@ NIVELLS = {
              "onades": [[("escut", 170), ("soldat", 110), ("soldat", 110), ("kamikaze", 50)],
                         [("boss", 450), ("cacador", 80), ("cacador", 80)]],
              "perills": [("acid", [(200, 110), (650, 110)])]},     # lluny de l'inici (x = 60)
-    (4, 2): {"plataformes": _P_XYLOS, "temps": 340, "fragils": [1],
+    (4, 2): {"plataformes": _P_XYLOS, "temps": 450, "fragils": [1],
              "onades": [[("final_nucli", 2400)]]},
 }
 TEMPS_ESTRELLA = {k: v["temps"] for k, v in NIVELLS.items()}
@@ -156,7 +156,10 @@ XP_ESTRELLA = 30
 
 # Vida dels enemics sobre la que posa cada escenari (v4.1: el joc era massa fàcil amb les millores al màxim)
 VIDA_ENEMICS = 1.25         # enemics normals (i els que invoquen els caps)
-VIDA_CAPS = 1.5             # caps de sector i caps finals
+VIDA_CAPS = 1.5             # caps de sector
+VIDA_FINALS = 2.0           # Comandant Suprem, Nau Mare i Nucli de Xylos (v4.2)
+DANY_ENEMICS = 1.3          # dany dels trets i cops dels enemics (v4.2; la cadència i la velocitat de bala no canvien)
+CURA_ITEM = 15              # vida que dona l'ítem de vida
 SPAWN_ITEMS = 480           # fotogrames entre ítem i ítem (vida o munició)
 
 # Dificultad: multiplica la vida, el daño y la cadencia de los enemigos y las monedas que se ganan
@@ -501,13 +504,13 @@ PASSOS_TUTORIAL = [
 DETALL_MILLORES = {
     "blindatge": "+20 de vida máxima por nivel (hasta 160).",
     "potencia": "+10% de daño con todas las armas por nivel.",
-    "carregadors": "+30% de munición máxima por nivel (la pistola y la minigun no gastan munición).",
+    "carregadors": "+30% de munición máxima por nivel (la minigun no gasta munición).",
     "iman": "Atrae desde lejos la vida y la munición que te falten.",
     "reflexos": "Corres un 6% más rápido y eres invulnerable más rato tras un golpe.",
     "doble_salt": "Un segundo salto en el aire. Imprescindible para algún secreto...",
 }
 DETALL_ARMES = {
-    "pistola": "Fiable y precisa, y nunca se queda sin balas. La única que se puede usar en todas partes.",
+    "pistola": "Fiable y precisa. Si no disparas, recupera una bala por segundo. La única que se puede usar en todas partes.",
     "escopeta": "Seis perdigones: devastadora de cerca, floja de lejos.",
     "fusell": "Automático y preciso: el arma de todo el juego.",
     "minigun": "No gasta munición, pero se calienta: suelta el gatillo antes de que se bloquee.",
@@ -521,6 +524,15 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.2", "titol": "Enemigos más peligrosos", "punts": [
+        ("enemic", "Los disparos y golpes de los enemigos hacen un 30% más de daño. Disparan igual de seguido, así que "
+                   "si esquivas bien la estrella sin daño sigue siendo posible."),
+        ("jefe", "Los jefes finales (Comandante Supremo, Nave Nodriza y Núcleo de Xylos) aguantan el doble que en la 4.0."),
+        ("arma:pistola", "La pistola vuelve a tener cargador (12 balas), pero se recarga sola: recupera una bala por "
+                         "segundo mientras no la disparas."),
+        ("vida", "El objeto de vida cura 15 en lugar de 20."),
+        ("estrella", "Tiempos de la estrella de los jefes finales ajustados a su nueva vida."),
+    ]},
     {"versio": "4.1", "titol": "Más difícil", "punts": [
         ("enemic", "Los enemigos aguantan un 25% más y los jefes un 50% más: ya no caen en segundos aunque tengas "
                    "las mejoras al máximo."),

@@ -69,7 +69,7 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 
 | Arma | Daño | Balas | Disparos/s | Potencia | Coste | Disponible tras |
 |---|---|---|---|---|---|---|
-| Pistola | 5 | ∞ | 6 | 1 | Inicial | — |
+| Pistola | 5 | 12 (recupera 1 por segundo si no disparas) | 6 | 1 | Inicial | — |
 | Escopeta | 6 × 6 perdigones | 12 | 1,8 | 2 | 500 | 1-2 |
 | Fusil | 11 | 24 | 6,7 | 3 | 900 | 1-3 |
 | Minigun | 6 (se calienta en unos 30 disparos) | ∞ | hasta 12 | 4 | 2500 | 3-1 |
@@ -94,6 +94,13 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 4.2: enemigos más peligrosos**
+- Los disparos y golpes de los enemigos hacen un **30% más de daño**. La cadencia y la velocidad de sus balas no cambian, así que esquivando bien la estrella sin daño sigue siendo posible.
+- Los **jefes finales** (Comandante Supremo, Nave Nodriza y Núcleo de Xylos) aguantan el doble que en la 4.0 (en la 4.1 era +50%). Los jefes de sector se quedan en +50%.
+- La **pistola** vuelve a tener cargador: 12 balas que se recuperan solas, una por segundo, mientras no la disparas. Sirve de reserva, pero ya no permite pasarse el juego solo con ella.
+- El objeto de vida cura 15 en lugar de 20.
+- Tiempos de la estrella de los jefes finales: Comandante 360 s, Nave Nodriza 400 s, Núcleo 450 s.
 
 **Versión 4.1: más difícil**
 - Los enemigos normales aguantan un 25% más y los jefes (de sector y finales) un 50% más, para que no caigan en segundos aunque tengas las mejoras al máximo.
