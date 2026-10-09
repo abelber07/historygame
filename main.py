@@ -639,6 +639,94 @@ if COMANDANT:
                                                                   banya_trencada=True, mort=True)))
 else:
     RETRAT_COMANDANT = COMANDANT_MORT = None
+
+
+# ---------------------------------------------------------------------------
+# Enemics normals en alta definició (vegeu tools/generar_enemics.py): fotogrames per animació, també
+# girats per mirar a l'esquerra, amb el punt d'ancoratge (els peus o el centre) i les boques dels canons.
+# ---------------------------------------------------------------------------
+MIDES_ENEMIC = {"soldat": (36, 52), "escut": (44, 56), "kamikaze": (28, 20),     # caixes de sempre
+                "dron": (68, 58), "lloctinent": (102, 87), "cacador": (44, 24)}
+VOLADORS_HD = ("dron", "lloctinent", "cacador")
+
+
+def _carregar_enemics_hd():
+    try:
+        with open(ruta("img", "enemics_hd.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar enemics_hd.json: {err}")
+        return {}
+    atles = carregar_imatge("enemics_hd.png")
+    if atles is None:
+        return {}
+    for tipus, e in info.items():
+        W, H = e["llenç"]
+        ax, ay = e["ancora"]
+        e["fr"] = {}
+        for nom, (x, y, w, h, ox, oy) in e["imatges"].items():
+            img = atles.subsurface((x, y, w, h))
+            # (imatge, desplaçament respecte de l'ancoratge) mirant a la dreta (1) i a l'esquerra (-1)
+            e["fr"][nom] = {1: (img, (ox - ax, oy - ay)),
+                            -1: (pygame.transform.flip(img, True, False), (ax - ox - w, oy - ay))}
+        if tipus in VOLADORS_HD:                  # els voladors fan servir el llenç sencer (centrat)
+            e["sencers"] = []
+            for nom in e["anims"]["vola"]:
+                x, y, w, h, ox, oy = e["imatges"][nom]
+                s = pygame.Surface((W, H), pygame.SRCALPHA)
+                s.blit(atles, (ox, oy), (x, y, w, h))
+                e["sencers"].append(s)
+    return info
+
+
+ENEMICS_HD = _carregar_enemics_hd()
+
+
+def frame_hd(tipus, anim, k, sentit=1):
+    """(imatge, desplaçament des de l'ancoratge) del fotograma k d'una animació (es repeteix si cal)."""
+    e = ENEMICS_HD[tipus]
+    noms = e["anims"][anim]
+    return e["fr"][noms[k % len(noms)]][sentit]
+
+
+def punt_hd(tipus, clau, anim, k, sentit=1):
+    """Punt guardat d'un fotograma (boca del canó o emissor de l'escut), relatiu a l'ancoratge."""
+    e = ENEMICS_HD[tipus]
+    noms = e["anims"][anim]
+    p = e.get(clau, {}).get(noms[k % len(noms)])
+    if p is None:
+        return None
+    return (p[0] - e["ancora"][0]) * sentit, p[1] - e["ancora"][1]
+
+
+for _t in ENEMICS_HD:                             # bestiari, menús i restes: el primer fotograma retallat
+    SPR_ENEMIC[_t] = frame_hd(_t, "vola" if _t in VOLADORS_HD else ("corre" if _t == "kamikaze" else "camina"), 0)[0]
+
+_CACHE_ESCUT = {}
+
+
+def imatge_escut(alt):
+    """Barrera hexagonal de l'escuder (mirant a la dreta): s'abomba endavant i té cel·les d'energia."""
+    s = _CACHE_ESCUT.get(alt)
+    if s is None:
+        w = 18
+        s = pygame.Surface((w, alt), pygame.SRCALPHA)
+        forma = [(1, 1), (9, alt * 0.12), (15, alt * 0.34), (17, alt * 0.5), (15, alt * 0.66), (9, alt * 0.88),
+                 (1, alt - 2), (5, alt * 0.5)]
+        pygame.draw.polygon(s, (90, 230, 255, 90), forma)
+        cel = pygame.Surface((w, alt), pygame.SRCALPHA)
+        for fila, y in enumerate(range(0, alt + 6, 6)):
+            for x in range(-3 + (fila % 2) * 4, w + 4, 8):
+                hexa = [(x + 3 * math.cos(a), y + 3 * math.sin(a)) for a in (i * math.pi / 3 for i in range(6))]
+                pygame.draw.polygon(cel, (170, 250, 255, 120), hexa, 1)
+        mascara = pygame.Surface((w, alt), pygame.SRCALPHA)
+        pygame.draw.polygon(mascara, (255, 255, 255, 255), forma)
+        cel.blit(mascara, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        s.blit(cel, (0, 0))
+        pygame.draw.lines(s, (16, 70, 100, 220), False, [(x + 1, y) for x, y in forma[1:6]], 3)   # vora fosca
+        pygame.draw.lines(s, (210, 252, 255, 240), False, forma[:7], 2)
+        _CACHE_ESCUT[alt] = s
+    return s
 _CACHE_ROTACIO = {}
 
 
@@ -2416,6 +2504,9 @@ class Enemic:
             self.w, self.h = self.sprite.get_size()
         else:
             self.w, self.h = {"dron": (50, 40), "lloctinent": (66, 54), "cacador": (52, 28), "boss": (84, 84)}.get(tipus, (128, 136))
+        self.hd_e = tipus in ENEMICS_HD                # enemic normal en alta definició
+        if self.hd_e:
+            self.w, self.h = MIDES_ENEMIC[tipus]
         self.x = float(x)
         self.y = float(-self.h - random.randint(0, 80))
         self.y_destinacio = y_destinacio
@@ -2553,7 +2644,16 @@ class Enemic:
             self._moure_ruta(290, 140, 0.35, 45)
             return self._atacar_nucli(jugador)
         elif self.tipus == "cacador":
-            return self._actualitzar_cacador(jugador, altres)
+            bales = self._actualitzar_cacador(jugador, altres)
+            if self.hd_e and self.mode == "envestida":            # estela del motor
+                cx, cy = self.centre
+                dx, dy = self.dir_envestida
+                for _ in range(2):
+                    efectes.append(Particula(cx - dx * 26 + random.uniform(-3, 3), cy - dy * 26 + random.uniform(-3, 3),
+                                             -dx * random.uniform(0.5, 2), -dy * random.uniform(0.5, 2),
+                                             random.choice(((90, 226, 255), (255, 172, 82), (236, 255, 255))),
+                                             vida=random.randint(8, 16), mida=random.uniform(2, 4)))
+            return bales
         else:
             self._vagar(jugador, altres)
 
@@ -2734,6 +2834,10 @@ class Enemic:
         return bales
 
     def canó_terra(self):
+        if self.hd_e:
+            p = punt_hd(self.tipus, "boques", "apunta", 0, 1 if self.dir > 0 else -1)
+            if p:
+                return self.x + self.w / 2 + p[0], self.y + self.h + p[1]
         return (self.x + self.w / 2 + self.dir * self.w * 0.5, self.y + self.h * (0.42 if self.tipus == "soldat" else 0.4))
 
     def _disparar_terra(self, jugador):
@@ -2760,6 +2864,9 @@ class Enemic:
         return False
 
     def _dibuixar_terra(self, surf, desplaçament, forçar_flash):
+        if self.hd_e:
+            self._dibuixar_terra_hd(surf, desplaçament, forçar_flash)
+            return
         frames = (FRAMES_TERRA if self.dir > 0 else FRAMES_TERRA_ESQ).get(self.tipus) or []
         cx = self.x + self.w / 2 + desplaçament[0]
         peus = self.y + self.h + desplaçament[1]
@@ -2905,6 +3012,13 @@ class Enemic:
         """Sprite d'aquest fotograma (amb animació) i clau per a la memòria cau."""
         if self.hd:
             return compondre_comandant(self.estat_dibuix(), self.llenç), None
+        if self.hd_e:
+            if self.tipus in VOLADORS_HD:
+                fr = ENEMICS_HD[self.tipus]["sencers"]
+                k = (int(self.t * 20) // {"dron": 6, "lloctinent": 7}.get(self.tipus, 3)) % len(fr)
+                return fr[k], (self.tipus, k)
+            anim, k = self.anim_terra()
+            return frame_hd(self.tipus, anim, k, 1 if self.dir > 0 else -1)[0], None
         return self.sprite, self.clau
 
     def dibuixar(self, surf, desplaçament=(0, 0), forçar_flash=False):
@@ -3392,6 +3506,64 @@ class Enemic:
         elif self.accio == "rugit":
             self.accio, self.t_accio = None, 0
 
+    def anim_terra(self):
+        """Animació i fotograma dels enemics de terra en alta definició."""
+        camina = int(self.pas_anim * 1.5) if abs(self.vx) > 0.1 and not self.entrant else 0
+        if self.tipus == "kamikaze":
+            if self.armat and (self.armat // (3 if self.armat < 20 else 6)) % 2 == 0:
+                return "armat", 0
+            return "corre", camina
+        if self.flash > 2:
+            return "ferit", 0
+        if self.tipus == "soldat" and self.flash_cano:
+            return "dispara", 0
+        if self.apuntant or self.flash_cano:
+            return "apunta", 0
+        return "camina", camina
+
+    def _dibuixar_terra_hd(self, surf, desp, forçar_flash):
+        sentit = 1 if self.dir > 0 else -1
+        anim, k = self.anim_terra()
+        img, (dx, dy) = frame_hd(self.tipus, anim, k, sentit)
+        ax, ay = self.x + self.w / 2 + desp[0], self.y + self.h + desp[1]
+        pos = (int(ax + dx), int(ay + dy))
+        if self.tipus == "kamikaze" and self.armat:
+            l = llum(int(18 + 30 * (1 - self.armat / 45)), (255, 60, 40))
+            surf.blit(l, l.get_rect(center=(int(ax), int(ay - 12))))
+        surf.blit(img, pos)
+        if self.flash or forçar_flash:
+            blanc = silueta_blanca(img)
+            blanc.set_alpha(200 if forçar_flash else 30 * self.flash)
+            surf.blit(blanc, pos)
+        if self.tipus == "escut" and not self.entrant:          # barrera hexagonal davant de l'emissor
+            em = punt_hd("escut", "emissors", anim, k, sentit) or (sentit * 14, -34)
+            alt = int(self.h * 1.08)
+            barrera = imatge_escut(alt)
+            if sentit < 0:
+                barrera = pygame.transform.flip(barrera, True, False)
+            br = 1.0 if self.cop_escut else min(1.0, 0.62 + 0.22 * math.sin(self.t * 9) + random.uniform(-0.06, 0.06))
+            barrera.set_alpha(int(255 * br))
+            bx = ax + em[0] + 1 if sentit > 0 else ax + em[0] - 1 - barrera.get_width()
+            by = ay + em[1] - alt / 2
+            surf.blit(barrera, (int(bx), int(by)))
+            barrera.set_alpha(255)
+            if self.cop_escut:                                    # esquerdes que s'encenen en aturar una bala
+                for _ in range(2):
+                    x0 = bx + random.uniform(4, 14)
+                    y0 = by + random.uniform(6, alt - 6)
+                    punts = [(x0, y0)]
+                    for _ in range(3):
+                        punts.append((punts[-1][0] + random.uniform(-4, 4), punts[-1][1] + random.uniform(-7, 7)))
+                    pygame.draw.lines(surf, (230, 255, 255), False, punts, 1)
+        carrega = self.carregant
+        if carrega > 0 and self.tipus != "kamikaze":
+            px, py = self.canó_terra()
+            l = llum(int(5 + 12 * carrega), (120, 230, 255))
+            surf.blit(l, l.get_rect(center=(int(px + desp[0]), int(py + desp[1]))))
+        if self.vida < self.vida_max:
+            pygame.draw.rect(surf, NEGRE, (self.x - 1, self.y - 9, self.w + 2, 6))
+            pygame.draw.rect(surf, VERD, (self.x, self.y - 8, self.w * max(0, self.vida) / self.vida_max, 4))
+
 
 class Resta:
     """Restes d'un enemic abatut: cauen girant amb fum i esclaten a terra."""
@@ -3429,6 +3601,44 @@ class Resta:
         img = pygame.transform.rotate(self.img, self.angle)
         img.fill((150, 140, 140, 255), special_flags=pygame.BLEND_RGBA_MULT)
         surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
+
+
+class MortTerra:
+    """Soldat abatut en alta definició: cau d'esquena, queda estès a terra i s'esvaeix."""
+
+    def __init__(self, e):
+        self.tipus = e.tipus
+        self.sentit = 1 if e.dir > 0 else -1
+        self.x, self.peus = e.x + e.w / 2, e.y + e.h
+        self.vx = -self.sentit * 1.8                  # el cop l'empeny enrere
+        self.vy = 0.0
+        self.sup = None
+        self.t = 0
+
+    def actualitzar(self, joc):
+        if self.sup is None:                          # on caurà (si s'ha mort a l'aire)
+            self.sup = min((p.rect.top for p in joc.solides()
+                            if p.rect.left - 4 <= self.x <= p.rect.right + 4 and p.rect.top >= self.peus - 6),
+                           default=TERRA_Y)
+        self.t += 1
+        self.x += self.vx
+        self.vx *= 0.86
+        if self.peus < self.sup:
+            self.vy += 0.6
+            self.peus = min(self.sup, self.peus + self.vy)
+        return self.t >= 120
+
+    def dibuixar(self, surf):
+        img, (dx, dy) = frame_hd(self.tipus, "mort", min(2, self.t // 6), self.sentit)
+        if self.t > 90:
+            img = img.copy()
+            img.set_alpha(int(255 * (120 - self.t) / 30))
+        pos = (int(self.x + dx), int(self.peus + dy))
+        surf.blit(img, pos)
+        if self.t < 6:
+            blanc = silueta_blanca(img)
+            blanc.set_alpha(150 - self.t * 25)
+            surf.blit(blanc, pos)
 
 
 class TrosClosca:
@@ -6065,7 +6275,10 @@ class Game:
         if self.efecte != "normal" and e.tipus != "kamikaze":     # cosmètic d'eliminació
             self.restes.append(EfecteBaixa(e, self.efecte, self.efectes))
         else:
-            self.restes.append(Resta(e))
+            if e.hd_e and e.tipus in ("soldat", "escut"):
+                self.restes.append(MortTerra(e))
+            elif not (e.hd_e and e.tipus == "kamikaze"):
+                self.restes.append(Resta(e))
             esclat(self.efectes, cx, cy, 10, [TARONJA, GROC, BLANC], vel=(1, 4), mida=(2, 4), vida=(10, 20))
         if random.random() < 0.3 and len(self.items) < 4:
             self.items.append(Item(cx - Item.W / 2, cy, self.tipus_item_necessari(), caure=True, vida=600))
@@ -7912,6 +8125,9 @@ class Game:
             img = self.imatge_novetat("jefe", SPR_ENEMIC.get(("boss", 0)), 40)
             if img:
                 surf.blit(img, img.get_rect(center=(cx, cy)))
+        elif clau == "enemic" and "soldat" in ENEMICS_HD:
+            img, (dx, dy) = frame_hd("soldat", "camina", t // 6)
+            surf.blit(img, (cx + dx, cy + 26 + dy))
         elif clau == "enemic":
             frames = FRAMES_TERRA.get("soldat") or []
             if frames:

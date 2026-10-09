@@ -53,13 +53,22 @@ class Figura:
         self.detalls = []                      # (x, y, color) després d'ombrejar
         self.forats = []                       # màscares que s'esborren al final
         self.ox = self.oy = 0                  # desplaçament de tot el que es pinta (per moure peces)
+        self.gir = None                        # (angle, origen): gir de tot el que es pinta
 
     def t(self, x, y):
+        if self.gir:
+            a, (cx, cy) = self.gir
+            c, s = math.cos(a), math.sin(a)
+            x, y = cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c
         return (x + self.ox) * self.S, (y + self.oy) * self.S
 
     def moure(self, ox, oy):
         """Tot el que es pinti a partir d'ara queda desplaçat (ox, oy)."""
         self.ox, self.oy = ox, oy
+
+    def girar_tot(self, angle, origen):
+        """Tot el que es pinti a partir d'ara gira `angle` radians al voltant d'`origen` (caigudes)."""
+        self.gir = (angle, origen) if angle else None
 
     # --- peces -------------------------------------------------------------------------------
     def _mascara(self, dibuix):
@@ -83,7 +92,11 @@ class Figura:
         return self.poli(mat, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], mode, **kw)
 
     def el·lipse(self, mat, x0, y0, x1, y1, mode="volum", **kw):
-        a, b = self.t(x0, y0), self.t(x1, y1)
+        cx, cy = self.t((x0 + x1) / 2, (y0 + y1) / 2)
+        rx, ry = (x1 - x0) / 2 * self.S, (y1 - y0) / 2 * self.S
+        if self.gir and abs(math.sin(self.gir[0])) > 0.7:           # gir gran: s'intercanvien els eixos
+            rx, ry = ry, rx
+        a, b = (cx - rx, cy - ry), (cx + rx, cy + ry)
         r = (round(a[0]), round(a[1]), max(1, round(b[0] - a[0]) + 1), max(1, round(b[1] - a[1]) + 1))
         return self.peça(mat, lambda s: pygame.draw.ellipse(s, (255, 255, 255), r), mode, **kw)
 

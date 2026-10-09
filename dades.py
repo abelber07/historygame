@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.8"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "3.9"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -513,6 +513,14 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "3.9", "titol": "Enemigos renovados", "punts": [
+        ("enemic", "Soldados, escuderos y kamikazes nuevos, con el mismo detalle que Nexus y patas de alienígena."),
+        ("plataforma", "Animaciones nuevas: caminan con las rodillas, apuntan, retroceden al disparar y se quejan al recibir un golpe."),
+        ("jefe", "Drones con el piloto dentro de la cúpula, lugarteniente con un platillo blindado propio y cazador "
+                 "con estela de motor."),
+        ("millora:blindatge", "El escudero proyecta una barrera hexagonal que parpadea y se agrieta al parar tus balas."),
+        ("estrella", "Al caer, los soldados se desploman de espaldas en lugar de salir girando."),
+    ]},
     {"versio": "3.8", "titol": "Comandante Supremo renovado", "punts": [
         ("comandant", "El Comandante Supremo tiene un diseño nuevo y muy detallado: cerebro a la vista, cuatro ojos, "
                       "corona de cuernos, coraza de quitina y seis tentáculos."),

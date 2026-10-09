@@ -95,6 +95,13 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.9: enemigos renovados**
+- **Soldados, escuderos y kamikazes nuevos** con la misma resolución que Nexus: casco de quitina con visor magenta, mochila con la antena de la Mente, armadura morada, fusil de plasma con células que brillan y patas de alienígena (la rodilla delante y el talón levantado). El escudero lleva armadura de metal, casco con cresta y una batería a la espalda; el kamikaze es una garrapata hinchada con un núcleo que brilla.
+- **Animaciones**: ciclo de seis pasos con las rodillas, postura de apuntar (el cañón se ilumina antes del disparo), retroceso al disparar, golpe recibido y caída de espaldas al morir (se quedan tendidos en el suelo y se desvanecen).
+- **Escudo hexagonal**: el escudero proyecta desde el brazo una barrera de celdas hexagonales que parpadea y se agrieta cuando para una bala.
+- **Voladores nuevos**: dron con el piloto dentro de la cúpula y luces que giran, lugarteniente con un platillo blindado propio (casco rojo, bronce, dos cañones y un piloto con cresta) y cazador naranja con estela de motor al embestir.
+- Las cajas de impacto de todos los enemigos son las mismas de antes. Se generan con `tools/generar_enemics.py`.
+
 **Versión 3.8: Comandante Supremo renovado**
 - **Diseño nuevo y muy detallado**, a la misma resolución que Nexus: cráneo con los surcos del cerebro, corona de cinco cuernos anillados, cuatro ojos amarillos con pupilas de serpiente (dos grandes y dos pequeños en la frente), boca con dientes y mandíbulas de hueso, coraza de quitina con hombreras de placas y pinchos, el órgano de control latiendo en el pecho, brazos con garras y seis tentáculos con ventosas.
 - **Animado por capas**: respira, los tentáculos ondulan, los ojos siguen a Nexus y parpadean, las venas envían pulsos desde el órgano, mueve la boca cuando habla por la radio y ruge en su presentación con el cerebro encendido.
