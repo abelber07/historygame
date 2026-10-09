@@ -722,6 +722,54 @@ def _carregar_caps_hd():
 CAPS_HD = _carregar_caps_hd()
 for _n, _c in CAPS_HD.items():
     SPR_ENEMIC[("boss", _n)] = retallar(_c["repos"][0])
+# ---------------------------------------------------------------------------
+# Nau Mare i Nucli de Xylos en alta definició (vegeu tools/generar_finals.py)
+# ---------------------------------------------------------------------------
+def _carregar_finals_hd():
+    try:
+        with open(ruta("img", "finals_hd.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar finals_hd.json: {err}")
+        return None
+    atles = carregar_imatge("finals_hd.png")
+    if atles is None:
+        return None
+    info["peces"] = {n: (atles.subsurface((x, y, w, h)), (ox, oy)) for n, (x, y, w, h, ox, oy) in info["imatges"].items()}
+    return info
+
+
+FINALS_HD = _carregar_finals_hd()
+
+
+def peça_final(nom):
+    return FINALS_HD["peces"][nom]
+
+
+def imatge_nucli(tent=0, dany=0, iris=True):
+    """Nucli compost (per al bestiari i les cinemàtiques)."""
+    W, H = FINALS_HD["nucli"]["llenç"]
+    s = pygame.Surface((W, H), pygame.SRCALPHA)
+    for nom in ([f"nucli_tent_{tent}"] if tent is not None else []) + [f"nucli_cos_{dany}"]:
+        im, (ox, oy) = peça_final(nom)
+        s.blit(im, (ox, oy))
+    if iris:
+        cx, cy = FINALS_HD["nucli"]["ull"]
+        pygame.draw.circle(s, (85, 25, 105), (cx - 5, cy + 4), 18)
+        pygame.draw.circle(s, (170, 50, 210), (cx - 5, cy + 4), 15)
+        pygame.draw.ellipse(s, (20, 0, 20), (cx - 8, cy - 7, 6, 22))
+        s.fill((255, 255, 255), (cx - 11, cy - 4, 2, 2))
+    return s
+
+
+if FINALS_HD:
+    _im, _ = peça_final("nau_000")
+    SPR_ENEMIC["final_nau"] = _im.copy()
+    SPR_ENEMIC["final_nucli"] = retallar(imatge_nucli(0))
+    NUCLI_CINE = retallar(imatge_nucli(None))              # sense tentacles: la cinemàtica el fa gran
+else:
+    NUCLI_CINE = None
+
 ESPECIAL_CAP = {0: "escotilla", 1: "beines", 2: "punteria", 3: "escombrada", 4: "eixam"}
 PUNTS_CAP = {0: {"canons": ((12, 96), (148, 96)), "escotilla": (80, 14)},      # coordenades del llenç de cada cap
              1: {"beines": ((54, 110), (80, 118), (106, 110))},
@@ -2565,6 +2613,12 @@ class Enemic:
         self.hd_e = tipus in ENEMICS_HD                # enemic normal en alta definició
         if self.hd_e:
             self.w, self.h = MIDES_ENEMIC[tipus]
+        self.hd_nau = tipus == "final_nau" and FINALS_HD is not None
+        self.hd_nucli = tipus == "final_nucli" and FINALS_HD is not None
+        if self.hd_nau:
+            self.w, self.h = 220, 108
+        elif self.hd_nucli:
+            self.w, self.h = 152, 152
         self.hd_cap = tipus == "boss" and nivell in CAPS_HD   # cap de sector en alta definició
         if self.hd_cap:
             self.w, self.h = 120, 118
@@ -3033,6 +3087,10 @@ class Enemic:
         return ventall(cx, cy, angle, 5 if self.furia else 3, math.radians(30), v * 1.4, d, "final")
 
     def canons_nau(self):
+        if self.hd_nau:
+            W, H = FINALS_HD["nau"]["llenç"]
+            cx, cy = self.centre
+            return [(cx - W / 2 + x + (x - W / 2) * 0.06, cy - H / 2 + y + 14) for x, y in FINALS_HD["nau"]["canons"]]
         return [(self.x + self.w * f, self.y + self.h * 0.8) for f in (0.16, 0.5, 0.84)]
 
     def _atacar_nau(self, jugador, angle):
@@ -3101,6 +3159,10 @@ class Enemic:
         """Sprite d'aquest fotograma (amb animació) i clau per a la memòria cau."""
         if self.hd:
             return compondre_comandant(self.estat_dibuix(), self.llenç), None
+        if self.hd_nau:
+            return SPR_ENEMIC["final_nau"], "nau_hd"
+        if self.hd_nucli:
+            return SPR_ENEMIC["final_nucli"], "nucli_hd"
         if self.hd_cap:
             fr = CAPS_HD[self.nivell]
             anim, t = "repos", int(self.t * 20)
@@ -3137,6 +3199,12 @@ class Enemic:
             return
         if self.hd:
             self._dibuixar_comandant(surf, desplaçament, forçar_flash)
+            return
+        if self.hd_nau:
+            self._dibuixar_nau_hd(surf, desplaçament, forçar_flash)
+            return
+        if self.hd_nucli:
+            self._dibuixar_nucli_hd(surf, desplaçament, forçar_flash)
             return
         cx, cy = self.centre
         cx += desplaçament[0]
@@ -3206,7 +3274,7 @@ class Enemic:
     def _dibuixar_ull(self, surf, centre, escala):
         """L'iris del Nucli segueix el jugador i de tant en tant parpelleja."""
         cx, cy = centre
-        rs = 22 * 1.9 * escala
+        rs = FINALS_HD["nucli"]["radi_ull"] if escala is None else 22 * 1.9 * escala
         ix, iy = cx + self.mirada[0] * rs * 0.32, cy + self.mirada[1] * rs * 0.32
         ira = self.fase == 2 and self.temps_fase < 60
         color_iris = (255, 60, 90) if ira or self.furia else (170, 50, 210)
@@ -3216,7 +3284,7 @@ class Enemic:
         amp_pupil = rs * (0.12 if not ira else 0.06)
         pygame.draw.ellipse(surf, (20, 0, 20), (ix - amp_pupil, iy - rs * 0.32, amp_pupil * 2, rs * 0.64))
         pygame.draw.circle(surf, BLANC, (int(ix - rs * 0.15), int(iy - rs * 0.16)), max(2, int(rs * 0.07)))
-        if self.parpelleig:
+        if self.parpelleig and escala is not None:             # (en alta definició, les parpelles són una capa)
             k = 1 - abs(self.parpelleig - 7) / 7
             alt = rs * 2 * k
             pygame.draw.ellipse(surf, (110, 50, 130), (cx - rs - 1, cy - rs - 1, rs * 2 + 2, max(2, alt)))
@@ -3785,6 +3853,95 @@ class Enemic:
             l = llum(int(6 + t * 0.5), (240, 200, 60))
             fx, fy = punt(PUNTS_CAP[4]["fibló"])
             surf.blit(l, l.get_rect(center=(int(fx), int(fy))))
+
+    def _dibuixar_nau_hd(self, surf, desp, forçar_flash):
+        """Nau Mare: canons que surten abans de disparar, hangar que s'obre, anella de llums i cervell que brilla."""
+        info = FINALS_HD["nau"]
+        W, H = info["llenç"]
+        cx, cy = self.centre
+        ox, oy = int(cx - W / 2 + desp[0]), int(cy - H / 2 + desp[1])
+        carrega = self.carregant
+        seguent = (self.atacs + 1) % 4
+        canons = int(self.flash_cano > 0 or (carrega > 0.25 and seguent == 1))
+        hangar = int((carrega > 0.2 and seguent == 3) or (self.atacs % 4 == 3 and self.temps_atac < 30))
+        pols = 0.5 + 0.5 * math.sin(self.t * 6)
+        l = llum(int(30 + 10 * pols), (200, 120, 255))
+        surf.blit(l, l.get_rect(center=(int(cx + desp[0]), int(cy + H * 0.36 + desp[1]))))
+        img, (dx, dy) = peça_final(f"nau_{canons}{hangar}{int(self.furia)}")
+        surf.blit(img, (ox + dx, oy + dy))
+        if self.flash or forçar_flash:
+            blanc = silueta_blanca(img)
+            blanc.set_alpha(200 if forçar_flash else 18 * self.flash)
+            surf.blit(blanc, (ox + dx, oy + dy))
+        bx, by = info["cervell"]                                 # el cervell de la nau batega
+        g = llum(int(20 + 6 * pols + 14 * carrega), (255, 90, 200))
+        g.set_alpha(int(120 + 80 * pols))
+        surf.blit(g, g.get_rect(center=(ox + bx, oy + by)))
+        g.set_alpha(255)
+        n = len(info["llums"])                                   # anella de llums que gira
+        for i, (x, y) in enumerate(info["llums"]):
+            if self.furia:
+                encesa = (int(self.t * 20) // 6 + i) % 2 == 0
+                color = (255, 70, 60) if encesa else (90, 30, 40)
+            else:
+                encesa = (int(self.t * 12) - i) % n < 4
+                color = (255, 230, 120) if encesa else (110, 90, 60)
+            pygame.draw.circle(surf, color, (ox + x, oy + y), 2)
+            if encesa:
+                surf.set_at((ox + x - 1, oy + y - 1), (255, 255, 230))
+        if self.flash_cano:
+            for px, py in self.canons_nau():
+                g = llum(14, (255, 90, 120))
+                surf.blit(g, g.get_rect(center=(int(px + desp[0]), int(py + desp[1]))))
+        if carrega > 0:                                          # avís genèric de l'atac
+            r = int(10 + 40 * carrega)
+            g = llum(max(4, r), ROSA[:3])
+            g.set_alpha(int(120 + 120 * carrega))
+            surf.blit(g, g.get_rect(center=(int(cx + desp[0]), int(cy + desp[1]))))
+            g.set_alpha(255)
+
+    def _dibuixar_nucli_hd(self, surf, desp, forçar_flash):
+        """Nucli: tentacles que ondulen, esquerdes segons la vida, ull que segueix el jugador, venes que s'encenen
+        cap a l'ull abans d'atacar i parpelles de carn."""
+        info = FINALS_HD["nucli"]
+        W, H = info["llenç"]
+        cx, cy = self.centre
+        ox, oy = int(cx - W / 2 + desp[0]), int(cy - H / 2 + desp[1])
+        anim = int(self.t * 20)
+        fr = self.vida / self.vida_max
+        dany = 0 if fr > 0.66 else (1 if fr > 0.33 else 2)
+        peces = [f"nucli_tent_{(anim // 5) % info['n_tent']}", f"nucli_cos_{dany}"]
+        compost = pygame.Surface((W, H), pygame.SRCALPHA) if self.flash or forçar_flash else None
+        for nom in peces:
+            im, (dx, dy) = peça_final(nom)
+            surf.blit(im, (ox + dx, oy + dy))
+            if compost:
+                compost.blit(im, (dx, dy))
+        ux, uy = info["ull"]
+        self._dibuixar_ull(surf, (ox + ux, oy + uy), None)
+        ira = self.fase == 2 and self.temps_fase < 60
+        if ira or self.furia:                                    # venes: pols cap a l'ull (totes enceses abans de mirar)
+            im, (dx, dy) = peça_final("nucli_venes_tot" if ira and (anim // 3) % 2 else f"nucli_venes_{(anim // 3) % 6}")
+        else:
+            im, (dx, dy) = peça_final(f"nucli_venes_{(anim // 5) % 6}")
+        surf.blit(im, (ox + dx, oy + dy))
+        if self.parpelleig:
+            nom = "nucli_parp_tancat" if 4 < self.parpelleig <= 10 else "nucli_parp_mig"
+            im, (dx, dy) = peça_final(nom)
+            surf.blit(im, (ox + dx, oy + dy))
+        if compost:
+            blanc = silueta_blanca(compost)
+            blanc.set_alpha(200 if forçar_flash else 18 * self.flash)
+            surf.blit(blanc, (ox, oy))
+        carrega = self.carregant
+        if carrega > 0:                                          # la mirada: l'avís surt de la pupil·la
+            punt = (int(ox + ux + self.mirada[0] * 14), int(oy + uy + self.mirada[1] * 14))
+            r = int(10 + 40 * carrega)
+            g = llum(max(4, r), (230, 90, 255))
+            g.set_alpha(int(120 + 120 * carrega))
+            surf.blit(g, g.get_rect(center=punt))
+            g.set_alpha(255)
+            pygame.draw.circle(surf, (230, 90, 255), punt, int(r * (1.6 - carrega)) + 2, 1)
 
 
 class Resta:
@@ -4738,8 +4895,15 @@ class Intro:
             alfa = min(255, (self.t - 50) * 4)
             gran.set_alpha(alfa)
             y = 70 + math.sin(self.t * 0.03) * 6
-            surf.blit(gran, gran.get_rect(center=(WIDTH // 2, int(y + 110))))
-            if alfa > 200:
+            rect = gran.get_rect(center=(WIDTH // 2, int(y + 110)))
+            surf.blit(gran, rect)
+            if alfa > 200 and FINALS_HD:
+                llums = FINALS_HD["nau"]["llums"]
+                for i, (lx, ly) in enumerate(llums):                # l'anella de llums s'encén
+                    encesa = (self.t // 4 - i) % len(llums) < 4
+                    pygame.draw.circle(surf, (255, 230, 120) if encesa else (110, 90, 60),
+                                       (rect.x + lx * 2, rect.y + ly * 2), 4)
+            elif alfa > 200:
                 for i in range(9):                                  # llums que s'encenen
                     x = WIDTH // 2 - 200 + 400 * (i + 1) / 10
                     encesa = (self.t // 6 - i) % 9 < 3
@@ -4831,12 +4995,12 @@ class Intro:
     def _dibuixar_apagada(self, surf):
         self._fons(surf, (4, 2))
         k = min(1.0, self.t / 200)
-        nucli = SPR_ENEMIC.get("final_nucli")
+        nucli = NUCLI_CINE or SPR_ENEMIC.get("final_nucli")
         if nucli:
             gran = pygame.transform.scale(nucli, (nucli.get_width() * 2, nucli.get_height() * 2))
             centre = (WIDTH // 2, 230)
             surf.blit(gran, gran.get_rect(center=centre))
-            rs = gran.get_width() * 0.29
+            rs = FINALS_HD["nucli"]["radi_ull"] * 2 if NUCLI_CINE else gran.get_width() * 0.29
             alt = rs * 2 * k                                       # la parpella es tanca
             pygame.draw.ellipse(surf, (110, 50, 130), (centre[0] - rs - 2, centre[1] - rs - 2, rs * 2 + 4, max(2, alt)))
             pygame.draw.ellipse(surf, (110, 50, 130), (centre[0] - rs - 2, centre[1] + rs + 2 - max(2, alt), rs * 2 + 4,
@@ -8357,6 +8521,10 @@ class Game:
                 l.set_alpha(int(110 + 60 * math.sin(t * 0.1)))
                 surf.blit(l, l.get_rect(center=(cx, cy + 6)))
                 l.set_alpha(255)
+                surf.blit(img, img.get_rect(center=(cx, cy)))
+        elif clau in ("nau", "nucli"):
+            img = self.imatge_novetat(clau, SPR_ENEMIC.get("final_" + clau), 50)
+            if img:
                 surf.blit(img, img.get_rect(center=(cx, cy)))
         elif clau == "jefe":
             img = self.imatge_novetat("jefe", SPR_ENEMIC.get(("boss", 0)), 40)

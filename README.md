@@ -95,6 +95,17 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 4.0: jefes renovados**
+- **Cinco jefes de sector distintos** (antes eran el mismo platillo con otro color), cada uno con un ataque propio que avisa antes:
+  - *General Xylothian*: platillo-tanque blindado con cañones laterales; abre una escotilla (luz amarilla) y suelta drones, y dispara con los dos cañones a la vez.
+  - *Maestro de la Selva*: nave de corteza envuelta en lianas, con un ojo enorme y flores; sus vainas se hinchan, caen y revientan en el suelo en un abanico de esporas.
+  - *Comandante de Élite*: caza rojo con alas de cuchilla; te marca con un láser rojo y suelta una ráfaga recta hacia donde apuntaba.
+  - *Capitán orbital*: cañonera de acero con una torreta que te sigue y barre un arco de balas.
+  - *Guardián de la Colmena*: avispa gigante con ojos compuestos y aguijón; bate las alas más rápido y suelta un enjambre que te persigue un rato.
+- **Nave Nodriza**: casco de quitina con un cerebro vivo bajo una cúpula de cristal, anillo de luces que gira (rojo en la furia), cañones que salen antes de disparar, puertas del hangar que se abren antes de soltar naves y casco quemado y agrietado en la fase de furia. Su cinemática usa el diseño nuevo.
+- **Núcleo de Xylos**: esfera de carne con un ojo enorme que te sigue, corona de garras, tentáculos que ondulan, venas que mandan pulsos hacia el ojo (todas encendidas antes de su mirada), párpados de carne y grietas según la vida que le queda.
+- Se generan con `tools/generar_caps.py` y `tools/generar_finals.py`.
+
 **Versión 3.9: enemigos renovados**
 - **Soldados, escuderos y kamikazes nuevos** con la misma resolución que Nexus: casco de quitina con visor magenta, mochila con la antena de la Mente, armadura morada, fusil de plasma con células que brillan y patas de alienígena (la rodilla delante y el talón levantado). El escudero lleva armadura de metal, casco con cresta y una batería a la espalda; el kamikaze es una garrapata hinchada con un núcleo que brilla.
 - **Animaciones**: ciclo de seis pasos con las rodillas, postura de apuntar (el cañón se ilumina antes del disparo), retroceso al disparar, golpe recibido y caída de espaldas al morir (se quedan tendidos en el suelo y se desvanecen).

@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.9"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.0"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -513,6 +513,17 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.0", "titol": "Jefes renovados", "punts": [
+        ("jefe", "Los cinco jefes de sector ya no son el mismo platillo pintado de otro color: cada uno tiene su diseño."),
+        ("estrella", "Cada jefe tiene un ataque propio con aviso: escotilla de drones, vainas de esporas, láser de puntería, "
+                     "torreta giratoria y enjambre que te persigue."),
+        ("mira", "El Comandante de Élite te marca con un láser rojo antes de disparar: muévete en cuanto veas la línea."),
+        ("nau", "La Nave Nodriza lleva un cerebro vivo bajo una cúpula: saca los cañones antes de disparar y abre el "
+                "hangar para soltar naves."),
+        ("nucli", "El Núcleo de Xylos es un ojo enorme de carne con tentáculos: sus venas se encienden hacia el ojo "
+                  "antes de su mirada."),
+        ("trofeu", "Con esta versión, todos los enemigos y jefes del juego están renovados."),
+    ]},
     {"versio": "3.9", "titol": "Enemigos renovados", "punts": [
         ("enemic", "Soldados, escuderos y kamikazes nuevos, con el mismo detalle que Nexus y patas de alienígena."),
         ("plataforma", "Animaciones nuevas: caminan con las rodillas, apuntan, retroceden al disparar y se quejan al recibir un golpe."),
