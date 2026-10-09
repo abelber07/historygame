@@ -95,6 +95,14 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.8: Comandante Supremo renovado**
+- **Diseño nuevo y muy detallado**, a la misma resolución que Nexus: cráneo con los surcos del cerebro, corona de cinco cuernos anillados, cuatro ojos amarillos con pupilas de serpiente (dos grandes y dos pequeños en la frente), boca con dientes y mandíbulas de hueso, coraza de quitina con hombreras de placas y pinchos, el órgano de control latiendo en el pecho, brazos con garras y seis tentáculos con ventosas.
+- **Animado por capas**: respira, los tentáculos ondulan, los ojos siguen a Nexus y parpadean, las venas envían pulsos desde el órgano, mueve la boca cuando habla por la radio y ruge en su presentación con el cerebro encendido.
+- **Ataques con aviso**: *ráfaga desde la garra* (la garra brilla antes de disparar), *anillo desde el órgano* (el pecho se enciende), *golpe al suelo* (se eleva, una sombra marca dónde caerá y al impactar lanza ondas a ras de suelo que hay que saltar), *llamada mental* (el cerebro brilla y caen soldados) y, en la fase de furia, *láser de los ojos* que barre el escenario y se corta con las plataformas.
+- **Daño visible**: grietas al 75%; al 50% salta la coraza en pedazos y deja el núcleo brillando a la vista (con aura roja); al 25% pierde un cuerno.
+- **Muerte nueva**: tentáculos caídos, ojos apagados y sus soldados se desploman con él; la cinemática posterior y la ficha del bestiario usan el diseño nuevo.
+- El Comandante se genera con `tools/generar_comandant.py` sobre el pintor compartido `tools/pintor.py` (sombreado por volumen, sombras proyectadas y texturas).
+
 **Versión 3.7: Nexus renovado**
 - **Nexus nuevo, mucho más detallado**: casco con el visor cian, auricular y luz, cara visible bajo el visor, chaleco táctico con bolsillos, mochila, cinturón, rodilleras, guantes y botas con suela. Está dibujado con el doble de resolución que antes y es un poco más grande (su zona de impacto también: 28 × 66 píxeles).
 - **Armas del mismo estilo**: pistola, escopeta con corredera de madera, fusil de madera y metal con cargador curvo, minigun de tres cañones con caja de munición y cañón de plasma con bobinas que brillan. Cada una con su postura de brazos.

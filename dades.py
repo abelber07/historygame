@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "3.7"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "3.8"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -513,6 +513,18 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "3.8", "titol": "Comandante Supremo renovado", "punts": [
+        ("comandant", "El Comandante Supremo tiene un diseño nuevo y muy detallado: cerebro a la vista, cuatro ojos, "
+                      "corona de cuernos, coraza de quitina y seis tentáculos."),
+        ("cine", "Está vivo: respira, mueve los tentáculos, te sigue con la mirada, parpadea y mueve la boca cuando habla."),
+        ("jefe", "Ataques nuevos con aviso: ráfaga desde la garra, golpe al suelo con ondas que hay que saltar y "
+                 "llamada mental que trae soldados."),
+        ("vida", "El daño se ve: le salen grietas, a media vida se le rompe la coraza y deja el núcleo a la vista, "
+                 "y al final pierde un cuerno."),
+        ("mira", "En la fase de furia barre el escenario con un láser de los ojos: esquívalo con la voltereta o "
+                 "ponte a cubierto bajo una plataforma."),
+        ("estrella", "Muerte nueva: se le apagan los ojos, los tentáculos caen y sus soldados se desploman con él."),
+    ]},
     {"versio": "3.7", "titol": "Nexus renovado", "punts": [
         ('arma:fusell', 'Nexus tiene un aspecto nuevo mucho más detallado: casco con visor, chaleco, mochila y armas de madera y metal.'),
         ('plataforma', 'Animaciones nuevas al correr, saltar y caer: las piernas se doblan y las botas acompañan el paso.'),

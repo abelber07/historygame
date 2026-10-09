@@ -525,22 +525,6 @@ for _t, _fr in FRAMES_TERRA.items():
 RETRATS = {q: tires(f"retrat_{q}.png", 32) for q in ("comandant", "doctora", "nexus", "ment")}
 
 
-def frames_tentacles(img, n=8):
-    """El Comandant Suprem: la meitat inferior (tentacles) ondula."""
-    if img is None:
-        return []
-    w, h = img.get_size()
-    frames = []
-    for f in range(n):
-        s = pygame.Surface((w + 16, h), pygame.SRCALPHA)
-        for y in range(h):
-            k = max(0.0, (y - h * 0.42) / (h * 0.58))
-            dx = math.sin(f / n * math.tau + y * 0.11) * 6 * k
-            s.blit(img, (8 + round(dx), y), pygame.Rect(0, y, w, 1))
-        frames.append(s)
-    return frames
-
-
 def tenyir(img, color, alfa=110):
     s = img.copy()
     capa = pygame.Surface(img.get_size(), pygame.SRCALPHA)
@@ -551,8 +535,110 @@ def tenyir(img, color, alfa=110):
     return s
 
 
-FRAMES_COMANDANT = frames_tentacles(SPR_ENEMIC["final_comandant"])
-FRAMES_COMANDANT_FURIA = [tenyir(f, (255, 40, 40), 90) for f in FRAMES_COMANDANT]
+# ---------------------------------------------------------------------------
+# El Comandant Suprem en alta definició: capes animades que es componen a cada fotograma
+# (tentacles, braços, cos, banyes, cap i capes que brillen; vegeu tools/generar_comandant.py)
+# ---------------------------------------------------------------------------
+def _carregar_comandant():
+    try:
+        with open(ruta("img", "comandant.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar comandant.json: {err}")
+        return None
+    atles = carregar_imatge("comandant.png")
+    if atles is None:
+        return None
+    info["peces"] = {n: (atles.subsurface((x, y, w, h)), (ox, oy))
+                     for n, (x, y, w, h, ox, oy) in info["imatges"].items()}
+    info["cervell_img"] = info["peces"]["cervell"][0].copy()        # còpia: se li canvia l'alfa
+    return info
+
+
+COMANDANT = _carregar_comandant()
+
+
+def estat_comandant(t=0, **kw):
+    """Estat de dibuix del Comandant (postures, boca, parpelles, mirada...)."""
+    e = {"t": t, "tentacles": "ones", "braços": ("repos", "repos"), "cos": (1, 0), "boca": "tancada",
+         "parpelles": "oberts", "mirada": (0.0, 0.0), "venes": None, "cervell": 0, "banya_trencada": False,
+         "mort": False, "ira": False, "cap_dx": 0, "cap_dy": 0, "tent_dx": 0, "cos_dy": 0}
+    e.update(kw)
+    return e
+
+
+def pupilles_comandant(surf, e, dx, dy):
+    """Pupil·les en escletxa que segueixen el jugador (amb la parpella mig closa, només la meitat de baix)."""
+    mx, my = e["mirada"]
+    mig = e["parpelles"] == "mig"
+    alt = 6 if e["ira"] else 8
+    for x, y in COMANDANT["ulls"]:
+        cx, cy = x + dx + round(mx * 3), y + dy + round(my * 2)
+        dalt = max(cy - alt // 2, y + dy) if mig else cy - alt // 2
+        baix = cy + alt // 2
+        if baix > dalt:
+            pygame.draw.rect(surf, (90, 10, 24), (cx - 1, dalt, 3, baix - dalt))
+            pygame.draw.line(surf, (14, 2, 6), (cx, dalt), (cx, baix - 1))
+    if not mig:
+        for x, y in COMANDANT["ulls_petits"]:
+            surf.set_at((x + dx + round(mx), y + dy + round(my * 0.6)), (14, 2, 6))
+        for x, y in COMANDANT["ulls"]:                                   # reflex
+            surf.fill((255, 252, 230), (x + dx - 6, y + dy - 2, 2, 1))
+
+
+def compondre_comandant(e, surf=None):
+    """Composa el Comandant en un llenç transparent (es pot reaprofitar el mateix llenç)."""
+    info = COMANDANT
+    if surf is None:
+        surf = pygame.Surface(info["llenç"], pygame.SRCALPHA)
+    else:
+        surf.fill((0, 0, 0, 0))
+    peces = info["peces"]
+
+    def posar(nom, dx=0, dy=0):
+        im, (ox, oy) = peces[nom]
+        surf.blit(im, (ox + dx, oy + dy))
+
+    t = e["t"]
+    respira = round(math.sin(t * math.tau / 120)) + e["cos_dy"]
+    cap_dy = round(math.sin((t - 12) * math.tau / 120) * 1.5) + e["cap_dy"] + e["cos_dy"]
+    cap_dx = round(e["mirada"][0] * 2) + e["cap_dx"]
+    tent = e["tentacles"]
+    posar(f"tent_ones_{(t // 5) % info['n_ones']}" if tent == "ones" else f"tent_{tent}", e["tent_dx"], e["cos_dy"])
+    posar(f"braç_{e['braços'][0]}_-1", 0, respira)
+    posar(f"braç_{e['braços'][1]}_1", 0, respira)
+    fase, esq = e["cos"]
+    posar(f"cos_{fase}_{esq}", 0, respira)
+    if e["venes"] == "tot":
+        posar(f"venes_{fase}_{esq}_tot", 0, respira)
+    else:
+        posar(f"venes_{fase}_{esq}_{(t // 6) % info['n_venes']}", 0, respira)
+    posar("banyes_trencades" if e["banya_trencada"] else "banyes", cap_dx, cap_dy)
+    if e["mort"]:
+        posar("cap_mort", cap_dx, cap_dy)
+    else:
+        posar(f"cap_{e['boca']}_{e['parpelles']}", cap_dx, cap_dy)
+        if e["parpelles"] != "tancats":
+            pupilles_comandant(surf, e, cap_dx, cap_dy)
+        if e["cervell"]:
+            im = info["cervell_img"]
+            _, (ox, oy) = peces["cervell"]
+            im.set_alpha(int(e["cervell"]))
+            surf.blit(im, (ox + cap_dx, oy + cap_dy))
+    return surf
+
+
+if COMANDANT:
+    # imatge fixa per al bestiari i les cinemàtiques; el retrat de la barra del cap és només el cap
+    _cx, _cy = COMANDANT["cap"]
+    SPR_ENEMIC["final_comandant"] = retallar(compondre_comandant(estat_comandant(30, mirada=(-0.8, 0.5))).subsurface(
+        (_cx - 84, 0, 168, 206)))
+    RETRAT_COMANDANT = compondre_comandant(estat_comandant(30, mirada=(-0.6, 0.4))).subsurface(
+        (_cx - 40, _cy - 50, 80, 92)).copy()
+    COMANDANT_MORT = retallar(compondre_comandant(estat_comandant(0, tentacles="flonjos", cos=(2, 1),
+                                                                  banya_trencada=True, mort=True)))
+else:
+    RETRAT_COMANDANT = COMANDANT_MORT = None
 _CACHE_ROTACIO = {}
 
 
@@ -2380,6 +2466,15 @@ class Enemic:
         self.dany = max(1, round(self.dany * dif["dany"]))
         if not self.es_final:
             self.cadencia = max(30, int(self.cadencia * self.k_cadencia))
+        # atacs especials que el joc ha de recollir (ones, impactes, tremolor, làser) i mort animada
+        self.laser = None
+        self.impacte = False
+        self.ones_noves = []
+        self.tremolor_nou = 0
+        self.morint = 0
+        self.hd = tipus == "final_comandant" and COMANDANT is not None
+        if self.hd:
+            self._iniciar_comandant()
 
     @property
     def es_final(self):
@@ -2405,6 +2500,8 @@ class Enemic:
     @property
     def carregant(self):
         """Fracció (0-1) de la càrrega abans d'atacar, per avisar el jugador."""
+        if self.hd:
+            return 0.0
         if self.tipus == "cacador":
             return min(1.0, self.temps_mode / 35) if self.mode == "carrega" else 0.0
         if self.terrestre:
@@ -2448,6 +2545,8 @@ class Enemic:
                                      random.uniform(-0.4, 0.4), random.uniform(-1.4, -0.6),
                                      random.choice(((70, 70, 80), (100, 96, 104), (255, 140, 60))),
                                      vida=random.randint(20, 40), mida=random.uniform(3, 6)))
+        if self.hd:
+            return self._actualitzar_comandant(jugador, altres, efectes, plataformes)
         if self.tipus == "final_nau":
             self._moure_ruta(320, 100, 0.4, 18)
         elif self.tipus == "final_nucli":
@@ -2804,10 +2903,8 @@ class Enemic:
     # ----- dibuix -----------------------------------------------------------
     def imatge(self):
         """Sprite d'aquest fotograma (amb animació) i clau per a la memòria cau."""
-        if self.tipus == "final_comandant" and FRAMES_COMANDANT:
-            i = int(self.t * 20) % len(FRAMES_COMANDANT)
-            frames = FRAMES_COMANDANT_FURIA if self.furia and (int(self.t * 20) // 4) % 2 else FRAMES_COMANDANT
-            return frames[i], ("comandant", i, frames is FRAMES_COMANDANT_FURIA)
+        if self.hd:
+            return compondre_comandant(self.estat_dibuix(), self.llenç), None
         return self.sprite, self.clau
 
     def dibuixar(self, surf, desplaçament=(0, 0), forçar_flash=False):
@@ -2817,6 +2914,9 @@ class Enemic:
             self.recul = (rx * 0.6, ry * 0.6) if abs(rx) + abs(ry) > 0.3 else (0.0, 0.0)
         if self.terrestre:
             self._dibuixar_terra(surf, desplaçament, forçar_flash)
+            return
+        if self.hd:
+            self._dibuixar_comandant(surf, desplaçament, forçar_flash)
             return
         cx, cy = self.centre
         cx += desplaçament[0]
@@ -2855,11 +2955,6 @@ class Enemic:
         if self.tipus == "cacador" and self.vx < -0.5:
             img = pygame.transform.flip(img, True, False)
         rect = img.get_rect(center=(int(cx), int(cy)))
-        if self.tipus == "final_comandant" and self.furia:
-            aura = llum(int(self.w * 0.75), (255, 40, 60))
-            aura.set_alpha(int(110 + 60 * math.sin(self.t * 8)))
-            surf.blit(aura, aura.get_rect(center=rect.center))
-            aura.set_alpha(255)
         surf.blit(img, rect)
         if self.tipus == "final_nucli":
             self._dibuixar_ull(surf, rect.center, img.get_width() / self.w)
@@ -2917,6 +3012,386 @@ class Enemic:
                 l = llum(14, (255, 90, 120))
                 surf.blit(l, l.get_rect(center=(int(px + desplaçament[0]), int(py + desplaçament[1]))))
 
+    def _iniciar_comandant(self):
+        """Comandant Suprem en alta definició: estat de les accions i de les capes."""
+        info = COMANDANT
+        self.w, self.h = 150, 160
+        x0, y0, x1, y1 = info["cos"]
+        self.org = (self.w / 2 - (x0 + x1) / 2, self.h / 2 - (y0 + y1) / 2)   # on cau el llenç respecte de (x, y)
+        self.llenç = pygame.Surface(info["llenç"], pygame.SRCALPHA)
+        im, (_, oy) = info["peces"]["tent_estesos"]
+        self.peus_cop = oy + im.get_height()           # punta dels tentacles estesos, en coordenades del llenç
+        self.accio, self.t_accio = None, 0
+        self.seq = 0
+        self.costat_garra = -1
+        self.trencat = False                           # fase 2: la closca ja s'ha trencat
+        self.banya_rota = False
+        self.objectiu_x = 0.0
+        self.t_terra = 0                               # fotograma en què el cop ha tocat terra
+        self.avis_laser = None
+        self.laser_x = (0.0, 0.0)
+        self.parlant = False
+        self.cadencia = int(80 * self.k_cadencia)
+        self.y = float(-self.h - 30)                   # entra des de just a sobre de la pantalla
+
+    def punt_llenç(self, p):
+        """Punt del llenç del Comandant -> coordenades de la pantalla."""
+        return self.x + self.org[0] + p[0], self.y + self.org[1] + p[1]
+
+    def _actualitzar_comandant(self, jugador, altres, efectes, plataformes):
+        """Comandant Suprem: flota i encadena atacs amb avís (garra, anell, cop de terra, crida mental i,
+        a la fase 2, el làser dels ulls). Cada atac té la seva postura."""
+        if self.furia and not self.trencat:            # mitja vida: la closca es trenca
+            self.trencat = True
+            self.accio, self.t_accio = "trencar", 0
+            self.laser = self.avis_laser = None
+            self.t_terra = 0
+            self._esmicolar(efectes)
+        if self.vida < self.vida_max * 0.25 and not self.banya_rota:
+            self.banya_rota = True
+            self._saltar_banya(efectes)
+        self.t_accio += 1
+        if self.accio is None:
+            self._vagar(jugador, altres)
+            self.temps_atac += 1
+            if self.temps_atac >= self.cadencia:
+                self._triar_atac(jugador, altres)
+            return []
+        if self.accio not in ("cop", "laser"):         # mentre carrega, gairebé quiet
+            self.vx *= 0.9
+            self.vy *= 0.9
+            self.x += self.vx
+            self.y += self.vy + math.sin(self.t * 2) * 0.3
+            self._limits()
+        return getattr(self, "_accio_" + self.accio)(jugador, efectes, plataformes)
+
+    SEQ_COMANDANT = (("garra", "anell", "garra", "cop", "crida"),
+                     ("garra", "laser", "anell", "cop", "garra", "crida", "laser"))
+
+    def _triar_atac(self, jugador, altres):
+        seq = self.SEQ_COMANDANT[1 if self.trencat else 0]
+        accio = seq[self.seq % len(seq)]
+        self.seq += 1
+        if accio == "crida" and sum(1 for o in altres if not o.es_boss) >= 3:
+            accio = "anell"
+        self.accio, self.t_accio = accio, 0
+        self.atacs += 1
+        self.costat_garra = -1 if jugador.centre[0] < self.centre[0] else 1
+
+    def _acabar_accio(self, pausa=0):
+        self.accio, self.t_accio = None, 0
+        self.temps_atac = -pausa
+        self.cadencia = int((60 if self.trencat else 80) * self.k_cadencia)
+
+    def _accio_garra(self, jugador, efectes, plataformes):
+        """Ràfega des de la urpa: alça el braç (la urpa s'encén) i dispara cap al jugador."""
+        if self.t_accio == 30:
+            x, y = self.punt_llenç(COMANDANT["urpes"]["mig"][str(self.costat_garra)])
+            jx, jy = jugador.centre
+            self.flash_cano = 8
+            AUDIO.so("boss", 60)
+            efectes.append(Anell(x, y, ROSA, r=4, creix=2.5, vida=10))
+            return ventall(x, y, math.atan2(jy - y, jx - x), 5 if self.trencat else 3, math.radians(30),
+                           self.vel_bala * 1.4, self.dany, "final")
+        if self.t_accio >= 46:
+            self._acabar_accio()
+        return []
+
+    def _accio_anell(self, jugador, efectes, plataformes):
+        """Anell de bales que surt de l'òrgan del pit (abans s'encén)."""
+        if self.t_accio == 32:
+            x, y = self.punt_llenç(COMANDANT["organ"])
+            AUDIO.so("boss", 60)
+            efectes.append(Anell(x, y, ROSA, r=10, creix=4, vida=14))
+            return anell_bales(x, y, 30 if self.trencat else 24, self.vel_bala, self.dany, "final", gir=self.atacs * 0.13)
+        if self.t_accio >= 44:
+            self._acabar_accio()
+        return []
+
+    def _accio_crida(self, jugador, efectes, plataformes):
+        """Crida mental: alça els braços, el cervell s'encén i arriben soldats."""
+        t = self.t_accio
+        if t in (18, 30, 42, 54):
+            x, y = self.punt_llenç(COMANDANT["cap"])
+            efectes.append(Anell(x, y - 8, (255, 90, 210), r=34, creix=5, vida=22))
+        if t == 18:
+            AUDIO.so("boss")
+        if t == 40:
+            self.invocacions = [("soldat", 70), ("soldat", 70)] + ([("kamikaze", 45)] if self.trencat else [])
+        if t >= 78:
+            self._acabar_accio(20)
+        return []
+
+    def _accio_cop(self, jugador, efectes, plataformes):
+        """Cop de terra: s'enlaira (una ombra marca on caurà), cau en picat i fa ones que s'han de saltar."""
+        t = self.t_accio
+        if self.t_terra == 0:
+            if t <= 36:                                # s'enlaira i apunta (deixa d'apuntar una mica abans)
+                if t <= 26:
+                    self.objectiu_x = max(self.w / 2 + 10, min(WIDTH - self.w / 2 - 10, jugador.centre[0]))
+                self.x += (self.objectiu_x - self.w / 2 - self.x) * 0.12
+                self.y += (50 - self.y) * 0.1
+                self.vy = 0.0
+                if t == 1:
+                    AUDIO.so("buit", 120)
+                return []
+            self.vy = min(self.vy + 1.4, 22)           # en picat
+            self.y += self.vy
+            terra = TERRA_Y + 6 - self.peus_cop - self.org[1]
+            if self.y >= terra:
+                self.y = terra
+                self.t_terra = t
+                self.impacte = True
+                self.tremolor_nou = 16
+                AUDIO.so("explosio")
+                cx = self.centre[0]
+                self.ones_noves = [(cx - 40, -1), (cx + 40, 1)]
+                for _ in range(30):
+                    efectes.append(Particula(cx + random.uniform(-100, 100), TERRA_Y - 2, random.uniform(-3, 3),
+                                             random.uniform(-4.5, -1),
+                                             random.choice(((236, 240, 250), (200, 206, 220), (255, 140, 220))),
+                                             vida=random.randint(20, 40), mida=random.uniform(3, 6), gravetat=0.2))
+                efectes.append(Anell(cx, TERRA_Y, (255, 120, 220), r=20, creix=7, vida=16))
+            return []
+        quiet = t - self.t_terra
+        if self.trencat and quiet == 18:               # a la fase 2, una segona ona
+            cx = self.centre[0]
+            self.ones_noves = [(cx - 40, -1), (cx + 40, 1)]
+            self.tremolor_nou = 8
+            AUDIO.so("impacte")
+        if quiet > 42:                                 # torna a enlairar-se
+            self.y += (self.y_destinacio - self.y) * 0.08
+            if quiet > 90 or abs(self.y - self.y_destinacio) < 3:
+                self.t_terra = 0
+                self._acabar_accio(30)
+        return []
+
+    def ulls_mon(self):
+        """Posició dels dos ulls grans a la pantalla."""
+        return [self.punt_llenç(p) for p in COMANDANT["ulls"]]
+
+    def _raig(self, xt, plataformes):
+        """Raig dels ulls fins a terra o fins a la primera plataforma que el talli."""
+        (ax, ay), (bx, by) = self.ulls_mon()
+        ox, oy = (ax + bx) / 2, (ay + by) / 2
+        fi_x, fi_y = xt, float(TERRA_Y)
+        for p in plataformes:
+            if p.terra or p.rect.top <= oy + 8:
+                continue
+            k = (p.rect.top - oy) / (TERRA_Y - oy)
+            x = ox + (xt - ox) * k
+            if p.rect.left <= x <= p.rect.right and p.rect.top < fi_y:
+                fi_x, fi_y = x, float(p.rect.top)
+        return (ox, oy), (fi_x, fi_y)
+
+    def _accio_laser(self, jugador, efectes, plataformes):
+        """Làser dels ulls (fase 2): primer una línia d'avís; després el raig escombra l'escenari."""
+        t = self.t_accio
+        avis, durada = 50, 84
+        if t == 1:
+            x0 = 36 if jugador.centre[0] < WIDTH / 2 else WIDTH - 36
+            self.laser_x = (x0, WIDTH - x0)
+            AUDIO.so("buit", 120)
+        x0, x1 = self.laser_x
+        if t < avis:
+            self.avis_laser = (x0, t / avis)
+        elif t < avis + durada:
+            self.avis_laser = None
+            k = (t - avis) / durada
+            k = k * k * (3 - 2 * k)
+            self.laser = self._raig(x0 + (x1 - x0) * k, plataformes)
+            if t == avis:
+                AUDIO.so("explosio", 80)
+            if t % 2 == 0:
+                ix, iy = self.laser[1]
+                efectes.append(Particula(ix + random.uniform(-4, 4), iy - 2, random.uniform(-2.5, 2.5),
+                                         random.uniform(-4, -1.5),
+                                         random.choice(((255, 120, 90), (255, 230, 170), (255, 70, 130))),
+                                         vida=random.randint(10, 22), mida=random.uniform(2, 4), gravetat=0.25))
+        else:
+            self.laser = None
+            if t >= avis + durada + 18:
+                self._acabar_accio(20)
+        return []
+
+    def _accio_trencar(self, jugador, efectes, plataformes):
+        """La closca es trenca (mitja vida): rugit, trossos que salten i el nucli a la vista."""
+        if self.t_accio == 1:
+            self.tremolor_nou = 14
+            AUDIO.so("explosio")
+        if self.t_accio >= 58:
+            self._acabar_accio(10)
+        return []
+
+    def _esmicolar(self, efectes):
+        """Trossos de la closca que salten quan es trenca."""
+        for k in range(10):
+            px, py = random.choice(((96, 136), (104, 128), (170, 106), (178, 116), (120, 138), (92, 146)))
+            x, y = self.punt_llenç((px + random.uniform(-6, 6), py + random.uniform(-6, 6)))
+            img = COMANDANT["peces"][f"tros_{k % 4}"][0]
+            efectes.append(TrosClosca(img, x, y, random.uniform(-4.5, 4.5), random.uniform(-7, -2.5)))
+        x, y = self.punt_llenç(COMANDANT["organ"])
+        esclat(efectes, x, y, 40, [ROSA, BLANC, (255, 140, 220), MORAT], vel=(2, 8), mida=(2, 5), vida=(15, 40))
+        efectes.append(Anell(x, y, ROSA, r=12, creix=6, vida=18))
+        efectes.append(Anell(x, y, BLANC, r=8, creix=4, vida=12))
+
+    def _saltar_banya(self, efectes):
+        """Al 25% de vida li salta una banya."""
+        cx, cy = COMANDANT["cap"]
+        x, y = self.punt_llenç((cx - 30, cy - 52))
+        efectes.append(TrosClosca(COMANDANT["peces"]["tros_1"][0], x, y, -2.5, -6))
+        esclat(efectes, x, y, 18, [(232, 218, 182), BLANC, (150, 124, 96)], vel=(1.5, 5), mida=(2, 4), vida=(12, 28))
+        self.tremolor_nou = 8
+        AUDIO.so("impacte")
+
+    def estat_dibuix(self):
+        """Postures i expressió del Comandant segons el que fa."""
+        a, t = self.accio, self.t_accio
+        anim = int(self.t * 20)
+        e = estat_comandant(anim, mirada=self.mirada, ira=self.trencat,
+                            cos=(2 if self.trencat else 1,
+                                 1 if (self.vida < self.vida_max * (0.25 if self.trencat else 0.75)) else 0),
+                            banya_trencada=self.banya_rota,
+                            tent_dx=max(-3, min(3, round(-self.vx * 2))), cap_dx=max(-2, min(2, round(self.vx))))
+        if self.parpelleig and a in (None, "anell"):
+            e["parpelles"] = "tancats" if 4 < self.parpelleig <= 10 else "mig"
+        if self.morint:
+            e.update(tentacles="flonjos", boca="oberta", mort=self.morint > 50, braços=("repos", "repos"),
+                     tent_dx=0, cap_dx=random.randint(-1, 1))
+            return e
+        costat = 0 if self.costat_garra < 0 else 1
+        if a is None and self.parlant:
+            e["boca"] = ("mitja", "tancada", "oberta", "tancada")[(anim // 5) % 4]
+        if a == "garra":
+            braços = ["repos", "repos"]
+            braços[costat] = "mig" if 6 < t < 42 else "repos"
+            e.update(braços=tuple(braços), boca="mitja" if 10 < t < 36 else "tancada")
+        elif a == "anell":
+            e.update(braços=("mig", "mig") if 8 < t < 38 else ("repos", "repos"))
+        elif a == "crida":
+            if t < 14 or t >= 66:
+                e.update(braços=("mig", "mig"), boca="mitja")
+            else:
+                e.update(braços=("alçat", "alçat"), boca="oberta", venes="tot",
+                         cervell=255 * min(1.0, (t - 14) / 10, (66 - t) / 8))
+        elif a == "cop":
+            if self.t_terra == 0:
+                e.update(braços=("cop", "cop"), tentacles="recollits", boca="mitja")
+            else:
+                quiet = t - self.t_terra
+                if quiet < 34:
+                    e.update(braços=("terra", "terra"), tentacles="estesos", boca="oberta" if quiet < 16 else "mitja")
+                else:
+                    e.update(braços=("mig", "mig") if quiet < 50 else ("repos", "repos"))
+        elif a == "laser":
+            e.update(boca="mitja", parpelles="oberts")
+            if self.laser:
+                (ox, oy), (ix, iy) = self.laser
+                d = math.hypot(ix - ox, iy - oy) or 1
+                e["mirada"] = ((ix - ox) / d, (iy - oy) / d)
+            elif self.avis_laser:
+                ox, oy = self.punt_llenç(COMANDANT["cap"])
+                d = math.hypot(self.avis_laser[0] - ox, TERRA_Y - oy) or 1
+                e["mirada"] = ((self.avis_laser[0] - ox) / d, (TERRA_Y - oy) / d)
+        elif a == "trencar":
+            e.update(braços=("mig", "mig"), boca="oberta", venes="tot", cervell=255 * max(0.0, 1 - t / 58),
+                     cap_dx=random.randint(-1, 1))
+        elif a == "rugit":                             # presentació: alça els braços i rugeix
+            if t < 8 or t >= 52:
+                e.update(braços=("mig", "mig"), boca="mitja")
+            else:
+                e.update(braços=("alçat", "alçat"), boca="oberta", venes="tot", cervell=255 * min(1.0, (t - 8) / 8),
+                         cap_dx=random.randint(-1, 1) if 12 < t < 40 else 0)
+        return e
+
+    def _dibuixar_comandant(self, surf, desp, forçar_flash):
+        info = COMANDANT
+        a, t = self.accio, self.t_accio
+        img = compondre_comandant(self.estat_dibuix(), self.llenç)
+        ox = int(self.x + self.org[0] + desp[0])
+        oy = int(self.y + self.org[1] + desp[1])
+        if a == "trencar" and t < 24:
+            ox += random.randint(-2, 2)
+        if a == "cop" and self.t_terra == 0:          # ombra que marca on caurà
+            k = min(1.0, t / 30)
+            amp = int(40 + 50 * k)
+            marca = pygame.Surface((amp * 2, 16), pygame.SRCALPHA)
+            pygame.draw.ellipse(marca, (20, 0, 20, int(60 + 80 * k)), marca.get_rect())
+            pygame.draw.ellipse(marca, (255, 60, 120, 230 if (t // 4) % 2 else 110), marca.get_rect(), 2)
+            surf.blit(marca, marca.get_rect(center=(int(self.objectiu_x), TERRA_Y + 1)))
+        org = info["organ"]
+        if self.trencat and not self.morint:           # aura de la fase 2
+            aura = llum(110, (255, 40, 90))
+            aura.set_alpha(int(80 + 40 * math.sin(self.t * 6)))
+            surf.blit(aura, aura.get_rect(center=(ox + org[0], oy + org[1] - 34)))
+            aura.set_alpha(255)
+        surf.blit(img, (ox, oy))
+        if self.flash >= 4 or forçar_flash:            # un parpelleig curt a cada cop: no tapa el detall
+            blanc = silueta_blanca(img)
+            blanc.set_alpha(200 if forçar_flash else 70)
+            surf.blit(blanc, (ox, oy))
+        if self.morint:
+            return
+        resp = round(math.sin(int(self.t * 20) * math.tau / 120))
+        # l'òrgan batega (i s'encén abans de l'anell)
+        intens = 0.0
+        if a == "anell":
+            intens = min(1.0, t / 32) if t <= 32 else max(0.0, 1 - (t - 32) / 10)
+        elif a in ("crida", "trencar", "rugit"):
+            intens = 0.8
+        r = int(14 + 3 * math.sin(self.t * 5) + 24 * intens)
+        l = llum(r, (255, 80, 200))
+        l.set_alpha(int(140 + 110 * intens))
+        centre = (ox + org[0], oy + org[1] + resp)
+        surf.blit(l, l.get_rect(center=centre))
+        l.set_alpha(255)
+        if a == "anell" and t <= 32:
+            pygame.draw.circle(surf, ROSA, centre, int(12 + 30 * (1 - intens)), 1)
+        # urpes que carreguen
+        urpes = []
+        if a == "garra" and 6 < t <= 32:
+            urpes = [(info["urpes"]["mig"][str(self.costat_garra)], min(1.0, (t - 6) / 24))]
+        elif (a == "crida" and 14 <= t < 66) or (a == "rugit" and 8 <= t < 52):
+            urpes = [(info["urpes"]["alçat"][s], 0.8) for s in ("-1", "1")]
+        for (x, y), k in urpes:
+            g = llum(int(6 + 14 * k), (255, 90, 210))
+            surf.blit(g, g.get_rect(center=(ox + x, oy + y + resp)))
+            if a == "garra":
+                pygame.draw.circle(surf, ROSA, (ox + x, oy + y + resp), int(4 + 18 * (1 - k)), 1)
+        # làser: els ulls s'encenen, línia d'avís i raig
+        if a == "laser":
+            k = min(1.0, t / 50)
+            for x, y in self.ulls_mon():
+                g = llum(int(5 + 12 * k), (255, 60, 60))
+                surf.blit(g, g.get_rect(center=(int(x + desp[0]), int(y + desp[1]))))
+            if self.avis_laser and (t // 3) % 2 == 0:
+                (ax, ay), (bx, by) = self.ulls_mon()
+                pygame.draw.line(surf, (255, 70, 70), ((ax + bx) / 2, (ay + by) / 2), (self.avis_laser[0], TERRA_Y), 1)
+                pygame.draw.circle(surf, (255, 70, 70), (int(self.avis_laser[0]), TERRA_Y), 6, 1)
+            if self.laser:
+                (_, _), (ix, iy) = self.laser
+                vibra = random.randint(-1, 1)
+                for ux, uy in self.ulls_mon():
+                    pygame.draw.line(surf, (150, 10, 50), (ux, uy), (ix, iy), 7 + vibra)
+                    pygame.draw.line(surf, (255, 60, 100), (ux, uy), (ix, iy), 4 + vibra)
+                    pygame.draw.line(surf, (255, 230, 235), (ux, uy), (ix, iy), 2)
+                g = llum(22, (255, 70, 110))
+                surf.blit(g, g.get_rect(center=(int(ix), int(iy))))
+                pygame.draw.circle(surf, BLANC, (int(ix), int(iy)), 4)
+
+    def presentar(self, t, jugador):
+        """Durant la presentació del cap: respira, mira el jugador i rugeix quan surt el nom."""
+        self.t += 0.05
+        self.parpelleig = max(0, self.parpelleig - 1)
+        jx, jy = jugador.centre
+        cx, cy = self.centre
+        d = math.hypot(jx - cx, jy - cy) or 1
+        self.mirada = ((jx - cx) / d, (jy - cy) / d)
+        if 100 <= t < 160:
+            self.accio, self.t_accio = "rugit", t - 100
+        elif self.accio == "rugit":
+            self.accio, self.t_accio = None, 0
+
 
 class Resta:
     """Restes d'un enemic abatut: cauen girant amb fum i esclaten a terra."""
@@ -2956,6 +3431,93 @@ class Resta:
         surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
 
 
+class TrosClosca:
+    """Tros de la closca del Comandant que salta, gira, rebota a terra i s'apaga."""
+    __slots__ = ("img", "x", "y", "vx", "vy", "angle", "gir", "t", "vida")
+
+    def __init__(self, img, x, y, vx, vy):
+        self.img, self.x, self.y, self.vx, self.vy = img, x, y, vx, vy
+        self.angle = random.uniform(0, 360)
+        self.gir = random.choice((-1, 1)) * random.uniform(6, 14)
+        self.t = 0
+        self.vida = random.randint(70, 100)
+
+    def actualitzar(self):
+        self.t += 1
+        self.vy += 0.35
+        self.x += self.vx
+        self.y += self.vy
+        self.angle += self.gir
+        if self.y > TERRA_Y - 4 and self.vy > 0:
+            self.y = TERRA_Y - 4
+            self.vy *= -0.35
+            self.vx *= 0.6
+            self.gir *= 0.5
+        return self.t >= self.vida
+
+    def dibuixar(self, surf):
+        img = pygame.transform.rotate(self.img, int(self.angle) // 15 * 15)
+        if self.t > self.vida - 20:
+            img.set_alpha(int(255 * (self.vida - self.t) / 20))
+        surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
+
+
+class OnaXoc:
+    """Ona del cop de terra del Comandant: corre arran de terra cap a un costat i s'ha de saltar."""
+    ALT = 40
+    ESTELES = {}
+
+    def __init__(self, x, sentit, dany):
+        self.x, self.sentit, self.dany = float(x), sentit, dany
+        self.t = 0
+
+    @property
+    def rect(self):
+        return pygame.Rect(int(self.x) - 13, TERRA_Y - self.ALT + 10, 26, self.ALT - 10)
+
+    def actualitzar(self, efectes):
+        self.t += 1
+        self.x += self.sentit * 6.2
+        if self.t % 2 == 0:
+            efectes.append(Particula(self.x - random.uniform(0, 14) * self.sentit, TERRA_Y - 3,
+                                     -self.sentit * random.uniform(0.3, 1.8), random.uniform(-3.5, -1),
+                                     random.choice(((236, 240, 250), (196, 204, 222), (255, 130, 215))),
+                                     vida=random.randint(14, 26), mida=random.uniform(2.5, 4.5), gravetat=0.2))
+        return self.x < -60 or self.x > WIDTH + 60
+
+    @classmethod
+    def estela(cls, sentit):
+        """Rastre d'energia arran de terra (es fa un cop per a cada sentit)."""
+        if sentit not in cls.ESTELES:
+            e = pygame.Surface((80, 16), pygame.SRCALPHA)
+            for i in range(80):
+                k = i / 79
+                alt = int(2 + 12 * k * k)
+                pygame.draw.line(e, (255, 80, 200, int(170 * k)), (i, 16 - alt), (i, 15))
+            cls.ESTELES[sentit] = e if sentit > 0 else pygame.transform.flip(e, True, False)
+        return cls.ESTELES[sentit]
+
+    def dibuixar(self, surf):
+        x, s, T = self.x, self.sentit, TERRA_Y + 2
+        a = self.ALT + 3 * math.sin(self.t * 0.7)
+        e = self.estela(s)
+        surf.blit(e, (x - 80 if s > 0 else x, T - 16))
+        l = llum(32, (255, 70, 200))
+        surf.blit(l, l.get_rect(center=(int(x), int(T - a * 0.45))))
+        cresta = [(x - s * 22, T), (x - s * 12, T - a * 0.45), (x - s * 3, T - a * 0.86), (x + s * 6, T - a),
+                  (x + s * 14, T - a * 0.84), (x + s * 13, T - a * 0.62), (x + s * 8, T - a * 0.68),
+                  (x + s * 7, T - a * 0.4), (x + s * 13, T)]
+        pygame.draw.polygon(surf, (120, 26, 104), cresta)
+        dins = [(px - s * 2, py + (T - py) * 0.3) for px, py in cresta]
+        pygame.draw.polygon(surf, (236, 80, 190), dins)
+        pygame.draw.lines(surf, (255, 225, 248), False, [(px - s, py + 2) for px, py in cresta[1:5]], 2)
+        pygame.draw.polygon(surf, (44, 8, 44), cresta, 1)
+        for k in range(3):                              # escuma a la cresta
+            fx = x + s * (8 + 3 * k) + random.randint(-1, 1)
+            fy = T - a * (0.92 - 0.1 * k) + random.randint(-1, 1)
+            surf.fill((255, 255, 255), (int(fx), int(fy), 2, 2))
+
+
 class MortCap:
     """Seqüència de mort dels caps: explosions encadenades i una gran explosió final."""
 
@@ -2967,6 +3529,8 @@ class MortCap:
     def actualitzar(self, joc):
         self.t += 1
         e = self.e
+        e.morint = self.t
+        e.laser = None
         if self.t % 6 == 0:
             x = e.x + random.uniform(0.1, 0.9) * e.w
             y = e.y + random.uniform(0.1, 0.9) * e.h
@@ -3276,6 +3840,11 @@ class Radio:
     def buidar(self):
         self.cua.clear()
         self.actual = None
+
+    def parla(self, qui):
+        """Cert mentre `qui` diu el missatge actual (encara surten lletres)."""
+        a = self.actual
+        return a is not None and a[0] == qui and 0 < a[2] and int(a[2] * 1.3) < len(T(a[1]))
 
     def actualitzar(self):
         if self.actual is None and self.cua:
@@ -3700,7 +4269,7 @@ class Intro:
 
     def _dibuixar_caiguda(self, surf):
         self._fons(surf, (2, 2))
-        img = FRAMES_COMANDANT[(self.t // 3) % len(FRAMES_COMANDANT)] if FRAMES_COMANDANT else None
+        img = COMANDANT_MORT or SPR_ENEMIC.get("final_comandant")
         cx, base = int(WIDTH * 0.62), 420
         if self.t > 120:                                   # raig cap al cel
             k = min(1.0, (self.t - 120) / 40)
@@ -5200,6 +5769,7 @@ class Game:
         self.jugador = Jugador(self.vida_max(), 1 + 0.06 * reflexos, 1 if self.nivell_millora("doble_salt") else 0,
                                40 + 12 * reflexos)
         self.bales, self.bales_enemics, self.items, self.efectes, self.textos, self.restes = [], [], [], [], [], []
+        self.ones_xoc = []
         self.bales_armes = [self.bales_max(i) for i in range(len(ARMES))]
         mobils, fragils = dades.get("mobils", {}), dades.get("fragils", ())
         self.plataformes = [Plataforma(0, TERRA_Y, WIDTH, HEIGHT - TERRA_Y, terra=True)]
@@ -5481,6 +6051,11 @@ class Game:
         AUDIO.so("moneda")
         if e.es_boss:
             self.restes.append(MortCap(e))
+            if e.hd:                                           # sense la seva veu, els seus soldats cauen
+                for o in self.enemics:
+                    if not o.es_boss:
+                        o.vida = 0
+                self.efectes.append(Anell(cx, cy, ROSA, r=20, creix=9, vida=24))
             self.flaix = max(self.flaix, 10)                   # sense congelar: flaix i sacseig
             self.tremolor = max(self.tremolor, 12)
             return
@@ -5596,6 +6171,8 @@ class Game:
                 if e.tipus == "cacador" and not e.entrant and not j.intocable and e.hitbox.colliderect(rj):
                     self.ferir_jugador(e.dany)
                     e.rebotar()
+                if e.hd:
+                    self.atacs_comandant(e, j, rj)
                 if e.esclatar:
                     self.enemics.remove(e)
                     self.explosio_kamikaze(e, ferir_jugador=True)
@@ -5669,6 +6246,11 @@ class Game:
             if self.fase == "jugant" and not j.intocable and rj.colliderect(b.rect):
                 self.bales_enemics.remove(b)
                 self.ferir_jugador(b.dany)
+        for o in self.ones_xoc[:]:                         # ones del cop de terra del Comandant
+            if o.actualitzar(self.efectes):
+                self.ones_xoc.remove(o)
+            elif self.fase == "jugant" and not j.intocable and rj.colliderect(o.rect):
+                self.ferir_jugador(o.dany)
 
         # Ítems
         radi = self.radi_iman()
@@ -5950,6 +6532,8 @@ class Game:
             e.y = min(e.y + 3, e.y_destinacio)
             if e.y >= e.y_destinacio:
                 e.entrant = False
+        if e.hd:
+            e.presentar(pr["t"], self.jugador)
         if pr["t"] == 120:
             self.flaix = 8
             self.tremolor = 10
@@ -7047,7 +7631,7 @@ class Game:
     def retrat_cap(self, cap):
         img = Game.RETRATS_CAP.get(cap.clau)
         if img is None:
-            base, _ = cap.imatge()
+            base, _ = (RETRAT_COMANDANT, None) if cap.hd else cap.imatge()
             if base is None:
                 img = pygame.Surface((30, 30), pygame.SRCALPHA)
                 pygame.draw.circle(img, VERMELL_FOSC, (15, 15), 13)
@@ -7316,6 +7900,14 @@ class Game:
             if (t // 20) % 2:
                 for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
                     pygame.draw.line(surf, VERMELL, (cx + sx * 8, cy + sy * 8), (cx + sx * 15, cy + sy * 15), 3)
+        elif clau == "comandant":
+            img = self.imatge_novetat("comandant", RETRAT_COMANDANT or SPR_ENEMIC.get("final_comandant"), 46)
+            if img:
+                l = llum(26, (255, 80, 200))
+                l.set_alpha(int(110 + 60 * math.sin(t * 0.1)))
+                surf.blit(l, l.get_rect(center=(cx, cy + 6)))
+                l.set_alpha(255)
+                surf.blit(img, img.get_rect(center=(cx, cy)))
         elif clau == "jefe":
             img = self.imatge_novetat("jefe", SPR_ENEMIC.get(("boss", 0)), 40)
             if img:
@@ -9141,6 +9733,23 @@ class Game:
     def rect_nexus_menu(self):
         return pygame.Rect(426, 296, 160, 172)
 
+    def atacs_comandant(self, e, j, rj):
+        """Ones, impacte del cop de terra, tremolor i raig làser del Comandant Suprem."""
+        e.parlant = self.radio.parla("ment")                 # mou la boca quan parla per la ràdio
+        for x, sentit in e.ones_noves:
+            self.ones_xoc.append(OnaXoc(x, sentit, e.dany))
+        e.ones_noves = []
+        if e.tremolor_nou:
+            self.tremolor = max(self.tremolor, e.tremolor_nou)
+            e.tremolor_nou = 0
+        jugant = self.fase == "jugant" and not j.intocable
+        if e.impacte:
+            e.impacte = False
+            if jugant and abs(j.centre[0] - e.centre[0]) < 90 and j.y + j.H > TERRA_Y - 70:
+                self.ferir_jugador(round(e.dany * 1.5))
+        if e.laser and jugant and rj.clipline(e.laser[0], e.laser[1]):
+            self.ferir_jugador(e.dany)
+
     def dibuixar_joc(self, surf):
         c = self.capa
         fons = FONS_NIVELLS.get((self.nivell_actual, self.escenari_actual))
@@ -9169,6 +9778,8 @@ class Game:
             dibuixar_placa(c, self.placa[0], self.placa[1], self.temps_fase)
         for e in self.enemics:
             e.dibuixar(c)
+        for o in self.ones_xoc:
+            o.dibuixar(c)
         for r in self.restes:
             r.dibuixar(c)
         spr = self.spr_jugador()
