@@ -63,6 +63,8 @@ DRONS = {
     "corb": {"nom": "Cuervo"},
     "medic": {"nom": "Médico"},
     "daurat": {"nom": "Dorado"},
+    # ocult: no surt a Personalitzar fins que el tens (només s'aconsegueix amb un codi)
+    "teddy": {"nom": "Teddy Bear", "ocult": True},
 }
 # Dibuix dels drons (pixel art, s'amplia x2). a = color principal, b = secundari, u = ull
 DIBUIX_DRONS = {
@@ -276,4 +278,5 @@ MONEDES_REPETICIO = 0.5
 #         ("tot", None): desbloqueja tot el joc (mode administrador).
 CODIS = {
     "9f8a8bc5f83960323ba91e9bab4109e0cb1c74e90c48b522a3e78ea91ed14964": {"nom": "Modo administrador", "premis": [("tot", 1)]},
+    "42bd4b08fab7cf3a62a7b0ed4fc810d4ef471923982ab1aa1ada8a85c737f2f7": {"nom": "Teddy Bear", "premis": [("dron", "teddy")]},
 }

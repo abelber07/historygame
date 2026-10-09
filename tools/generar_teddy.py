@@ -4,7 +4,8 @@
 
 Osset de peluix amb morro clar, ulls de botó, galtes rosa, llaç rosa i un cor cosit a la panxa.
 Postures: quiet (i parpelleig), ajupit / salt / aterra (els saltirons de la sala), cor (emoticona: s'abraça
-un cor amb els ulls tancats), llança (braços amunt quan tira cors) i vola (a la partida, amb les potes penjant).
+un cor amb els ulls tancats), llança (braços amunt quan tira cors) i vola (a la partida, amb les potes penjant;
+també vola_parpella, vola_cor i vola_llança). A més, dos cors rosa (cor_1, cor_2) per a les emoticones.
 """
 import json
 import math
@@ -47,12 +48,16 @@ LLAÇ = ["kk.kk", "kaKak", "kk.kk"]                 # llacet a l'orella
 
 
 def teddy(pose="quiet", escala=ESCALA):
+    """`vola_X` és la postura X amb les potes penjant (a la partida va volant al costat del soldat)."""
     f = Figura(round(W * escala) + 2, round(H * escala) + 2, MAT, ("boto",), escala)
     rosa = {"k": MAT["rosa"][1], "a": MAT["rosa"][2], "b": MAT["rosa"][4], "K": MAT["rosa"][3]}
+    vola = pose.startswith("vola")
+    braços = "vola" if pose in ("vola", "vola_parpella") else pose
+    pose = pose[5:] if pose.startswith("vola_") else pose
+    braços = braços[5:] if braços.startswith("vola_") else braços
     cap_dy = {"ajupit": 3, "salt": -2, "aterra": 2, "cor": 1}.get(pose, 0)
     cos_dy = {"ajupit": 2, "salt": -2, "aterra": 1}.get(pose, 0)
     estira = {"salt": 1, "ajupit": -1}.get(pose, 0)
-    vola = pose == "vola"
     for s in (-1, 1):                                              # cames
         x = CX + s * 5
         if vola or pose == "salt":
@@ -65,10 +70,10 @@ def teddy(pose="quiet", escala=ESCALA):
     f.el·lipse("pelutx_c", CX - 6, 26 + cos_dy, CX + 6, 36 + cos_dy, grup="cos")
     patro(f, CX, 31 + cos_dy, COR_PANXA, rosa)                     # cor cosit a la panxa
     angles = {"quiet": (2.2, 0.9), "parpella": (2.2, 0.9), "ajupit": (2.5, 0.6), "salt": (-2.2, -0.9),
-              "aterra": (2.6, 0.5), "cor": (0.9, 2.2), "llança": (-2.0, -1.1), "vola": (2.7, 0.4)}[pose]
+              "aterra": (2.6, 0.5), "cor": (0.9, 2.2), "llança": (-2.0, -1.1), "vola": (2.7, 0.4)}[braços]
     for s, a in zip((-1, 1), angles):                              # braços
         esp = (CX + s * 7, 27 + cos_dy)
-        ma = (CX + s * 2, 31 + cos_dy) if pose == "cor" else (esp[0] + math.cos(a) * 6, esp[1] + math.sin(a) * 6)
+        ma = (CX + s * 2, 31 + cos_dy) if braços == "cor" else (esp[0] + math.cos(a) * 6, esp[1] + math.sin(a) * 6)
         f.membre("pelutx", [esp, ma], [3.0, 2.6], grup=f"braç{s}")
         f.el·lipse("pelutx_c", ma[0] - 2, ma[1] - 2, ma[0] + 2, ma[1] + 2, grup=f"braç{s}")
     hy = 4 + cap_dy
@@ -103,7 +108,8 @@ def cor(mida):
     return pygame.transform.scale(s, (7 * mida, 6 * mida))
 
 
-POSES = ("quiet", "parpella", "ajupit", "salt", "aterra", "cor", "llança", "vola")
+POSES = ("quiet", "parpella", "ajupit", "salt", "aterra", "cor", "llança", "vola", "vola_parpella", "vola_cor",
+         "vola_llança")
 
 
 def generar():

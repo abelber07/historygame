@@ -5286,11 +5286,81 @@ def dibuixar_insignia(surf, cx, cy, idx, mida=30):
 _CACHE_DRONS = {}
 
 
+def _carregar_teddy():
+    """Teddy Bear (vegeu tools/generar_teddy.py): postura -> (imatge, desplaçament des del punt dels peus)."""
+    try:
+        with open(ruta("img", "teddy.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar teddy.json: {err}")
+        return {}
+    atles = carregar_imatge("teddy.png")
+    if atles is None:
+        return {}
+    ax, ay = info["ancora"]
+    return {n: (atles.subsurface((x, y, w, h)), (ox - ax, oy - ay)) for n, (x, y, w, h, ox, oy) in info["imatges"].items()}
+
+
+TEDDY = _carregar_teddy()
+ROSA_TEDDY = (255, 150, 210)
+CURA_TEDDY, CADA_CURA_TEDDY = 5, 480                # +5 de vida cada 8 s mentre el soldat està ferit
+SALT_TEDDY = (-4, -9, -13, -16, -18, -19, -19, -18, -16, -13, -10, -6, -3, 0)   # alçada del saltiró (píxels del dibuix)
+_CACHE_TEDDY = {}
+
+
+def imatge_teddy(nom, esc=1):
+    """(imatge, desplaçament) d'una postura del Teddy ampliada `esc` vegades sense suavitzar."""
+    if nom not in TEDDY:
+        return None, (0, 0)
+    img, (dx, dy) = TEDDY[nom]
+    if esc == 1:
+        return img, (dx, dy)
+    s = _CACHE_TEDDY.get((nom, esc))
+    if s is None:
+        s = _CACHE_TEDDY[(nom, esc)] = pygame.transform.scale(img, (img.get_width() * esc, img.get_height() * esc))
+    return s, (dx * esc, dy * esc)
+
+
+def posar_teddy(surf, nom, x, peus, esc=1):
+    """Dibuixa el Teddy amb els peus al punt (x, peus)."""
+    img, (dx, dy) = imatge_teddy(nom, esc)
+    if img is not None:
+        surf.blit(img, (round(x + dx), round(peus + dy)))
+
+
+def cor_teddy(mida, color=None):
+    """Cor rosa del Teddy (7x6 píxels) ampliat `mida` vegades; amb `color`, la silueta plana d'aquest color."""
+    clau = ("cor", mida, color)
+    s = _CACHE_TEDDY.get(clau)
+    if s is None and "cor_1" in TEDDY:
+        base = TEDDY["cor_1"][0]
+        if color is not None:
+            base = pygame.mask.from_surface(base).to_surface(setcolor=color, unsetcolor=(0, 0, 0, 0))
+        s = _CACHE_TEDDY[clau] = pygame.transform.scale(base, (7 * mida, 6 * mida))
+    return s
+
+
+def cicle_teddy(t):
+    """Animació en bucle del Teddy quiet (vistes prèvies): (postura, alçada del saltiró en píxels del dibuix)."""
+    c = t % 260
+    if 150 <= c < 156:
+        return "ajupit", 0
+    if 156 <= c < 170:
+        return "salt", SALT_TEDDY[c - 156]
+    if 170 <= c < 175:
+        return "aterra", 0
+    if 205 <= c < 245:
+        return "cor", 0
+    return ("parpella" if c % 110 < 6 else "quiet"), 0
+
+
 def sprite_dron(ident):
     s = _CACHE_DRONS.get(ident)
     if s is None and ident in DIBUIX_DRONS:
         paleta, files = DIBUIX_DRONS[ident]
         s = _CACHE_DRONS[ident] = pixmap(files, dict(PALETA_ICONA, **paleta), 2)
+    elif s is None and ident == "teddy" and "quiet" in TEDDY:
+        s = _CACHE_DRONS[ident] = TEDDY["quiet"][0]
     return s
 
 
@@ -5332,6 +5402,194 @@ class DronCompany:
         surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
         if self.ident == "daurat" and self.t % 9 == 0:
             pygame.draw.circle(surf, BLANC, (int(self.x + random.uniform(-10, 10)), int(self.y + random.uniform(-8, 8))), 1)
+
+
+def crear_dron(ident, jugador):
+    return TeddyCompany(ident, jugador) if ident == "teddy" and TEDDY else DronCompany(ident, jugador)
+
+
+class CorTeddy:
+    """Cor rosa que surt del Teddy Bear (emoticones, saltirons i cures)."""
+    __slots__ = ("x", "y", "vx", "vy", "t", "vida", "mida", "gravetat", "fase")
+
+    def __init__(self, x, y, vx, vy, vida=40, mida=1, gravetat=0.0):
+        self.x, self.y, self.vx, self.vy = x, y, vx, vy
+        self.t, self.vida, self.mida, self.gravetat = 0, vida, mida, gravetat
+        self.fase = random.uniform(0, math.tau)
+
+    def actualitzar(self):
+        self.x += self.vx + math.sin(self.t * 0.15 + self.fase) * 0.3 * self.mida     # es gronxa mentre puja
+        self.y += self.vy
+        self.vy += self.gravetat
+        self.t += 1
+        return self.t >= self.vida
+
+    def dibuixar(self, surf):
+        img = cor_teddy(self.mida - 1 if self.t < 4 and self.mida > 1 else self.mida)     # «pop» en sortir
+        if img is None:
+            return
+        queda = self.vida - self.t
+        if queda < 12:
+            img.set_alpha(int(255 * queda / 12))
+        surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
+        img.set_alpha(255)
+
+
+class TeddyCompany(DronCompany):
+    """El Teddy Bear vola al costat del soldat, fa emoticones de cors i, si està ferit, cada 8 s li envia
+    un cor que el cura una mica (vegeu Game.cura_teddy)."""
+
+    def __init__(self, ident, jugador):
+        super().__init__(ident, jugador)
+        self.pose, self.t_pose = "vola", 0
+        self.cors = []
+        self.proper_emote = random.randint(200, 360)
+        self.cura_t = 0
+        self.cor_cura = None                     # [x, y, t] del cor que vola cap al soldat
+        self.desti = jugador.centre
+
+    def fer(self, pose, durada):
+        self.pose, self.t_pose = pose, durada
+
+    def afegir_cor(self, cor):
+        if len(self.cors) < 24:
+            self.cors.append(cor)
+
+    def actualitzar(self, jugador, mira_x):
+        self.t += 1
+        jx, jy = jugador.centre
+        self.desti = (jx, jy)
+        objectiu = (jx - jugador.direccio * 34, jy - 44 + math.sin(self.t * 0.07) * 5 - (6 if self.alegria else 0))
+        self.x += (objectiu[0] - self.x) * 0.1
+        self.y += (objectiu[1] - self.y) * 0.1
+        self.mira = 1 if mira_x >= self.x else -1
+        self.alegria = max(0, self.alegria - 1)
+        if self.t_pose:
+            self.t_pose -= 1
+            if self.t_pose == 0:
+                self.pose = "vola"
+        elif self.t % 170 == 0:
+            self.fer("vola_parpella", 6)
+        self.proper_emote -= 1
+        if self.proper_emote <= 0 and not self.t_pose:
+            self.proper_emote = random.randint(300, 480)
+            self.fer("vola_cor", 54)
+        if self.pose == "vola_cor" and self.t_pose % 12 == 6:
+            self.afegir_cor(CorTeddy(self.x + random.uniform(-5, 5), self.y - 16, random.uniform(-0.2, 0.2), -0.75, 44))
+        for c in self.cors[:]:
+            if c.actualitzar():
+                self.cors.remove(c)
+
+    def vigilar(self, ferit):
+        """Compta el temps que el soldat està ferit i cada 8 s li envia un cor. Torna True quan el cor arriba."""
+        if ferit:
+            self.cura_t += 1
+            if self.cura_t >= CADA_CURA_TEDDY and self.cor_cura is None:
+                self.cura_t = 0
+                self.fer("vola_cor", 36)
+                self.cor_cura = [self.x, self.y - 4, 0]
+        c = self.cor_cura
+        if c is None:
+            return False
+        c[2] += 1
+        k = min(1.0, 0.08 + c[2] * 0.02)
+        c[0] += (self.desti[0] - c[0]) * k
+        c[1] += (self.desti[1] - c[1]) * k - (2.2 if c[2] < 8 else 0)          # primer salta amunt, després hi va
+        if c[2] >= 10 and math.hypot(self.desti[0] - c[0], self.desti[1] - c[1]) < 8 or c[2] > 40:
+            self.cor_cura = None
+            return True
+        return False
+
+    def celebrar(self, efectes):
+        self.alegria = 30
+        if self.pose != "vola_cor":
+            self.fer("vola_llança", 18)
+        for _ in range(2):
+            self.afegir_cor(CorTeddy(self.x + random.uniform(-6, 6), self.y - 12, random.uniform(-1.4, 1.4),
+                                     random.uniform(-2.2, -1.2), 34, gravetat=0.07))
+
+    def dibuixar(self, surf):
+        l = llum(16, ROSA_TEDDY)
+        l.set_alpha(int(80 + 30 * math.sin(self.t * 0.08)))
+        surf.blit(l, l.get_rect(center=(int(self.x), int(self.y))))
+        l.set_alpha(255)
+        posar_teddy(surf, self.pose, self.x, self.y + 14)
+        for c in self.cors:
+            c.dibuixar(surf)
+        if self.cor_cura:
+            x, y, _ = self.cor_cura
+            img = cor_teddy(2)
+            if img:
+                surf.blit(img, img.get_rect(center=(int(x), int(y))))
+
+
+class TeddySala:
+    """El Teddy Bear a la sala (menú): dret al pedestal al costat de Nexus; parpelleja, fa saltirons,
+    tira cors rosa i s'abraça el seu cor. Quan Nexus abat el dron de pràctica, també tira cors."""
+    ident = "teddy"
+    ESC = 2
+    DURADA = {"salt": 25, "llança": 20, "cor": 52}
+
+    def __init__(self):
+        self.t = 0
+        self.x, self.peus = 0, 0
+        self.accio, self.t_accio, self.n = None, 0, 0
+        self.cors = []
+
+    def tirar(self, n, dy=0):
+        for _ in range(n):
+            self.cors.append(CorTeddy(self.x + random.uniform(-12, 12), self.peus - 46 + dy, random.uniform(-1.8, 1.8),
+                                      random.uniform(-3.4, -1.8), random.randint(40, 52), random.choice((1, 2, 2)),
+                                      gravetat=0.07))
+
+    def actualitzar(self, x, peus):
+        self.t += 1
+        self.x, self.peus = x, peus
+        if self.accio:
+            self.t_accio += 1
+            if self.accio == "salt" and self.t_accio == 12:          # dalt de tot del saltiró
+                self.tirar(4, SALT_TEDDY[6] * self.ESC)
+            elif self.accio == "llança" and self.t_accio == 3:
+                self.tirar(6)
+            elif self.accio == "cor" and self.t_accio % 10 == 6 and self.t_accio < 44:
+                self.cors.append(CorTeddy(self.x + random.uniform(-8, 8), self.peus - 62, random.uniform(-0.3, 0.3), -0.9,
+                                          44, 2))
+            if self.t_accio >= self.DURADA[self.accio]:
+                self.accio = None
+        elif self.t % 230 == 140:
+            self.accio, self.t_accio = ("salt", "llança", "salt", "cor")[self.n % 4], 0
+            self.n += 1
+        for c in self.cors[:]:
+            if c.actualitzar():
+                self.cors.remove(c)
+
+    def pose(self):
+        a, k = self.accio, self.t_accio
+        if a == "salt":
+            if k < 6:
+                return "ajupit", 0
+            if k < 20:
+                return "salt", SALT_TEDDY[k - 6]
+            return "aterra", 0
+        if a == "llança" and k < 18:
+            return "llança", 0
+        if a == "cor" and k < 48:
+            return "cor", 0
+        return ("parpella" if self.t % 170 < 6 else "quiet"), 0
+
+    def celebrar(self, efectes):
+        if self.accio is None:
+            self.accio, self.t_accio = "llança", 0
+
+    def dibuixar(self, surf):
+        pose, h = self.pose()
+        w = max(16, 34 + h)                                       # l'ombra s'encongeix quan salta
+        pygame.draw.ellipse(surf, (4, 6, 14), (int(self.x - w / 2), self.peus - 4, w, 8))
+        posar_teddy(surf, pose, self.x, self.peus + h * self.ESC, self.ESC)
+
+    def dibuixar_cors(self, surf):
+        for c in self.cors:
+            c.dibuixar(surf)
 
 
 # --- efectes d'eliminació --------------------------------------------------------------
@@ -5647,14 +5905,17 @@ class AparadorMenu:
             if fx.actualitzar():
                 self.efectes.remove(fx)
         self.flash = max(0, getattr(self, "flash", 0) - 1)
-        # dron company
+        # dron company (el Teddy Bear, en canvi, es queda dret al pedestal al costat de Nexus)
         if joc.dron != "cap":
             jug = type("JugadorMenu", (), {})()
             jug.centre = (cx + 10, peus - 60)
             jug.direccio = 1
             if self.dron is None or self.dron.ident != joc.dron:
-                self.dron = DronCompany(joc.dron, jug)
-            self.dron.actualitzar(jug, cx + 300)
+                self.dron = TeddySala() if joc.dron == "teddy" and TEDDY else DronCompany(joc.dron, jug)
+            if isinstance(self.dron, TeddySala):
+                self.dron.actualitzar(cx - 86, peus - 4)
+            else:
+                self.dron.actualitzar(jug, cx + 300)
         else:
             self.dron = None
 
@@ -5674,6 +5935,9 @@ class AparadorMenu:
         l.set_alpha(70)
         surf.blit(l, l.get_rect(center=(cx, peus)))
         l.set_alpha(255)
+        teddy = self.dron if isinstance(self.dron, TeddySala) else None
+        if teddy:
+            teddy.dibuixar(surf)
         spr = self.spr(joc)
         if not spr:
             return
@@ -5704,7 +5968,9 @@ class AparadorMenu:
             r.dibuixar(surf)
         for fx in self.efectes:
             fx.dibuixar(surf)
-        if self.dron:
+        if teddy:
+            teddy.dibuixar_cors(surf)
+        elif self.dron:
             self.dron.dibuixar(surf)
 
 
@@ -6410,7 +6676,7 @@ class Game:
         self.flaix = 0
         self.reiniciar_hud()
         self.jugador.estela = self.estela
-        self.dron_company = DronCompany(self.dron, self.jugador) if self.dron != "cap" else None
+        self.dron_company = crear_dron(self.dron, self.jugador) if self.dron != "cap" else None
         if self.repeticio:
             self.avis("Escenario repetido: las monedas valen la mitad", GRIS, 200)
         if self.mode == "supervivencia":
@@ -6564,6 +6830,24 @@ class Game:
                                           -0.3, random.choice((BLANC, (170, 240, 255))), vida=14, mida=2))
         if self.dron_company:
             self.dron_company.actualitzar(j, mx)
+            if isinstance(self.dron_company, TeddyCompany):
+                self.cura_teddy(j)
+
+    def cura_teddy(self, j):
+        """El Teddy Bear cura +5 de vida cada 8 s mentre el soldat està ferit (un cor vola del Teddy fins a ell)."""
+        ferit = self.fase == "jugant" and 0 < j.vida < j.vida_max
+        if not self.dron_company.vigilar(ferit) or not ferit:
+            return
+        guany = min(CURA_TEDDY, j.vida_max - j.vida)
+        j.vida += guany
+        jx, jy = j.centre
+        self.textos.append(TextFlotant(jx, j.y - 16, f"+{round(guany)}", ROSA_TEDDY))
+        for k in range(10):
+            a = k * math.tau / 10
+            self.efectes.append(Particula(jx + math.cos(a) * 18, jy + math.sin(a) * 22, math.cos(a) * 0.8,
+                                          math.sin(a) * 0.8 - 0.4, random.choice((ROSA_TEDDY, (255, 220, 240), BLANC)),
+                                          vida=22, mida=3))
+        AUDIO.so("ting")
 
     def pols_jugador(self):
         """Pols als peus en córrer, saltar i aterrar; flamarada dels propulsors en el doble salt."""
@@ -8874,6 +9158,8 @@ class Game:
             if (tipus, valor) in d["premi"]:
                 return T("Desafío: {d}").format(d=T(d["nom"]))
         info = CATALEG_COSMETIC[tipus].get(valor)
+        if isinstance(info, dict) and info.get("ocult"):
+            return T("Código secreto")
         if isinstance(info, dict) and info.get("preu"):
             return T("Ofertas del día · {p} monedas").format(p=info["preu"])
         if (tipus, valor) in (("targeta", "xenobio"), ("titol", "xenobioleg")):
@@ -9116,6 +9402,12 @@ class Game:
             surf.blit(fons_targeta(ident, p.w, p.h), p)
             dibuixar_insignia(surf, p.x + 20, p.centery, self.rang_actual(), 24)
             pygame.draw.rect(surf, BLANC, p, 1)
+        elif tipus == "dron" and ident == "teddy" and TEDDY:
+            pose, h = cicle_teddy(t)
+            clip = surf.get_clip()
+            surf.set_clip(r.inflate(-4, -4).clip(clip))
+            posar_teddy(surf, pose, centre[0], centre[1] + 28 + h, 2)
+            surf.set_clip(clip)
         elif tipus == "dron":
             img = sprite_dron(ident)
             if img:
@@ -9143,13 +9435,18 @@ class Game:
                 b.append(Boto((236 + k * 140, 170, 130, 170), "", lambda c=camo, a=arma_id: self.equipar_camo(a, c),
                               invisible=True))
         else:
-            for k, ident in enumerate(CATALEG_COSMETIC[cat]):
+            for k, ident in enumerate(self.cosmetics_visibles(cat)):
                 r = self.rect_cosmetic(k)
                 b.append(Boto(r, "", lambda v=ident, c=cat: self.equipar_cosmetic(c, v), invisible=True))
         return b
 
-    @staticmethod
+    def cosmetics_visibles(self, cat):
+        """Els cosmètics d'una categoria que surten a Personalitzar: els ocults (codis secrets), només si ja els tens."""
+        pre = PREFIX_COSMETIC[cat]
+        return [i for i, info in CATALEG_COSMETIC[cat].items()
+                if not (isinstance(info, dict) and info.get("ocult")) or pre + i in self.cosmetics]
 
+    @staticmethod
     def rect_cosmetic(k):
         col, fila = k % 4, k // 4
         return pygame.Rect(236 + col * 174, 124 + fila * 112, 166, 104)
@@ -9812,6 +10109,9 @@ class Game:
         self.despres_revelacio()
 
     def dibuixar_revelacio(self, surf):
+        if self.revelacio[0] == "teddy":
+            self.dibuixar_revelacio_teddy(surf)
+            return
         t = self.temps_estat
         surf.fill((10, 8, 24))
         tipus, valor = self.revelacio
@@ -9874,6 +10174,246 @@ class Game:
             text(surf, self.origen_cosmetic(*valor), F_TEXT_PP, GRIS, (cx, 436))
         if self.revelacions:
             text(surf, T("Quedan {n}").format(n=len(self.revelacions)), F_MINI, GRIS, (cx, HEIGHT - 86))
+
+    # ----- Teddy Bear: animació en reclamar-lo amb el seu codi secret -------------------------------------
+    TERRA_TEDDY, ESC_TEDDY, ESCLAT_TEDDY = 300, 5, 40
+
+    def entrar_teddy(self, despres):
+        """Fons de cors en mirall, un cor gran que batega i esclata, i el Teddy saludant amb el seu nom."""
+        self.despres_revelacio = despres
+        self.revelacio = ("teddy", None)
+        self.cors_rev, self.espurnes_rev = [], []
+        self.botons = [Boto((WIDTH // 2 - 232, HEIGHT - 64, 220, 46), "¡Equipar!", self.equipar_teddy, (206, 70, 150)),
+                       Boto((WIDTH // 2 + 12, HEIGHT - 64, 220, 46), "Continuar", self.seguent_revelacio, GRIS_FOSC)]
+        AUDIO.so("passi")
+        self.canviar_estat("revelacio")
+
+    def equipar_teddy(self):
+        self.equipar_cosmetic("dron", "teddy")
+        self.entrar_menu()
+
+    def pose_revelacio_teddy(self, u):
+        """(postura, alçada del saltiró) del Teddy `u` fotogrames després que esclati el cor."""
+        if u < 26:
+            return "llança", 0                       # ta-ta!
+        v = (u - 26) % 300
+        for ini in (46, 166):
+            if ini <= v < ini + 14:
+                return "salt", SALT_TEDDY[v - ini]
+        for ini, fi, pose in ((40, 46, "ajupit"), (60, 65, "aterra"), (100, 120, "llança"), (160, 166, "ajupit"),
+                              (180, 185, "aterra"), (215, 270, "cor")):
+            if ini <= v < fi:
+                return pose, 0
+        return ("parpella" if 30 <= v % 120 < 36 else "quiet"), 0
+
+    def actualitzar_revelacio_teddy(self):
+        t = self.temps_estat
+        cx, terra, e = WIDTH // 2, self.TERRA_TEDDY, self.ESC_TEDDY
+        if 10 <= t < self.ESCLAT_TEDDY - 4 and t % 2 == 0:          # cors que hi conflueixen abans de l'esclat
+            a = random.uniform(0, math.tau)
+            self.cors_rev.append(CorTeddy(cx + math.cos(a) * 330, terra - 70 + math.sin(a) * 260, -math.cos(a) * 330 / 18,
+                                          -math.sin(a) * 260 / 18, 18, 2))
+        if t == self.ESCLAT_TEDDY:                                  # el cor gran esclata en cors petits
+            for k in range(28):
+                a = k * math.tau / 28 + random.uniform(-0.1, 0.1)
+                v = random.uniform(3, 7)
+                self.cors_rev.append(CorTeddy(cx + math.cos(a) * 30, terra - 70 + math.sin(a) * 26, math.cos(a) * v,
+                                              math.sin(a) * v - 1.5, random.randint(50, 70), random.choice((2, 3, 4)), 0.1))
+            AUDIO.so("ting")
+        u = t - self.ESCLAT_TEDDY
+        if u >= 0:
+            v = (u - 26) % 300 if u >= 26 else None
+            if u == 3 or v in (52, 102, 172):                       # llança cors (també dalt de tot dels saltirons)
+                _, h = self.pose_revelacio_teddy(u)
+                for _ in range(7):
+                    self.cors_rev.append(CorTeddy(cx + random.uniform(-30, 30), terra + h * e - 118,
+                                                  random.uniform(-3.2, 3.2), random.uniform(-5.5, -3),
+                                                  random.randint(56, 70), random.choice((2, 3, 3, 4)), 0.12))
+            if v is not None and 215 <= v < 262 and (v - 215) % 9 == 0:   # s'abraça el cor: en surten de petits
+                self.cors_rev.append(CorTeddy(cx + random.uniform(-26, 26), terra - 150, random.uniform(-0.4, 0.4), -1.3,
+                                              60, 3))
+        if t % 4 == 0:
+            self.espurnes_rev.append([random.uniform(cx - 300, cx + 300), random.uniform(70, 330), 0, random.randint(18, 30)])
+        for c in self.cors_rev[:]:
+            if c.actualitzar():
+                self.cors_rev.remove(c)
+        for sp in self.espurnes_rev[:]:
+            sp[2] += 1
+            if sp[2] >= sp[3]:
+                self.espurnes_rev.remove(sp)
+
+    def fons_cors_mirall(self, surf, t):
+        """Fons rosa amb una trama de cors inclinats que pugen i es gronxen: la meitat dreta és el reflex
+        exacte de l'esquerra (en mirall), i els cors de cada banda s'inclinen al revés."""
+        cache = getattr(Game, "_FONS_TEDDY", None)
+        if cache is None:
+            degradat = pygame.Surface((WIDTH, HEIGHT))
+            for y in range(HEIGHT):
+                k = y / (HEIGHT - 1)
+                degradat.fill(tuple(int(a + (b - a) * k) for a, b in zip((44, 10, 54), (150, 42, 118))), (0, y, WIDTH, 1))
+            rajola = pygame.Surface((120, 104), pygame.SRCALPHA)
+            gran, petit = (255, 120, 196, 64), (255, 214, 236, 72)
+            for x, y, mida, angle, color in ((30, 26, 4, 16, gran), (90, 78, 4, 16, gran), (90, 24, 2, -12, petit),
+                                             (30, 76, 2, -12, petit)):
+                cor = pygame.transform.rotate(cor_teddy(mida, color), angle)
+                rajola.blit(cor, cor.get_rect(center=(x, y)))
+            tw, th = rajola.get_size()
+            meitat = pygame.Surface((WIDTH // 2, HEIGHT + th), pygame.SRCALPHA)
+            for y in range(0, HEIGHT + th, th):
+                for x in range(0, WIDTH // 2, tw):
+                    meitat.blit(rajola, (x, y))
+            patro = pygame.Surface((WIDTH, HEIGHT + th), pygame.SRCALPHA)
+            patro.blit(meitat, (0, 0))
+            patro.blit(pygame.transform.flip(meitat, True, False), (WIDTH // 2, 0))
+            cache = Game._FONS_TEDDY = (degradat, patro, th)
+        degradat, patro, th = cache
+        surf.blit(degradat, (0, 0))
+        ox, oy = round(7 * math.sin(t * 0.03)), int(t * 0.6) % th     # cap al centre i enfora alhora, i amunt
+        clip = surf.get_clip()
+        surf.set_clip(pygame.Rect(0, 0, WIDTH // 2, HEIGHT).clip(clip))
+        surf.blit(patro, (ox, -oy))
+        surf.set_clip(pygame.Rect(WIDTH // 2, 0, WIDTH // 2, HEIGHT).clip(clip))
+        surf.blit(patro, (-ox, -oy))
+        surf.set_clip(clip)
+
+    @staticmethod
+    def punts_cor(n):
+        """`n` punts repartits per igual sobre el contorn d'un cor (x de -16 a 16, y de -12 a 17)."""
+        mostres = []
+        for i in range(721):
+            a = i / 720 * math.tau
+            mostres.append((16 * math.sin(a) ** 3,
+                            -(13 * math.cos(a) - 5 * math.cos(2 * a) - 2 * math.cos(3 * a) - math.cos(4 * a))))
+        llarg = [0.0]
+        for (x0, y0), (x1, y1) in zip(mostres, mostres[1:]):
+            llarg.append(llarg[-1] + math.hypot(x1 - x0, y1 - y0))
+        punts, j = [], 0
+        for k in range(n):
+            objectiu = llarg[-1] * k / n
+            while llarg[j + 1] < objectiu:
+                j += 1
+            punts.append(mostres[j])
+        return punts
+
+    def anell_cors(self, surf, cx, cy, t, batec):
+        """Cors petits que dibuixen un cor gran al voltant del Teddy, amb llums que hi corren i el batec."""
+        punts = getattr(Game, "_PUNTS_COR", None)
+        if punts is None:
+            punts = Game._PUNTS_COR = self.punts_cor(30)
+        n, k = len(punts), 1 + 0.05 * batec
+        for i, (x, y) in enumerate(punts):
+            encès = (i - t // 3) % n < 4
+            img = cor_teddy(3 if encès else 2)
+            if img:
+                surf.blit(img, img.get_rect(center=(round(cx + x * 8.2 * k), round(cy + y * 7.0 * k))))
+
+    def reflex_teddy(self, surf, pose, x, peus, terra):
+        """El Teddy reflectit al terra de mirall (cap per avall, rosat i esvaint-se)."""
+        img, (dx, dy) = imatge_teddy(pose, self.ESC_TEDDY)
+        if img is None:
+            return
+        ref = _CACHE_TEDDY.get(("reflex", pose))
+        if ref is None:
+            ref = pygame.transform.flip(img, False, True)
+            grad = pygame.Surface(ref.get_size(), pygame.SRCALPHA)
+            alt = ref.get_height()
+            for y in range(alt):
+                grad.fill((255, 205, 235, int(130 * max(0.0, 1 - y / (alt * 0.6)) ** 1.5)), (0, y, ref.get_width(), 1))
+            ref.blit(grad, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            _CACHE_TEDDY[("reflex", pose)] = ref
+        clip = surf.get_clip()
+        surf.set_clip(pygame.Rect(0, terra, WIDTH, HEIGHT - terra).clip(clip))
+        surf.blit(ref, (round(x + dx), round(2 * terra - (peus + dy + img.get_height()))))
+        surf.set_clip(clip)
+
+    def dibuixar_revelacio_teddy(self, surf):
+        t = self.temps_estat
+        cx, terra, e = WIDTH // 2, self.TERRA_TEDDY, self.ESC_TEDDY
+        u = t - self.ESCLAT_TEDDY
+        self.fons_cors_mirall(surf, t)
+        c = t % 60                                                  # batec: «pum-pum» cada segon
+        batec = math.exp(-c / 6) + (0.6 * math.exp(-(c - 12) / 6) if c >= 12 else 0)
+        l = llum(200, (255, 120, 200))
+        l.set_alpha(int(110 + 60 * batec))
+        surf.blit(l, l.get_rect(center=(cx, terra - 70)))
+        l.set_alpha(255)
+        # terra de mirall: vidre fosc i una línia de llum que s'esvaeix cap als costats
+        terra_img = getattr(Game, "_TERRA_TEDDY", None)
+        if terra_img is None:
+            terra_img = pygame.Surface((WIDTH, HEIGHT - terra), pygame.SRCALPHA)
+            terra_img.fill((40, 6, 40, 110))
+            for x in range(WIDTH):
+                f = max(0.0, 1 - abs(x - WIDTH / 2) / (WIDTH / 2)) ** 1.4
+                for k, a in enumerate((190, 80, 34)):
+                    terra_img.set_at((x, k), (255, 215, 238, int(a * f)))
+            Game._TERRA_TEDDY = terra_img
+        surf.blit(terra_img, (0, terra))
+        if u < 0:                                                   # el cor tancat creix, batega i tremola
+            k = min(1.0, t / 20)
+            mida = max(1, round(16 * (1 - (1 - k) ** 3) + (1.5 * batec if t >= 20 else 0)))
+            tremola = max(0, (t - 20) / 5)
+            img = cor_teddy(mida)
+            if img:
+                surf.blit(img, img.get_rect(center=(cx + random.uniform(-tremola, tremola),
+                                                    terra - 70 + random.uniform(-tremola, tremola))))
+        else:
+            self.anell_cors(surf, cx, terra - 121, u, batec)
+            pose, h = self.pose_revelacio_teddy(u)
+            peus = terra + h * e - max(0, 8 - u) * 4                # en sortir cau una mica
+            self.reflex_teddy(surf, pose, cx, peus, terra)
+            posar_teddy(surf, pose, cx, peus, e)
+        for cor in self.cors_rev:
+            cor.dibuixar(surf)
+        for x, y, k, vida in self.espurnes_rev:
+            r = int(1 + 3 * math.sin(math.pi * k / vida))
+            col = BLANC if int(x) % 2 else (255, 220, 240)
+            pygame.draw.line(surf, col, (x - r, y), (x + r, y))
+            pygame.draw.line(surf, col, (x, y - r), (x, y + r))
+        if 0 <= u < 14:                                             # flaix de l'esclat
+            capa = getattr(Game, "_FLAIX_TEDDY", None)
+            if capa is None:
+                capa = Game._FLAIX_TEDDY = pygame.Surface((WIDTH, HEIGHT))
+                capa.fill((255, 236, 246))
+            capa.set_alpha(int(210 * (1 - u / 14)))
+            surf.blit(capa, (0, 0))
+        if t > 12:
+            r = text(surf, "¡MASCOTA SECRETA DESBLOQUEADA!", F_HUD, BLANC, (cx, 40))
+            cor = cor_teddy(2)
+            for x in (r.left - 18, r.right + 18):
+                if cor:
+                    surf.blit(cor, cor.get_rect(center=(x, 40 + int(2 * math.sin(t * 0.1)))))
+        if u >= 8:
+            self.titol_teddy(surf, u, cx, 384)
+        if u >= 34:
+            text(surf, "Te acompaña en combate y te cura +5 de vida cada 8 s si estás herido", F_TEXT_PP,
+                 (255, 226, 242), (cx, 432))
+
+    def titol_teddy(self, surf, u, cx, y):
+        """«Teddy Bear» amb lletres grosses que surten d'una en una i fan onades."""
+        lletres = getattr(Game, "_LLETRES_TEDDY", None)
+        if lletres is None:
+            lletres = []
+            for ch in "Teddy Bear":
+                base = text_contorn(ch, F_GRAN, (255, 176, 218), (84, 14, 62))
+                im = pygame.transform.scale(base, (base.get_width() * 2, base.get_height() * 2))
+                ombra = im.copy()
+                ombra.fill((40, 0, 30, 140), special_flags=pygame.BLEND_RGBA_MULT)
+                lletres.append((im, ombra))
+            Game._LLETRES_TEDDY = lletres
+        total = sum(im.get_width() - 4 for im, _ in lletres)
+        x = cx - total / 2
+        for i, (im, ombra) in enumerate(lletres):
+            w = im.get_width() - 4
+            k = (u - 8 - i * 3) / 7
+            if k > 0:
+                if k < 1:                                       # «pop» en sortir
+                    esc = 1 + 0.45 * math.sin(k * math.pi)
+                    mida = (int(im.get_width() * esc), int(im.get_height() * esc))
+                    im, ombra = pygame.transform.scale(im, mida), pygame.transform.scale(ombra, mida)
+                yy = y + 4 * math.sin(u * 0.12 - i * 0.6)
+                surf.blit(ombra, ombra.get_rect(center=(int(x + w / 2), int(yy) + 5)))
+                surf.blit(im, im.get_rect(center=(int(x + w / 2), int(yy))))
+            x += w
 
     def ajuda_primera_vegada(self, clau, pagines, tornada):
         """La primera vegada que entres a una pantalla nova, abans t'explica com funciona."""
@@ -10102,9 +10642,9 @@ class Game:
     # ----- Codis -------------------------------------------------------------------------------------
     RECT_CALCULADORA = pygame.Rect(24, 18, 44, 44)
 
-    def entrar_codis(self):
+    def entrar_codis(self, resultat=None):
         self.codi_text = ""
-        self.codi_resultat = None
+        self.codi_resultat = resultat
         self.botons = [Boto((WIDTH // 2 - 110, 336, 220, 46), "Canjear", self.bescanviar_codi, VERD),
                        Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_botiga, GRIS_FOSC)]
         self.canviar_estat("codis")
@@ -10148,6 +10688,13 @@ class Game:
             self.revisar_logros()
             self.desar_progres()
             self.codi_resultat = (True, T("¡Código canjeado! {n}").format(n=T(codi["nom"])))
+            if ("dron", "teddy") in codi["premis"] and TEDDY:      # el Teddy Bear té la seva pròpia animació
+                if ("cosmetic", ("dron", "teddy")) in self.revelacions:
+                    self.revelacions.remove(("cosmetic", ("dron", "teddy")))
+                self.codi_text = ""
+                resultat = self.codi_resultat
+                self.entrar_teddy(lambda: self.entrar_codis(resultat))
+                return
             AUDIO.so("passi")
         self.codi_text = ""
 
@@ -10679,8 +11226,9 @@ class Game:
                 fets = sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap")
                 total = len(ARMES) * (len(CAMUFLATGES) - 1)
             else:
-                fets = sum(PREFIX_COSMETIC[ident] + i in self.cosmetics for i in CATALEG_COSMETIC[ident])
-                total = len(CATALEG_COSMETIC[ident])
+                visibles = self.cosmetics_visibles(ident)
+                fets = sum(PREFIX_COSMETIC[ident] + i in self.cosmetics for i in visibles)
+                total = len(visibles)
             text(surf, f"{fets}/{total}", F_MINI, GRIS, (186, 139 + k * 34), ancora="midleft")
         if cat == "camo":
             arma_id = getattr(self, "arma_camo", ARMES[self.arma_actual]["id"])
@@ -10725,7 +11273,7 @@ class Game:
             text(surf, txt, F_TEXT_P, BLANC, (barra.centerx, barra.bottom + 20))
         else:
             equipat = self.equipat_de(cat)
-            for k, ident in enumerate(CATALEG_COSMETIC[cat]):
+            for k, ident in enumerate(self.cosmetics_visibles(cat)):
                 r = self.rect_cosmetic(k)
                 obert = PREFIX_COSMETIC[cat] + ident in self.cosmetics
                 hover = r.collidepoint(pos)
@@ -11081,6 +11629,8 @@ class Game:
             self.actualitzar_joc()
         elif self.estat in ("narrativa", "derrota"):
             self.pantalla_text.actualitzar()
+        elif self.estat == "revelacio" and self.revelacio[0] == "teddy":
+            self.actualitzar_revelacio_teddy()
 
     def dibuixar(self, surf):
         dibuix = {
