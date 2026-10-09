@@ -702,6 +702,33 @@ def punt_hd(tipus, clau, anim, k, sentit=1):
 for _t in ENEMICS_HD:                             # bestiari, menús i restes: el primer fotograma retallat
     SPR_ENEMIC[_t] = frame_hd(_t, "vola" if _t in VOLADORS_HD else ("corre" if _t == "kamikaze" else "camina"), 0)[0]
 
+# ---------------------------------------------------------------------------
+# Caps de sector en alta definició (vegeu tools/generar_caps.py): fotogrames sencers per animació
+# ---------------------------------------------------------------------------
+def _carregar_caps_hd():
+    try:
+        with open(ruta("img", "caps_hd.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar caps_hd.json: {err}")
+        return {}
+    atles = carregar_imatge("caps_hd.png")
+    if atles is None:
+        return {}
+    return {int(n): {anim: [atles.subsurface(e["imatges"][nom]) for nom in noms] for anim, noms in e["anims"].items()}
+            for n, e in info.items()}
+
+
+CAPS_HD = _carregar_caps_hd()
+for _n, _c in CAPS_HD.items():
+    SPR_ENEMIC[("boss", _n)] = retallar(_c["repos"][0])
+ESPECIAL_CAP = {0: "escotilla", 1: "beines", 2: "punteria", 3: "escombrada", 4: "eixam"}
+PUNTS_CAP = {0: {"canons": ((12, 96), (148, 96)), "escotilla": (80, 14)},      # coordenades del llenç de cada cap
+             1: {"beines": ((54, 110), (80, 118), (106, 110))},
+             2: {"sensor": (86, 15)},
+             3: {"torreta": (84, 86)},
+             4: {"fibló": (90, 132)}}
+
 _CACHE_ESCUT = {}
 
 
@@ -2363,11 +2390,19 @@ class Bala:
         "boss": (6, MORAT),
         "final": (6, ROSA),
         "nucli": (6, (230, 90, 255)),
+        # atacs propis dels caps de sector
+        "beina": (7, (220, 236, 60)),
+        "espora": (4, (190, 240, 70)),
+        "eixam": (5, (230, 196, 60)),
+        "elit": (5, (255, 70, 70)),
+        "torreta": (5, (110, 220, 255)),
     }
 
-    __slots__ = ("x", "y", "vx", "vy", "dany", "radi", "color", "vida", "perfora", "tocats", "estil", "t", "k")
+    __slots__ = ("x", "y", "vx", "vy", "dany", "radi", "color", "vida", "perfora", "tocats", "estil", "t", "k",
+                 "gravetat")
 
-    def __init__(self, x, y, vx, vy, dany, estil, color=None, vida=None, perfora=False, k=0):
+    def __init__(self, x, y, vx, vy, dany, estil, color=None, vida=None, perfora=False, k=0, gravetat=0.0):
+        self.gravetat = gravetat
         self.x, self.y, self.vx, self.vy, self.dany = x, y, vx, vy, dany
         self.radi, c = self.ESTILS[estil]
         self.color = color or c
@@ -2383,6 +2418,7 @@ class Bala:
         return pygame.Rect(int(self.x - self.radi), int(self.y - self.radi), self.radi * 2, self.radi * 2)
 
     def actualitzar(self):
+        self.vy += self.gravetat
         self.x += self.vx
         self.y += self.vy
         self.t += 1
@@ -2433,6 +2469,28 @@ class Bala:
                     a += random.uniform(-0.5, 0.5)
                     punts.append((x + math.cos(a) * r, y + math.sin(a) * r))
                 pygame.draw.lines(surf, (200, 250, 255), False, punts, 1)
+        elif e == "beina":                                     # beina d'espores que cau
+            l = llum(14, (200, 240, 60))
+            surf.blit(l, (ix - 14, iy - 14))
+            pygame.draw.line(surf, (40, 110, 40), (ix, iy - 6), (ix - int(self.vx * 2), iy - 11), 2)
+            pygame.draw.ellipse(surf, (60, 70, 10), (ix - 6, iy - 8, 12, 16))
+            pygame.draw.ellipse(surf, c, (ix - 5, iy - 7, 10, 14))
+            pygame.draw.ellipse(surf, (250, 255, 200), (ix - 3, iy - 5, 4, 6))
+        elif e == "eixam":                                     # insecte de l'eixam: cos, ales que baten i ulls
+            a = math.atan2(self.vy, self.vx)
+            ca, sa = math.cos(a), math.sin(a)
+            obre = 6 if (self.t // 2) % 2 else 3
+            l = llum(10, (240, 200, 60))
+            surf.blit(l, (ix - 10, iy - 10))
+            for s_ in (-1, 1):
+                pygame.draw.line(surf, (226, 226, 252), (ix, iy), (int(x - ca * 3 - sa * obre * s_), int(y - sa * 3 + ca * obre * s_)), 3)
+            pygame.draw.line(surf, (24, 18, 34), (int(x - ca * 6), int(y - sa * 6)), (int(x + ca * 4), int(y + sa * 4)), 6)
+            pygame.draw.line(surf, c, (int(x - ca * 5), int(y - sa * 5)), (int(x - ca), int(y - sa)), 3)
+            pygame.draw.circle(surf, (255, 60, 60), (int(x + ca * 4), int(y + sa * 4)), 2)
+        elif e == "elit":                                      # traçador vermell del Comandant d'Elit
+            pygame.draw.line(surf, (90, 10, 20), (x - ux * 18, y - uy * 18), (x, y), 6)
+            pygame.draw.line(surf, c, (x - ux * 14, y - uy * 14), (x, y), 4)
+            pygame.draw.line(surf, (255, 220, 220), (x - ux * 8, y - uy * 8), (x, y), 2)
         else:                                                  # bales enemigues: vora fosca i pols
             r = self.radi
             pols = (self.t // 4) % 2
@@ -2507,6 +2565,13 @@ class Enemic:
         self.hd_e = tipus in ENEMICS_HD                # enemic normal en alta definició
         if self.hd_e:
             self.w, self.h = MIDES_ENEMIC[tipus]
+        self.hd_cap = tipus == "boss" and nivell in CAPS_HD   # cap de sector en alta definició
+        if self.hd_cap:
+            self.w, self.h = 120, 118
+            self.especial, self.t_especial = None, 0
+            self.mira = None
+            self.angle_torreta = math.pi / 2
+            self.arc = (0.0, 0.0)
         self.x = float(x)
         self.y = float(-self.h - random.randint(0, 80))
         self.y_destinacio = y_destinacio
@@ -2656,6 +2721,14 @@ class Enemic:
             return bales
         else:
             self._vagar(jugador, altres)
+        if self.hd_cap:
+            if self.nivell == 3 and self.especial != "escombrada":    # la torreta segueix el jugador
+                jx, jy = jugador.centre
+                px, py = self.punt_cap(PUNTS_CAP[3]["torreta"])
+                d = (math.atan2(jy - py, jx - px) - self.angle_torreta + math.pi) % math.tau - math.pi
+                self.angle_torreta += d * 0.1
+            if self.especial:
+                return self._especial_cap(jugador, altres)
 
         self.temps_atac += 1
         if self.temps_atac >= self.cadencia:
@@ -2929,6 +3002,22 @@ class Enemic:
             AUDIO.so("enemic", 60)
             return ventall(cx, cy, angle, 2, math.radians(16), v, d, "enemic")
         AUDIO.so("boss", 60)
+        if self.tipus == "boss" and self.hd_cap:
+            torn = self.atacs % 3
+            if torn == 0:                                  # l'atac propi de cada cap (amb avís)
+                self.especial, self.t_especial = ESPECIAL_CAP[self.nivell], 0
+                return []
+            if self.nivell == 0 and torn == 2:             # General: els dos canons laterals
+                bales = []
+                for p in PUNTS_CAP[0]["canons"]:
+                    x, y = self.punt_cap(p)
+                    bales += ventall(x, y, math.atan2(jy - y, jx - x), 1, 0, v * 1.15, d, "boss")
+                return bales
+            if self.nivell >= 2 and torn == 2:
+                return anell_bales(cx, cy, 12, v * 0.8, d, "boss", gir=self.atacs * 0.3)
+            if self.nivell >= 1 and torn == 1:
+                return ventall(cx, cy, angle, 5, math.radians(60), v, d, "boss")
+            return ventall(cx, cy, angle, 3, math.radians(24), v * 1.1, d, "boss")
         if self.tipus == "boss":
             if self.nivell >= 1 and self.atacs % 3 == 0:
                 return ventall(cx, cy, angle, 5, math.radians(60), v, d, "boss")
@@ -3012,6 +3101,23 @@ class Enemic:
         """Sprite d'aquest fotograma (amb animació) i clau per a la memòria cau."""
         if self.hd:
             return compondre_comandant(self.estat_dibuix(), self.llenç), None
+        if self.hd_cap:
+            fr = CAPS_HD[self.nivell]
+            anim, t = "repos", int(self.t * 20)
+            esp, te = self.especial, self.t_especial
+            if esp == "escotilla" and te < 56:
+                anim, k = "escotilla", (0 if te < 16 else 1)
+            elif esp == "beines" and te < 30:
+                anim, k = "plenes", 0
+            elif esp == "punteria":
+                anim, k = "apunta", (t // 3) % 2
+            elif self.nivell == 4:                         # ales que baten (més de pressa amb l'eixam)
+                k = (t // (2 if esp == "eixam" else 4)) % 4
+            else:
+                k = (t // (4 if self.nivell == 2 else 10)) % 2
+            frames = fr[anim]
+            k %= len(frames)
+            return frames[k], ("cap", self.nivell, anim, k)
         if self.hd_e:
             if self.tipus in VOLADORS_HD:
                 fr = ENEMICS_HD[self.tipus]["sencers"]
@@ -3070,6 +3176,8 @@ class Enemic:
             img = pygame.transform.flip(img, True, False)
         rect = img.get_rect(center=(int(cx), int(cy)))
         surf.blit(img, rect)
+        if self.hd_cap:
+            self._extres_cap(surf, rect)
         if self.tipus == "final_nucli":
             self._dibuixar_ull(surf, rect.center, img.get_width() / self.w)
         if self.tipus == "final_nau":
@@ -3563,6 +3671,120 @@ class Enemic:
         if self.vida < self.vida_max:
             pygame.draw.rect(surf, NEGRE, (self.x - 1, self.y - 9, self.w + 2, 6))
             pygame.draw.rect(surf, VERD, (self.x, self.y - 8, self.w * max(0, self.vida) / self.vida_max, 4))
+
+    def punt_cap(self, p):
+        """Punt del llenç d'un cap de sector -> pantalla (el llenç va centrat a la caixa)."""
+        w, h = CAPS_HD[self.nivell]["repos"][0].get_size()
+        cx, cy = self.centre
+        return cx + p[0] - w / 2, cy + p[1] - h / 2
+
+    def _fi_especial(self):
+        self.especial, self.t_especial = None, 0
+        self.mira = None
+        self.temps_atac = 0
+
+    def _especial_cap(self, jugador, altres):
+        """Atac propi de cada cap de sector, amb avís. Torna les bales d'aquest fotograma."""
+        self.t_especial += 1
+        t = self.t_especial
+        jx, jy = jugador.centre
+        cx, cy = self.centre
+        d = self.dany
+        bales = []
+        if self.especial == "escotilla":                   # General: obre l'escotilla i en surten drons
+            if t == 36:
+                lliures = 3 - sum(1 for o in altres if not o.es_boss)
+                if lliures > 0:
+                    self.invocacions = [("dron", 30)] * min(lliures, 2 if self.furia else 1)
+                AUDIO.so("boss", 80)
+            if t >= 64:
+                self._fi_especial()
+        elif self.especial == "beines":                    # Mestre: beines que cauen i esclaten en espores
+            if t == 30:
+                for p in PUNTS_CAP[1]["beines"]:
+                    x, y = self.punt_cap(p)
+                    bales.append(Bala(x, y, random.uniform(-1.4, 1.4) + (jx - x) * 0.004, -1.6, d, "beina", gravetat=0.16))
+                AUDIO.so("boss", 70)
+            if t >= 46:
+                self._fi_especial()
+        elif self.especial == "punteria":                  # Elit: mira làser i ràfega en línia recta
+            if t <= 28:
+                self.mira = (jx, jy)
+            if 40 <= t < 64 and (t - 40) % 4 == 0:
+                x, y = self.punt_cap(PUNTS_CAP[2]["sensor"])
+                a = math.atan2(self.mira[1] - y, self.mira[0] - x)
+                bales.append(Bala(x, y, math.cos(a) * 9.5, math.sin(a) * 9.5, d, "elit"))
+                AUDIO.so("enemic", 70)
+            if t >= 70:
+                self._fi_especial()
+        elif self.especial == "escombrada":                # Capità: la torreta escombra un arc de bales
+            px, py = self.punt_cap(PUNTS_CAP[3]["torreta"])
+            if t == 1:
+                base = math.atan2(jy - py, jx - px)
+                gir = 1 if random.random() < 0.5 else -1
+                self.arc = (base - gir * 1.05, base + gir * 1.05)
+            a0, a1 = self.arc
+            if t < 24:                                     # gira cap a l'inici de l'arc (avís: la boca brilla)
+                dd = (a0 - self.angle_torreta + math.pi) % math.tau - math.pi
+                self.angle_torreta += dd * 0.2
+            elif t < 84:
+                self.angle_torreta = a0 + (a1 - a0) * (t - 24) / 60
+                if t % 4 == 0:
+                    a = self.angle_torreta
+                    bales.append(Bala(px + math.cos(a) * 33, py + math.sin(a) * 33, math.cos(a) * self.vel_bala * 1.1,
+                                      math.sin(a) * self.vel_bala * 1.1, d, "torreta"))
+                    if t % 8 == 0:
+                        AUDIO.so("enemic", 50)
+            if t >= 96:
+                self._fi_especial()
+        elif self.especial == "eixam":                     # Guardià: eixam d'insectes que persegueixen
+            if t == 30:
+                x, y = self.punt_cap(PUNTS_CAP[4]["fibló"])
+                n = 6 if self.furia else 4
+                for k in range(n):
+                    a = -math.pi / 2 + (k - (n - 1) / 2) * 0.55
+                    bales.append(Bala(x, y, math.cos(a) * 3.2, math.sin(a) * 3.2, d, "eixam", vida=200))
+                AUDIO.so("boss", 80)
+            if t >= 46:
+                self._fi_especial()
+        return bales
+
+    def _extres_cap(self, surf, rect):
+        """Torreta del capità, mira làser de l'Elit i avisos dels atacs propis."""
+        esp, t = self.especial, self.t_especial
+        w, h = CAPS_HD[self.nivell]["repos"][0].get_size()
+        ang = math.radians(self.angle)
+
+        def punt(p):                                       # punt del llenç -> pantalla, amb la inclinació
+            dx, dy = p[0] - w / 2, p[1] - h / 2
+            return (rect.centerx + dx * math.cos(ang) + dy * math.sin(ang),
+                    rect.centery - dx * math.sin(ang) + dy * math.cos(ang))
+        if self.nivell == 3:
+            px, py = punt(PUNTS_CAP[3]["torreta"])
+            a = self.angle_torreta
+            img = rotat(CAPS_HD[3]["torreta"][0], -math.degrees(a), ("torreta",))
+            surf.blit(img, img.get_rect(center=(int(px + math.cos(a) * 6), int(py + math.sin(a) * 6))))
+            if esp == "escombrada" and t < 24:
+                l = llum(int(6 + t * 0.6), (110, 220, 255))
+                surf.blit(l, l.get_rect(center=(int(px + math.cos(a) * 33), int(py + math.sin(a) * 33))))
+        elif self.nivell == 2 and esp == "punteria" and self.mira and t < 40:
+            if t < 28 or (t // 3) % 2 == 0:
+                sx, sy = punt(PUNTS_CAP[2]["sensor"])
+                pygame.draw.line(surf, (255, 40, 40), (sx, sy), self.mira, 1)
+                pygame.draw.circle(surf, (255, 40, 40), (int(self.mira[0]), int(self.mira[1])), 8 if t < 28 else 5, 1)
+        elif self.nivell == 1 and esp == "beines" and t < 30:
+            for p in PUNTS_CAP[1]["beines"]:
+                l = llum(int(8 + 8 * t / 30), (220, 240, 60))
+                bx, by = punt(p)
+                surf.blit(l, l.get_rect(center=(int(bx), int(by))))
+        elif self.nivell == 0 and esp == "escotilla" and t < 40 and (t // 4) % 2 == 0:
+            l = llum(14, (255, 220, 80))
+            ex, ey = punt(PUNTS_CAP[0]["escotilla"])
+            surf.blit(l, l.get_rect(center=(int(ex), int(ey))))
+        elif self.nivell == 4 and esp == "eixam" and t < 30:
+            l = llum(int(6 + t * 0.5), (240, 200, 60))
+            fx, fy = punt(PUNTS_CAP[4]["fibló"])
+            surf.blit(l, l.get_rect(center=(int(fx), int(fy))))
 
 
 class Resta:
@@ -6449,10 +6671,25 @@ class Game:
 
         # Bales enemigues
         for b in self.bales_enemics[:]:
+            if b.estil == "eixam" and 8 < b.t < 80:          # l'eixam del Guardià persegueix el jugador
+                jx, jy = j.centre
+                a = math.atan2(b.vy, b.vx)
+                gir = (math.atan2(jy - b.y, jx - b.x) - a + math.pi) % math.tau - math.pi
+                a += max(-0.07, min(0.07, gir))
+                vel = min(4.4, math.hypot(b.vx, b.vy) + 0.05)
+                b.vx, b.vy = math.cos(a) * vel, math.sin(a) * vel
             if b.actualitzar():
                 self.bales_enemics.remove(b)
                 continue
             if b.y >= TERRA_Y + 2 and b.vy > 0:
+                if b.estil == "beina":                        # la beina esclata en espores
+                    for k in range(6):
+                        a = math.radians(-160 + k * 28)
+                        self.bales_enemics.append(Bala(b.x, TERRA_Y - 4, math.cos(a) * 3.6, math.sin(a) * 3.6, b.dany,
+                                                       "espora"))
+                    esclat(self.efectes, b.x, TERRA_Y - 4, 16, [(220, 236, 60), (150, 200, 40), (250, 255, 200)],
+                           vel=(1, 4), mida=(2, 4), vida=(14, 30))
+                    AUDIO.so("impacte", 70)
                 self.pols_impacte(b)
                 self.bales_enemics.remove(b)
                 continue
