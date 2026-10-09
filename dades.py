@@ -460,13 +460,20 @@ LOGROS = [
 ]
 LOGRO_PER_ID = {l["id"]: l for l in LOGROS}
 
-# Placas de identificación escondidas: una por sector, (escenario): (x, y) del centro de la placa
+# Placas de identificación escondidas: una por sector, (escenario): (x, y) del centro de la placa.
+# Siempre descansan sobre algo sólido (el suelo o una repisa, abajo), nunca flotando delante del fondo.
 PLAQUES = {
-    (0, 1): (930, 230),      # en el borde derecho, saltando desde la última plataforma
-    (1, 0): (370, 470),      # dentro del charco de ácido (rodando no quema)
-    (2, 0): (872, 108),      # muy arriba, a la derecha de la plataforma más alta
-    (3, 1): (40, 462),       # entre los contenedores, sobre el suelo electrificado
-    (4, 0): (760, 120),      # encima de una plataforma que se rompe
+    (0, 1): (920, 240),      # en una repisa en el borde derecho, saltando desde la última plataforma
+    (1, 0): (370, 480),      # en el suelo, dentro del charco de ácido (rodando no quema)
+    (2, 0): (924, 100),      # en una repisa muy arriba, a la derecha de la plataforma más alta
+    (3, 1): (40, 480),       # en el suelo, entre los contenedores, sobre el suelo electrificado
+    (4, 0): (790, 114),      # en una repisa encima de la plataforma que se rompe
+}
+# Repisas donde descansan las placas que están en alto: (x, y_superior, anchura)
+REPISES_PLACA = {
+    (0, 1): (888, 250, 72),
+    (2, 0): (864, 110, 96),
+    (4, 0): (754, 124, 72),
 }
 
 # Entrenamiento (tutorial de la primera partida): mismo fondo que el 1-1, sin enemigos al principio

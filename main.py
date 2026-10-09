@@ -19,7 +19,7 @@ from idiomes import IDIOMES, T, idioma, posar_idioma
 from contingut import (BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
-from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
+from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
@@ -4016,15 +4016,19 @@ def dibuixar_medalla(surf, cx, cy, r, cat, obert=True):
 
 
 def dibuixar_placa(surf, x, y, t):
-    """Placa d'identificació d'un soldat: petita i mig amagada, brilla de tant en tant."""
-    placa = pygame.Surface((14, 20), pygame.SRCALPHA)
-    pygame.draw.line(placa, (150, 150, 160, 200), (7, 0), (7, 4), 1)
-    pygame.draw.rect(placa, (170, 172, 184, 255), (2, 4, 10, 15), border_radius=3)
-    pygame.draw.rect(placa, (110, 112, 124, 255), (2, 4, 10, 15), 1, border_radius=3)
-    for k in range(3):
-        pygame.draw.line(placa, (90, 92, 104, 255), (4, 8 + k * 3), (9, 8 + k * 3))
-    placa.set_alpha(150)
-    surf.blit(placa, (int(x) - 7, int(y) - 10 + int(math.sin(t * 0.05) * 2)))
+    """Placa d'identificació d'un soldat recolzada a terra o en una repisa (la base toca y + 10).
+    No sura ni és transparent: ha de semblar part de l'escenari. Brilla de tant en tant per trobar-la."""
+    x, y = int(x), int(y)
+    pygame.draw.ellipse(surf, (10, 10, 16), (x - 9, y + 7, 18, 5))                     # ombra
+    pygame.draw.lines(surf, (150, 152, 164), False, [(x - 7, y + 9), (x - 3, y + 4), (x + 1, y + 8),
+                                                     (x + 5, y + 3), (x + 9, y + 9)], 1)   # cadeneta caiguda
+    cos = pygame.Rect(x - 5, y - 6, 11, 15)                                             # la placa, dreta
+    pygame.draw.rect(surf, (176, 178, 190), cos, border_radius=3)
+    pygame.draw.rect(surf, (96, 98, 110), cos, 1, border_radius=3)
+    pygame.draw.circle(surf, (96, 98, 110), (x, y - 3), 1)
+    for k in range(2):
+        pygame.draw.line(surf, (110, 112, 124), (x - 2, y + 1 + k * 3), (x + 3, y + 1 + k * 3))
+    pygame.draw.line(surf, (230, 232, 240), (cos.x + 2, cos.y + 2), (cos.x + 2, cos.bottom - 4))
     if t % 120 < 12:                                   # brillantor fugaç
         k = 1 - abs(t % 120 - 6) / 6
         pygame.draw.line(surf, BLANC, (x - 6 * k, y - 6), (x + 6 * k, y - 6))
@@ -5217,6 +5221,9 @@ class Game:
         self.plataformes = [Plataforma(0, TERRA_Y, WIDTH, HEIGHT - TERRA_Y, terra=True)]
         self.plataformes += [Plataforma(x, y, w, mov=mobils.get(i), fragil=i in fragils)
                              for i, (x, y, w) in enumerate(dades["plataformes"])]
+        if self.mode == "historia" and clau in REPISES_PLACA:           # repisa on descansa la placa
+            x, y, w = REPISES_PLACA[clau]
+            self.plataformes.append(Plataforma(x, y, w, h=14))
         self.perills = Perills(dades.get("perills"))
         self.radio = Radio()
         self.presentacio = None
