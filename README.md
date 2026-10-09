@@ -95,6 +95,15 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 3.7: Nexus renovado**
+- **Nexus nuevo, mucho más detallado**: casco con el visor cian, auricular y luz, cara visible bajo el visor, chaleco táctico con bolsillos, mochila, cinturón, rodilleras, guantes y botas con suela. Está dibujado con el doble de resolución que antes y es un poco más grande (su zona de impacto también: 28 × 66 píxeles).
+- **Armas del mismo estilo**: pistola, escopeta con corredera de madera, fusil de madera y metal con cargador curvo, minigun de tres cañones con caja de munición y cañón de plasma con bobinas que brillan. Cada una con su postura de brazos.
+- **Animaciones nuevas**: al correr las piernas se doblan por las rodillas y las botas giran con el paso (punta abajo al impulsarse, arriba al aterrizar); también salto y caída nuevos.
+- **Blindaje visible**: cada nivel de la mejora añade acero a Nexus (hombrera, peto, y casco reforzado con rodilleras). Los uniformes, aspectos de arma y camuflajes pintan el nuevo Nexus.
+- **Tienda** (antes Arsenal) con tres pestañas: *Diaria* (ofertas del día), *Armas* y *Mejoras*. Las armas se ven solas y, al hacer clic, se abre su ficha: tu Nexus con el arma en las manos (disparando de vez en cuando) y todos sus datos: daño, disparos por segundo, cargador, precisión, modo, alcance, potencia y maestría.
+- **Personalizar**: uniformes, aspectos de arma, camuflajes, títulos, estelas, efectos, miras, HUD, tarjetas y drones se cambian haciendo clic en Nexus en el centro del menú (con un punto rojo cuando hay algo nuevo).
+- Los sprites de Nexus se generan con `tools/generar_nexus.py`.
+
 **Versión 3.6: menú nuevo**
 - **Menú rediseñado**: en vez de una columna de botones, cinco botones grandes con icono (*Jugar*, *Arsenal*, *Battle Pass*, *Colección* y *Diario*) y una barra de iconos arriba (idioma, logros, novedades, guía, opciones, créditos y salir). El fondo son los escenarios que ya has desbloqueado, que se van fundiendo.
 - **Tu soldado en el menú**, en grande sobre un pedestal y con todo lo que llevas equipado: de vez en cuando dispara a un dron de prácticas (con tu camuflaje y tu efecto de eliminación) o hace una voltereta con tu estela. El dron compañero le sigue.

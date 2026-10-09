@@ -1697,3 +1697,90 @@ EN.update({
     "Las ofertas del día (cosméticos que van cambiando) están en Arsenal > Ofertas.":
         "Today's deals (cosmetics that keep changing) are in Arsenal > Deals.",
 })
+
+# ---- v3.7: Nexus nou, botiga i personalització ---------------------------------------------------
+CA.update({
+    "Diaria": "Diària",
+    "PERSONALIZAR": "PERSONALITZAR",
+    "Haz clic en un arma para verla en tus manos con todos sus datos.":
+        "Fes clic en una arma per veure-la a les teves mans amb totes les dades.",
+    "EQUIPADA": "EQUIPADA",
+    "EN TU ARSENAL": "AL TEU ARSENAL",
+    "A LA VENTA": "A LA VENDA",
+    "BLOQUEADA": "BLOQUEJADA",
+    "Disparos por segundo": "Trets per segon",
+    "Cargador": "Carregador",
+    "Sin límite (se calienta)": "Sense límit (s'escalfa)",
+    "Precisión": "Precisió",
+    "Muy alta": "Molt alta",
+    "Alta": "Alta",
+    "Media": "Mitjana",
+    "Baja": "Baixa",
+    "Muy baja": "Molt baixa",
+    "Automática": "Automàtica",
+    "Semiautomática": "Semiautomàtica",
+    "Alcance": "Abast",
+    "Corto": "Curt",
+    "Largo": "Llarg",
+    "Atraviesa enemigos": "Travessa enemics",
+    "Maestría {n}/10": "Mestria {n}/10",
+    "La potencia decide en qué escenarios se puede usar cada arma.":
+        "La potència decideix en quins escenaris es pot fer servir cada arma.",
+    "Lo conseguido se equipa en Personalizar: haz clic en Nexus en el menú.":
+        "El que aconsegueixes s'equipa a Personalitzar: fes clic a Nexus al menú.",
+    "¡{c} desbloqueado! Equípalo en Personalizar (clic en Nexus en el menú).":
+        "{c} desbloquejat! Equipa-ho a Personalitzar (clic a Nexus al menú).",
+    "Las ofertas del día están en Tienda > Diaria.": "Les ofertes del dia són a Botiga > Diària.",
+    "Los camuflajes se equipan en Personalizar (clic en Nexus en el menú) y cambian el color de las balas.":
+        "Els camuflatges s'equipen a Personalitzar (clic a Nexus al menú) i canvien el color de les bales.",
+    "Las ofertas del día (cosméticos que van cambiando) están en Tienda > Diaria.":
+        "Les ofertes del dia (cosmètics que van canviant) són a Botiga > Diària.",
+    "Lo que compres se equipa en Personalizar: haz clic en Nexus en el menú.":
+        "El que compris s'equipa a Personalitzar: fes clic a Nexus al menú.",
+    "Equipa lo que consigas en Personalizar: haz clic en Nexus en el menú.":
+        "Equipa el que aconsegueixis a Personalitzar: fes clic a Nexus al menú.",
+})
+EN.update({
+    "Diaria": "Daily",
+    "PERSONALIZAR": "CUSTOMIZE",
+    "Haz clic en un arma para verla en tus manos con todos sus datos.":
+        "Click a weapon to see it in your hands with all its stats.",
+    "EQUIPADA": "EQUIPPED",
+    "EN TU ARSENAL": "IN YOUR ARSENAL",
+    "A LA VENTA": "FOR SALE",
+    "BLOQUEADA": "LOCKED",
+    "Disparos por segundo": "Shots per second",
+    "Cargador": "Magazine",
+    "Sin límite (se calienta)": "Unlimited (overheats)",
+    "Precisión": "Accuracy",
+    "Muy alta": "Very high",
+    "Alta": "High",
+    "Media": "Medium",
+    "Baja": "Low",
+    "Muy baja": "Very low",
+    "Automática": "Automatic",
+    "Semiautomática": "Semi-automatic",
+    "Alcance": "Range",
+    "Corto": "Short",
+    "Largo": "Long",
+    "Atraviesa enemigos": "Pierces enemies",
+    "Maestría {n}/10": "Mastery {n}/10",
+    "La potencia decide en qué escenarios se puede usar cada arma.":
+        "Power decides which stages each weapon can be used in.",
+    "Lo conseguido se equipa en Personalizar: haz clic en Nexus en el menú.":
+        "Everything you earn is equipped in Customize: click Nexus in the menu.",
+    "¡{c} desbloqueado! Equípalo en Personalizar (clic en Nexus en el menú).":
+        "{c} unlocked! Equip it in Customize (click Nexus in the menu).",
+    "Las ofertas del día están en Tienda > Diaria.": "Today's deals are in Shop > Daily.",
+    "Los camuflajes se equipan en Personalizar (clic en Nexus en el menú) y cambian el color de las balas.":
+        "Camos are equipped in Customize (click Nexus in the menu) and change your bullet colour.",
+    "Las ofertas del día (cosméticos que van cambiando) están en Tienda > Diaria.":
+        "Today's deals (cosmetics that keep changing) are in Shop > Daily.",
+    "Lo que compres se equipa en Personalizar: haz clic en Nexus en el menú.":
+        "What you buy is equipped in Customize: click Nexus in the menu.",
+    "Equipa lo que consigas en Personalizar: haz clic en Nexus en el menú.":
+        "Equip what you earn in Customize: click Nexus in the menu.",
+})
+
+CA.update({'Nexus renovado': 'Nexus renovat', 'Nexus tiene un aspecto nuevo mucho más detallado: casco con visor, chaleco, mochila y armas de madera y metal.': 'Nexus té un aspecte nou molt més detallat: casc amb visor, armilla, motxilla i armes de fusta i metall.', 'Animaciones nuevas al correr, saltar y caer: las piernas se doblan y las botas acompañan el paso.': 'Animacions noves en córrer, saltar i caure: les cames es dobleguen i les botes acompanyen el pas.', 'La mejora Blindaje se ve en Nexus: hombrera, peto y casco reforzado de acero.': "La millora Blindatge es veu a Nexus: espatllera, peto i casc reforçat d'acer.", 'Vuelve la Tienda: ofertas diarias, armas y mejoras.': 'Torna la Botiga: ofertes diàries, armes i millores.', 'Cada arma tiene su ficha: tu Nexus con el arma en las manos y todos sus datos.': "Cada arma té la seva fitxa: el teu Nexus amb l'arma a les mans i totes les dades.", 'Para personalizar uniformes, aspectos, camuflajes y más, haz clic en Nexus en el menú.': 'Per personalitzar uniformes, aspectes, camuflatges i més, fes clic a Nexus al menú.'})
+EN.update({'Nexus renovado': 'Nexus reborn', 'Nexus tiene un aspecto nuevo mucho más detallado: casco con visor, chaleco, mochila y armas de madera y metal.': 'Nexus has a brand-new, much more detailed look: visor helmet, vest, backpack and wood-and-metal weapons.', 'Animaciones nuevas al correr, saltar y caer: las piernas se doblan y las botas acompañan el paso.': 'New running, jumping and falling animations: the knees bend and the boots follow each step.', 'La mejora Blindaje se ve en Nexus: hombrera, peto y casco reforzado de acero.': 'The Armour upgrade shows on Nexus: steel shoulder pad, chest plate and reinforced helmet.', 'Vuelve la Tienda: ofertas diarias, armas y mejoras.': 'The Shop is back: daily deals, weapons and upgrades.', 'Cada arma tiene su ficha: tu Nexus con el arma en las manos y todos sus datos.': 'Every weapon has its own page: your Nexus holding it, with all its stats.', 'Para personalizar uniformes, aspectos, camuflajes y más, haz clic en Nexus en el menú.': 'To customize uniforms, skins, camos and more, click Nexus in the menu.'})
