@@ -1657,3 +1657,43 @@ CA.update({"Estrellas: cada escenario da tres, por completarlo, por acabarlo a t
            "Estrelles: cada escenari en dona tres, per completar-lo, per acabar-lo a temps i per no rebre dany."})
 EN.update({"Estrellas: cada escenario da tres, por completarlo, por acabarlo a tiempo y por no recibir daño.":
            "Stars: each stage gives three, for clearing it, for finishing in time and for taking no damage."})
+
+# ---- Arsenal: ofertes i codis ----------------------------------------------------------------
+CA.update({
+    "Ofertas": "Ofertes",
+    "Nuevas ofertas en {h} h {m} min": "Ofertes noves d'aquí a {h} h {m} min",
+    "Lo que compres se equipa en Arsenal > Aspecto.": "El que compris s'equipa a Arsenal > Aspecte.",
+    "Efecto de eliminación": "Efecte d'eliminació",
+    "Tema del HUD": "Tema de l'HUD",
+    "Canjear": "Bescanviar",
+    "CÓDIGOS": "CODIS",
+    "Códigos": "Codis",
+    "Escribe un código y pulsa Enter": "Escriu un codi i prem Retorn",
+    "Código no válido": "Codi no vàlid",
+    "Ya has usado este código": "Ja has fet servir aquest codi",
+    "¡Código canjeado! {n}": "Codi bescanviat! {n}",
+    "Modo administrador": "Mode administrador",
+    "¡{c} desbloqueado! Equípalo en Arsenal > Aspecto.": "{c} desbloquejat! Equipa-ho a Arsenal > Aspecte.",
+    "Las ofertas del día están en Arsenal > Ofertas.": "Les ofertes del dia són a Arsenal > Ofertes.",
+    "Las ofertas del día (cosméticos que van cambiando) están en Arsenal > Ofertas.":
+        "Les ofertes del dia (cosmètics que van canviant) són a Arsenal > Ofertes.",
+})
+EN.update({
+    "Ofertas": "Deals",
+    "Nuevas ofertas en {h} h {m} min": "New deals in {h} h {m} min",
+    "Lo que compres se equipa en Arsenal > Aspecto.": "What you buy is equipped in Arsenal > Looks.",
+    "Efecto de eliminación": "Kill effect",
+    "Tema del HUD": "HUD theme",
+    "Canjear": "Redeem",
+    "CÓDIGOS": "CODES",
+    "Códigos": "Codes",
+    "Escribe un código y pulsa Enter": "Type a code and press Enter",
+    "Código no válido": "Invalid code",
+    "Ya has usado este código": "You've already used this code",
+    "¡Código canjeado! {n}": "Code redeemed! {n}",
+    "Modo administrador": "Admin mode",
+    "¡{c} desbloqueado! Equípalo en Arsenal > Aspecto.": "{c} unlocked! Equip it in Arsenal > Looks.",
+    "Las ofertas del día están en Arsenal > Ofertas.": "Today's deals are in Arsenal > Deals.",
+    "Las ofertas del día (cosméticos que van cambiando) están en Arsenal > Ofertas.":
+        "Today's deals (cosmetics that keep changing) are in Arsenal > Deals.",
+})

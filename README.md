@@ -103,6 +103,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - **Revelaciones**: cada cosmético, rango, camuflaje o temporada nueva se presenta en una pantalla con rayos de luz y partículas antes de volver al menú (con *Saltar todo* si hay muchas).
 - **Puntos rojos** en los botones donde hay algo nuevo que todavía no has mirado.
 - **Guías animadas** de Maestría, Rangos, Bestiario, Desafíos y Diario, que salen solas la primera vez que entras (y todas en *Guía*).
+- **Arsenal**: pestaña *Ofertas* con las ofertas del día y un botón de calculadora para canjear **códigos** (cada código sirve una vez por partida).
 - **Reinicio general**: con esta versión todas las partidas guardadas empiezan de cero una sola vez (se conservan el idioma y las opciones).
 - Transición suave entre pantallas, botones que brillan al pasar el ratón y *Borrar progreso* movido a *Opciones*.
 
@@ -113,7 +114,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - **Battle Pass por temporadas**: 50 niveles, cada uno pide un poco más de XP (200 + 10 por nivel). Al completarlo empieza otra temporada y ganas una estrella de prestigio; lo que ya tienes se cambia por monedas.
 - **Bestiario** (en *Colección*): fichas de los 14 enemigos y jefes que se descubren al eliminarlos y una historia que se desbloquea al eliminar suficientes. Completo: tarjeta y título exclusivos.
 - **Desafíos** que se abren con estrellas (desde *Jugar*): **Sector secreto** (15 ★), **Jefes seguidos** (30 ★, los ocho jefes uno tras otro) y **Pesadilla** (45 ★, el Núcleo más fuerte que nunca). Premios exclusivos la primera vez y mejor tiempo.
-- **Diario**: tres **retos** nuevos cada día (200 monedas y 150 XP cada uno, y 300 más por hacer los tres) y cuatro **ofertas** de cosméticos que cambian cada día.
+- **Diario**: tres **retos** nuevos cada día (200 monedas y 150 XP cada uno, y 300 más por hacer los tres). Las cuatro **ofertas** de cosméticos que cambian cada día están en *Arsenal > Ofertas*.
 - **Equilibrio**: las mejoras de nivel 2 y 3 cuestan más y el nivel 3 pide estrellas; la minigun cuesta 2500 y el plasma 4500; los logros dan XP; repetir un escenario ya completado da la mitad de monedas. Las partidas antiguas conservan todo lo conseguido.
 
 **Versión 3.4.1: combates más fluidos**

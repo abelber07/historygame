@@ -6,6 +6,7 @@ Escriptori:  python main.py
 Navegador:   pygbag .        (GitHub Actions recompila index.html i historygame.apk)
 """
 import asyncio
+import hashlib
 import json
 import math
 import os
@@ -16,7 +17,7 @@ import time
 import pygame
 
 from idiomes import IDIOMES, T, idioma, posar_idioma
-from contingut import (BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
+from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
 from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
@@ -1150,6 +1151,20 @@ def panell_hud(surf, rect, vora=None, alfa=165):
         _CACHE_PANELL[clau] = s
     surf.blit(s, r)
     return r
+
+
+def dibuixar_calculadora(surf, cx, cy, k=1.0):
+    """Icona de calculadora (codis, a l'Arsenal)."""
+    w, h = int(22 * k), int(28 * k)
+    cos = pygame.Rect(cx - w // 2, cy - h // 2, w, h)
+    pygame.draw.rect(surf, NEGRE, cos.move(0, 2), border_radius=int(4 * k))
+    pygame.draw.rect(surf, (200, 204, 216), cos, border_radius=int(4 * k))
+    pygame.draw.rect(surf, (90, 94, 110), cos, 1, border_radius=int(4 * k))
+    pygame.draw.rect(surf, (60, 140, 90), (cos.x + 3 * k, cos.y + 3 * k, w - 6 * k, 7 * k))
+    for fila in range(3):
+        for col in range(3):
+            color = (255, 150, 60) if (fila, col) == (2, 2) else (70, 74, 92)
+            pygame.draw.rect(surf, color, (cos.x + (3 + col * 6) * k, cos.y + (13 + fila * 5) * k, 4 * k, 3 * k))
 
 
 def dibuixar_cadenat(surf, cx, cy, color=(230, 90, 90)):
@@ -4016,23 +4031,20 @@ def dibuixar_medalla(surf, cx, cy, r, cat, obert=True):
 
 
 def dibuixar_placa(surf, x, y, t):
-    """Placa d'identificació d'un soldat recolzada a terra o en una repisa (la base toca y + 10).
-    No sura ni és transparent: ha de semblar part de l'escenari. Brilla de tant en tant per trobar-la."""
+    """Placa d'identificació recolzada a terra o en una repisa (la base toca y + 10). És petita, fosca i
+    gairebé del color de l'escenari: costa de veure. Només un brillantor molt de tant en tant la delata."""
     x, y = int(x), int(y)
-    pygame.draw.ellipse(surf, (10, 10, 16), (x - 9, y + 7, 18, 5))                     # ombra
-    pygame.draw.lines(surf, (150, 152, 164), False, [(x - 7, y + 9), (x - 3, y + 4), (x + 1, y + 8),
-                                                     (x + 5, y + 3), (x + 9, y + 9)], 1)   # cadeneta caiguda
-    cos = pygame.Rect(x - 5, y - 6, 11, 15)                                             # la placa, dreta
-    pygame.draw.rect(surf, (176, 178, 190), cos, border_radius=3)
-    pygame.draw.rect(surf, (96, 98, 110), cos, 1, border_radius=3)
-    pygame.draw.circle(surf, (96, 98, 110), (x, y - 3), 1)
-    for k in range(2):
-        pygame.draw.line(surf, (110, 112, 124), (x - 2, y + 1 + k * 3), (x + 3, y + 1 + k * 3))
-    pygame.draw.line(surf, (230, 232, 240), (cos.x + 2, cos.y + 2), (cos.x + 2, cos.bottom - 4))
-    if t % 120 < 12:                                   # brillantor fugaç
-        k = 1 - abs(t % 120 - 6) / 6
-        pygame.draw.line(surf, BLANC, (x - 6 * k, y - 6), (x + 6 * k, y - 6))
-        pygame.draw.line(surf, BLANC, (x, y - 12 * k), (x, y))
+    pygame.draw.ellipse(surf, (14, 14, 20), (x - 6, y + 8, 12, 3))                       # ombra
+    pygame.draw.lines(surf, (74, 76, 84), False, [(x - 5, y + 9), (x - 2, y + 6), (x + 1, y + 9),
+                                                  (x + 4, y + 7), (x + 6, y + 9)], 1)       # cadeneta caiguda
+    cos = pygame.Rect(x - 3, y - 1, 7, 10)                                              # placa petita i fosca
+    pygame.draw.rect(surf, (96, 98, 106), cos, border_radius=2)
+    pygame.draw.rect(surf, (58, 60, 68), cos, 1, border_radius=2)
+    pygame.draw.line(surf, (70, 72, 80), (x - 1, y + 3), (x + 2, y + 3))
+    if t % 360 < 8:                                    # brillantor fugaç, cada sis segons
+        k = 1 - abs(t % 360 - 4) / 4
+        pygame.draw.line(surf, (230, 232, 240), (x - 4 * k, y + 2), (x + 4 * k, y + 2))
+        pygame.draw.line(surf, (230, 232, 240), (x, y + 2 - 4 * k), (x, y + 2 + 4 * k))
 
 
 def panell(surf, rect, vora=BLAU_CLAR, alfa=215):
@@ -4797,7 +4809,7 @@ class Game:
     ESTATS_SENSE_FOS = ("joc", "intro", "loading", "quit", "pausa")
 
     ESTATS_MUSICA_MENU = ("menu", "jugar", "selector", "supervivencia", "botiga", "passi", "colleccio", "diari",
-                          "desafiaments", "guia", "arxiu", "logros", "novetats", "revelacio", "idioma_inicial", "ajuda")
+                          "desafiaments", "guia", "arxiu", "logros", "novetats", "revelacio", "idioma_inicial", "ajuda", "codis")
 
     def canviar_estat(self, estat):
         if estat != self.estat:
@@ -4876,9 +4888,11 @@ class Game:
         if pestanya:
             self.pestanya = pestanya
         b = []
-        for k, (ident, nom) in enumerate((("armes", "Armas"), ("millores", "Mejoras"), ("aparenca", "Aspecto"))):
-            b.append(Boto((WIDTH // 2 - 265 + k * 180, 74, 170, 38), nom, lambda i=ident: self.entrar_botiga(i),
-                          VERD if self.pestanya == ident else BLAU, font=F_HUD))
+        for k, (ident, nom) in enumerate((("armes", "Armas"), ("millores", "Mejoras"), ("aparenca", "Aspecto"),
+                                          ("ofertes", "Ofertas"))):
+            b.append(Boto((WIDTH // 2 - 356 + k * 180, 74, 170, 38), nom, lambda i=ident: self.entrar_botiga(i),
+                          VERD if self.pestanya == ident else (TARONJA if ident == "ofertes" else BLAU), font=F_HUD))
+        b.append(Boto(self.RECT_CALCULADORA, "", self.entrar_codis, invisible=True))
         if self.pestanya == "armes":
             for i, arma in enumerate(ARMES):
                 x = 31 + i * 182
@@ -4907,6 +4921,9 @@ class Game:
                     cost = m["costos"][nivell]
                     color = TARONJA if self.monedes >= cost else VERMELL_FOSC
                     b.append(Boto(rect, T("Comprar {c}").format(c=cost), lambda m=m: self.comprar_millora(m), color, font=F_MINI))
+        elif self.pestanya == "ofertes":
+            b += self.botons_ofertes()
+            self.marcar_vist("ofertes")
         else:
             b += self.botons_aspecte()
             self.marcar_vist("arsenal")
@@ -7448,11 +7465,13 @@ class Game:
         if vistos is None:                       # primera vegada amb la v3.6: tot el que ja tenies compta com a vist
             vistos = {"inicial": True, "ajudes": []}
         self.vistos = vistos
+        cu = d.get("codis")
+        self.codis_usats = [c for c in cu if isinstance(c, str)] if isinstance(cu, list) else []
 
     def dades_contingut(self):
         return {"xp_passi": self.xp_passi, "temporada": self.temporada, "baixes_arma": self.baixes_arma,
                 "rang_reclamat": self.rang_reclamat, "desafiaments": self.desafiaments, "reptes": self.reptes,
-                "vistos": self.vistos}
+                "vistos": self.vistos, "codis": self.codis_usats}
 
     def equipament(self):
         return {"uniforme": self.uniforme, "arma": self.aparenca, "titol": self.titol, "estela": self.estela,
@@ -7653,10 +7672,10 @@ class Game:
             return
         self.monedes -= preu
         self.atorgar(tipus, ident, revelar=False)
-        self.mostrar_missatge(T("¡{c} desbloqueado! Equípalo en Tienda > Aspecto.").format(c=nom_premi(tipus, ident)), ok=True)
+        self.mostrar_missatge(T("¡{c} desbloqueado! Equípalo en Arsenal > Aspecto.").format(c=nom_premi(tipus, ident)), ok=True)
         AUDIO.so("moneda")
         self.desar_progres()
-        self.entrar_diari()
+        self.entrar_botiga("ofertes")
 
     def segons_fins_dema(self):
         t = time.localtime()
@@ -8207,28 +8226,18 @@ class Game:
             return
         self.generar_reptes()
         self.marcar_vist("diari")
-        b = [self.boto_tornar()]
-        for k, (tipus, ident, preu) in enumerate(self.ofertes_del_dia()):
-            r = self.rect_oferta(k)
-            tingut = PREFIX_COSMETIC[tipus] + ident in self.cosmetics
-            b.append(Boto((r.x + 12, r.bottom - 40, r.w - 24, 30), "Comprado" if tingut else T("Comprar {c}").format(c=preu),
-                          None if tingut else (lambda t=tipus, i=ident, p=preu: self.comprar_oferta(t, i, p)),
-                          GRIS_FOSC if tingut else (TARONJA if self.monedes >= preu else VERMELL_FOSC), font=F_MINI))
-        self.botons = b
+        self.botons = [self.boto_tornar()]
         self.canviar_estat("diari")
 
-    @staticmethod
-
-    def rect_oferta(k):
-        col, fila = k % 2, k // 2
-        return pygame.Rect(596 + col * 170, 132 + fila * 166, 160, 156)
+    def rect_oferta(self, k):
+        return pygame.Rect(54 + k * 218, 128, 202, 300)
 
     def dibuixar_diari(self, surf):
         self.fons_menu.dibuixar(surf)
         text(surf, "DIARIO", F_SUBTITOL, BLANC, (WIDTH // 2, 36))
         r = text(surf, str(self.monedes), F_UI, GROC, (WIDTH - 24, 36), ancora="midright")
         dibuixar_moneda(surf, r.left - 14, 36)
-        esq = pygame.Rect(36, 84, 540, 382)
+        esq = pygame.Rect(WIDTH // 2 - 300, 84, 600, 382)
         panell(surf, esq, BLAU_CLAR)
         text(surf, "RETOS DE HOY", F_UI, VERD, (esq.x + 18, esq.y + 22), ancora="midleft")
         s = self.segons_fins_dema()
@@ -8254,23 +8263,8 @@ class Game:
         bonus = self.reptes.get("bonus")
         text(surf, T("Haz los tres: +{m} monedas extra").format(m=PREMI_TOTS_REPTES) + ("  ✓" if bonus else ""), F_TEXT_P,
              VERD if bonus else GROC, (esq.centerx, esq.bottom - 18))
-        dre = pygame.Rect(586, 84, 344, 382)
-        panell(surf, dre, (255, 170, 80))
-        text(surf, "OFERTAS DEL DÍA", F_UI, (255, 190, 110), (dre.centerx, dre.y + 22))
-        pos = ratoli()
-        info = None
-        for k, (tipus, ident, preu) in enumerate(self.ofertes_del_dia()):
-            r = self.rect_oferta(k)
-            tingut = PREFIX_COSMETIC[tipus] + ident in self.cosmetics
-            panell(surf, r, VERD if tingut else GRIS)
-            zona = pygame.Rect(r.x, r.y, r.w, r.h - 40)
-            self.previsualitzar(surf, tipus, ident, zona, self.t_global + k * 17)
-            text(surf, nom_cosmetic(tipus, ident), F_MINI, BLANC, (r.centerx, r.bottom - 52))
-            if r.collidepoint(pos):
-                info = nom_premi(tipus, ident)
         if not self.missatge:
-            text(surf, info or "Las ofertas cambian cada día. Equipa lo que compres en Tienda > Aspecto.", F_TEXT_PP,
-                 CIAN, (WIDTH // 2 + 80, 499))
+            text(surf, "Las ofertas del día están en Arsenal > Ofertas.", F_TEXT_PP, CIAN, (WIDTH // 2, 499))
 
     FONS_DESAFIAMENT = {}
 
@@ -8317,7 +8311,9 @@ class Game:
         camos = sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap")
         fitxes = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
         reptes = self.reptes.get("llista", []) if self.reptes.get("data") == self.data_avui() else []
-        return {"arsenal": bool(self.cosmetics - set(v.get("cosmetics", []))) or camos > v.get("camos", 0),
+        ofertes = v.get("ofertes") != self.data_avui() and any(
+            PREFIX_COSMETIC[t] + i not in self.cosmetics for t, i, _ in self.ofertes_del_dia())
+        return {"arsenal": bool(self.cosmetics - set(v.get("cosmetics", []))) or camos > v.get("camos", 0) or ofertes,
                 "passi": self.passi_reclamat > v.get("passi", 0) and self.temporada == v.get("temporada", 1)
                 or self.temporada > v.get("temporada", 1),
                 "colleccio": fitxes > v.get("bestiari", 0) or self.rang_actual() > v.get("rang", 0),
@@ -8334,6 +8330,8 @@ class Game:
         elif que == "colleccio":
             v["bestiari"] = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
             v["rang"] = self.rang_actual()
+        elif que == "ofertes":
+            v["ofertes"] = self.data_avui()
         elif que == "diari":
             v["diari"] = self.data_avui()
             v["diari_fets"] = True
@@ -8397,7 +8395,7 @@ class Game:
     def obrir_destacat(self):
         dia = self.diapositives_destacat()
         actual = dia[(self.t_global // 300) % len(dia)]
-        {"passi": self.entrar_passi, "repte": self.entrar_diari, "oferta": self.entrar_diari,
+        {"passi": self.entrar_passi, "repte": self.entrar_diari, "oferta": lambda: self.entrar_botiga("ofertes"),
          "rang": lambda: self.entrar_colleccio("rangs"), "mestria": lambda: self.entrar_colleccio("mestria"),
          "desafiament": self.entrar_desafiaments}[actual]()
 
@@ -8882,9 +8880,159 @@ class Game:
         self._punts(surf, r.x + 340, r.y + 22, r.w - 360, [
             "Cada día tienes tres retos nuevos. Cada uno da monedas y XP.",
             "Si completas los tres, te llevas un premio extra.",
-            "En el Diario también hay ofertas del día: cosméticos que van cambiando.",
+            "Las ofertas del día (cosméticos que van cambiando) están en Arsenal > Ofertas.",
             "Los retos se renuevan a medianoche.",
         ], salt=18)
+
+    def botons_ofertes(self):
+        b = []
+        for k, (tipus, ident, preu) in enumerate(self.ofertes_del_dia()):
+            r = self.rect_oferta(k)
+            tingut = PREFIX_COSMETIC[tipus] + ident in self.cosmetics
+            b.append(Boto((r.x + 14, r.bottom - 44, r.w - 28, 32), "Comprado" if tingut else T("Comprar {c}").format(c=preu),
+                          None if tingut else (lambda t=tipus, i=ident, p=preu: self.comprar_oferta(t, i, p)),
+                          GRIS_FOSC if tingut else (TARONJA if self.monedes >= preu else VERMELL_FOSC), font=F_MINI))
+        return b
+
+    def dibuixar_botiga_ofertes(self, surf):
+        s = self.segons_fins_dema()
+        text(surf, T("Nuevas ofertas en {h} h {m} min").format(h=s // 3600, m=s % 3600 // 60), F_TEXT_PP, GRIS,
+             (WIDTH // 2, 446))
+        pos = ratoli()
+        info = None
+        for k, (tipus, ident, preu) in enumerate(self.ofertes_del_dia()):
+            r = self.rect_oferta(k)
+            tingut = PREFIX_COSMETIC[tipus] + ident in self.cosmetics
+            panell(surf, r, VERD if tingut else (255, 170, 80))
+            text(surf, T(self.ETIQUETA_TIPUS.get(tipus, tipus)).upper(), F_MINI, (255, 190, 110), (r.centerx, r.y + 16))
+            zona = pygame.Rect(r.x + 6, r.y + 30, r.w - 12, r.h - 120)
+            self.previsualitzar(surf, tipus, ident, zona, self.t_global + k * 17)
+            for j, linia in enumerate(ajustar_linies(nom_cosmetic(tipus, ident), F_TEXT_P, r.w - 16)[:2]):
+                text(surf, linia, F_TEXT_P, BLANC, (r.centerx, r.bottom - 80 + j * 20))
+            if r.collidepoint(pos):
+                info = nom_premi(tipus, ident)
+        if not self.missatge:
+            text(surf, info or "Lo que compres se equipa en Arsenal > Aspecto.", F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+
+    ETIQUETA_TIPUS = {"estela": "Estela", "efecte": "Efecto de eliminación", "mira": "Punto de mira",
+                      "tema": "Tema del HUD", "targeta": "Tarjeta", "dron": "Dron", "uniforme": "Uniforme",
+                      "arma": "Aspecto de arma", "titol": "Título"}
+
+    # ----- Codis -------------------------------------------------------------------------------------
+    RECT_CALCULADORA = pygame.Rect(24, 18, 44, 44)
+
+    def entrar_codis(self):
+        self.codi_text = ""
+        self.codi_resultat = None
+        self.botons = [Boto((WIDTH // 2 - 110, 336, 220, 46), "Canjear", self.bescanviar_codi, VERD),
+                       Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_botiga, GRIS_FOSC)]
+        self.canviar_estat("codis")
+
+    @staticmethod
+
+    def empremta_codi(codi):
+        net = "".join(str(codi).split()).upper()
+        return hashlib.sha256(("invasio:" + net).encode("utf-8")).hexdigest()
+
+    def tecla_codi(self, ev):
+        """Escriure el codi amb el teclat (aquí la M no silencia ni la G torna al menú)."""
+        if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            self.bescanviar_codi()
+        elif ev.key == pygame.K_ESCAPE:
+            self.entrar_botiga()
+        elif ev.key == pygame.K_BACKSPACE:
+            self.codi_text = self.codi_text[:-1]
+        else:
+            c = (ev.unicode or "").upper()
+            if len(c) == 1 and (c.isalnum() or c == "-") and len(self.codi_text) < 24:
+                self.codi_text += c
+                self.codi_resultat = None
+
+    def bescanviar_codi(self):
+        if not self.codi_text.strip():
+            return
+        clau = self.empremta_codi(self.codi_text)
+        codi = CODIS.get(clau)
+        if codi is None:
+            self.codi_resultat = (False, T("Código no válido"))
+            AUDIO.so("buit")
+        elif clau in self.codis_usats:
+            self.codi_resultat = (False, T("Ya has usado este código"))
+            AUDIO.so("buit")
+        else:
+            self.codis_usats.append(clau)
+            for tipus, valor in codi["premis"]:
+                self.donar_premi_codi(tipus, valor)
+            self.revisar_rangs()
+            self.revisar_logros()
+            self.desar_progres()
+            self.codi_resultat = (True, T("¡Código canjeado! {n}").format(n=T(codi["nom"])))
+            AUDIO.so("passi")
+        self.codi_text = ""
+
+    def donar_premi_codi(self, tipus, valor):
+        if tipus == "tot":
+            self.desbloquejar_tot()
+        elif tipus == "monedes":
+            self.monedes += int(valor)
+        elif tipus == "xp":
+            self.afegir_xp(int(valor))
+        elif tipus == "arma_joc" and valor in ARMA_PER_ID:
+            self.armes_propies.add(valor)
+        elif tipus == "millora":
+            m = next((m for m in MILLORES if m["id"] == valor), None)
+            if m:
+                self.millores[valor] = len(m["costos"])
+        elif tipus in PREFIX_COSMETIC and valor in CATALEG_COSMETIC[tipus]:
+            self.atorgar(tipus, valor)
+
+    def desbloquejar_tot(self):
+        """Mode administrador: totes les armes, millores, nivells, estrelles, cosmètics, camuflatges, rangs,
+        el Battle Pass sencer i el bestiari. Els logros no: aquests s'han de guanyar (alguns surten sols)."""
+        self.monedes += 100000
+        self.armes_propies = {a["id"] for a in ARMES}
+        for m in MILLORES:
+            self.millores[m["id"]] = len(m["costos"])
+        for n in range(NUM_SECTORS):
+            for e in range(3):
+                self.nivells_desbloquejats[n][e] = True
+                self.completats[n][e] = True
+                self.estrelles[n][e] = [True, True, True]
+        for tipus, cataleg in CATALEG_COSMETIC.items():
+            for ident in cataleg:
+                self.cosmetics.add(PREFIX_COSMETIC[tipus] + ident)
+        for a in ARMES:
+            self.baixes_arma[a["id"]] = max(self.baixes_arma.get(a["id"], 0), MAESTRIA[-1])
+        for b in BESTIARI:
+            clau = "k_" + b["clau"]
+            self.estadistiques[clau] = max(self.estadistiques.get(clau, 0), b["cal"])
+        self.xp = max(self.xp, RANGS[-1]["xp"])
+        self.rang_reclamat = len(RANGS) - 1
+        # Battle Pass: la temporada es dona per acabada (com quan arribes al nivell 50 jugant) i comença la següent
+        if self.temporada == 1:
+            self.temporada = 2
+            self.xp_passi, self.passi_reclamat = 0, 0
+        self.revelacions = []
+        for que in ("arsenal", "passi", "colleccio"):
+            self.marcar_vist(que)
+
+    def dibuixar_codis(self, surf):
+        self.fons_menu.dibuixar(surf)
+        text(surf, "CÓDIGOS", F_SUBTITOL, BLANC, (WIDTH // 2, 60))
+        caixa = pygame.Rect(WIDTH // 2 - 260, 120, 520, 290)
+        panell(surf, caixa, BLAU_CLAR)
+        dibuixar_calculadora(surf, caixa.centerx, caixa.y + 46, 1.3)
+        text(surf, "Escribe un código y pulsa Enter", F_TEXT_P, GRIS, (caixa.centerx, caixa.y + 104))
+        camp = pygame.Rect(caixa.x + 40, caixa.y + 128, caixa.w - 80, 56)
+        pygame.draw.rect(surf, (8, 10, 22), camp, border_radius=8)
+        pygame.draw.rect(surf, CIAN, camp, 2, border_radius=8)
+        r = text(surf, self.codi_text, F_UI, BLANC, (camp.centerx, camp.centery), ombra=False)
+        if (self.t_global // 30) % 2:                                    # cursor que parpelleja
+            x = r.right + 4 if self.codi_text else camp.centerx
+            pygame.draw.rect(surf, BLANC, (x, camp.centery - 10, 3, 20))
+        if self.codi_resultat:
+            ok, msg = self.codi_resultat
+            text(surf, msg, F_HUD, VERD if ok else VERMELL, (caixa.centerx, caixa.bottom + 100))
 
     def dibuixar_joc(self, surf):
         c = self.capa
@@ -9094,13 +9242,23 @@ class Game:
 
     def dibuixar_botiga(self, surf):
         self.fons_menu.dibuixar(surf)
-        text(surf, "TIENDA", F_SUBTITOL, BLANC, (WIDTH // 2, 40))
+        text(surf, "ARSENAL", F_SUBTITOL, BLANC, (WIDTH // 2, 40))
         r = text(surf, str(self.monedes), F_UI, GROC, (WIDTH - 24, 40), ancora="midright")
         dibuixar_moneda(surf, r.left - 14, 40)
+        rc = self.RECT_CALCULADORA                              # codis
+        hover = rc.collidepoint(ratoli())
+        pygame.draw.rect(surf, NEGRE, rc.move(0, 3), border_radius=8)
+        pygame.draw.rect(surf, (52, 60, 110) if hover else (30, 34, 66), rc, border_radius=8)
+        pygame.draw.rect(surf, BLAU_CLAR if hover else (80, 90, 140), rc, 2, border_radius=8)
+        dibuixar_calculadora(surf, rc.centerx, rc.centery)
+        if hover:
+            text(surf, T("Códigos"), F_MINI, BLANC, (rc.centerx, rc.bottom + 12))
         if self.pestanya == "armes":
             self.dibuixar_botiga_armes(surf)
         elif self.pestanya == "millores":
             self.dibuixar_botiga_millores(surf)
+        elif self.pestanya == "ofertes":
+            self.dibuixar_botiga_ofertes(surf)
         else:
             self.dibuixar_botiga_aparenca(surf)
 
@@ -9409,6 +9567,9 @@ class Game:
         if ev.type == pygame.QUIT:
             self.canviar_estat("quit")
             return
+        if self.estat == "codis" and ev.type == pygame.KEYDOWN:
+            self.tecla_codi(ev)
+            return
         if ev.type == pygame.KEYDOWN and ev.key == pygame.K_m:
             AUDIO.commutar_silenci()
             return
@@ -9558,7 +9719,7 @@ class Game:
     def dibuixar(self, surf):
         dibuix = {
             "loading": self.dibuixar_loading, "menu": self.dibuixar_menu, "selector": self.dibuixar_selector,
-            "botiga": self.dibuixar_botiga, "guia": self.dibuixar_guia, "credits": self.dibuixar_credits,
+            "botiga": self.dibuixar_botiga, "codis": self.dibuixar_codis, "guia": self.dibuixar_guia, "credits": self.dibuixar_credits,
             "joc": self.dibuixar_joc, "pausa": self.dibuixar_pausa, "passi": self.dibuixar_passi,
             "arxiu": self.dibuixar_arxiu, "intro": lambda s: self.intro.dibuixar(s), "opcions": self.dibuixar_opcions,
             "supervivencia": self.dibuixar_supervivencia, "logros": self.dibuixar_logros,

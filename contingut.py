@@ -267,3 +267,14 @@ XP_LOGRO = {"bronze": 50, "plata": 150, "or": 300, "plati": 600}
 
 # Repetir un escenari ja completat dona aquesta fracció de monedes
 MONEDES_REPETICIO = 0.5
+
+# Codis que es poden bescanviar a Arsenal (icona de la calculadora). Només es guarda l'empremta SHA-256 del
+# codi (el codi del joc és públic): per afegir-ne un, `python tools/codi.py ELCODI` i enganxa la línia aquí.
+# Cada codi es pot fer servir un cop per partida.
+# Premis: ("monedes", n), ("xp", n), ("arma_joc", id d'arma), ("millora", id de millora: al màxim),
+#         qualsevol cosmètic com ("uniforme", "daurat"), ("estela", "foc"), ("dron", "ovni")...,
+#         ("tot", None): desbloqueja tot el joc (mode administrador).
+CODIS = {
+    "6138bd95341569972fbaf9a86a6697c9d2fd3c20c055bbf4844a9b14f38ae544": {"nom": "Modo administrador",
+                                                                         "premis": [("tot", None)]},
+}
