@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.0"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.1"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -21,31 +21,34 @@ def nom_escenari(index):
 # Armas. "potencia" (1-5) decide en qué escenarios se pueden usar.
 # ---------------------------------------------------------------------------
 ARMES = [
-    {"id": "pistola", "nom": "Pistola", "dany": 5, "bales_max": 20, "cost": 0, "req": -1, "potencia": 1,
+    # la pistola no gasta munició: és l'arma de reserva quan les altres es queden sense bales
+    {"id": "pistola", "nom": "Pistola", "dany": 5, "bales_max": None, "cost": 0, "req": -1, "potencia": 1,
      "cadencia": 10, "auto": False, "vel": 12, "dispersio": 1.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "pistola", "estil": "pistola",
-     "desc": "Ligera y fiable."},
+     "desc": "Ligera, fiable y con balas infinitas."},
     {"id": "escopeta", "nom": "Escopeta", "dany": 6, "bales_max": 12, "cost": 500, "req": 1, "potencia": 2,
      "cadencia": 34, "auto": False, "vel": 12, "dispersio": 3.0, "perdigons": 6, "obertura": 26,
      "vida_bala": 30, "perfora": False, "so": "escopeta", "estil": "escopeta",
      "desc": "Seis perdigones. Devastadora de cerca."},
-    {"id": "fusell", "nom": "Fusil", "dany": 15, "bales_max": 30, "cost": 900, "req": 2, "potencia": 3,
+    {"id": "fusell", "nom": "Fusil", "dany": 11, "bales_max": 24, "cost": 900, "req": 2, "potencia": 3,
      "cadencia": 9, "auto": True, "vel": 15, "dispersio": 2.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "fusell", "estil": "fusell",
      "desc": "Automático y preciso."},
     # minigun: no gasta munición, pero se calienta (CALOR_DISPAR por tiro, se bloquea al llegar a 100),
     # tarda ARRENCADA fotogramas en llegar a su cadencia máxima y frena al soldado mientras dispara
-    {"id": "minigun", "nom": "Minigun", "dany": 9, "bales_max": None, "cost": 2500, "req": 6, "potencia": 4,
+    {"id": "minigun", "nom": "Minigun", "dany": 6, "bales_max": None, "cost": 2500, "req": 6, "potencia": 4,
      "cadencia": 5, "auto": True, "vel": 14, "dispersio": 7.0, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": False, "so": "minigun", "estil": "minigun",
      "desc": "Sin munición, pero se calienta. Tarda en arrancar y pesa."},
-    {"id": "plasma", "nom": "Cañón de plasma", "dany": 45, "bales_max": 30, "cost": 4500, "req": 10, "potencia": 5,
-     "cadencia": 16, "auto": True, "vel": 16, "dispersio": 0.5, "perdigons": 1, "obertura": 0,
+    {"id": "plasma", "nom": "Cañón de plasma", "dany": 30, "bales_max": 16, "cost": 4500, "req": 10, "potencia": 5,
+     "cadencia": 22, "auto": True, "vel": 16, "dispersio": 0.5, "perdigons": 1, "obertura": 0,
      "vida_bala": None, "perfora": True, "so": "plasma", "estil": "plasma",
      "desc": "Atraviesa a los enemigos. Tecnología Xylothian."},
 ]
 ARMA_PER_ID = {a["id"]: i for i, a in enumerate(ARMES)}
-CALOR_DISPAR = 2.4          # minigun: calor que suma cada tiro (100 = sobrecalentada)
+CALOR_DISPAR = 3.4          # minigun: calor que suma cada tiro (100 = sobrecalentada: unos 30 tiros)
+REFREDAMENT = 0.7           # minigun: calor que perd cada fotograma sense disparar
+REFREDAMENT_BLOQUEJADA = 0.55   # ... i quan està bloquejada (de 100 a 0: uns 3 s)
 ARRENCADA = 30              # minigun: fotogramas que tarda en girar a tope
 FRE_MINIGUN = 0.65          # minigun: velocidad del soldado mientras dispara
 
@@ -109,47 +112,52 @@ _P_XYLOS = [(132, 400, 180), (384, 320, 180), (648, 240, 192)]
 NIVELLS = {
     (0, 0): {"plataformes": _P1, "temps": 75,
              "onades": [[("dron", 30)] * 2, [("soldat", 30)] * 2]},
-    (0, 1): {"plataformes": [(180, 390, 180), (420, 290, 180), (660, 340, 180)], "temps": 110,
+    (0, 1): {"plataformes": [(180, 390, 180), (420, 290, 180), (660, 340, 180)], "temps": 125,
              "onades": [[("dron", 30)] * 2 + [("soldat", 30)], [("lloctinent", 60), ("soldat", 30), ("soldat", 30)]],
              "perills": [("runa", 200)]},
-    (0, 2): {"plataformes": _P1, "temps": 100,
+    (0, 2): {"plataformes": _P1, "temps": 110,
              "onades": [[("boss", 100), ("soldat", 30)]], "perills": [("runa", 260)]},
-    (1, 0): {"plataformes": [(180, 390, 180), (420, 290, 240), (660, 190, 180)], "temps": 110,
+    (1, 0): {"plataformes": [(180, 390, 180), (420, 290, 240), (660, 190, 180)], "temps": 130,
              "onades": [[("dron", 50)] * 2, [("soldat", 50), ("soldat", 50), ("kamikaze", 30)]],
              "perills": [("acid", [(330, 80), (590, 90)])]},
     (1, 1): {"plataformes": _P1, "temps": 140,
              "onades": [[("dron", 50)] * 2 + [("kamikaze", 30)], [("lloctinent", 100), ("soldat", 50), ("soldat", 50)]],
              "perills": [("gas", [(310, 70), (840, 70)], 330)]},
-    (1, 2): {"plataformes": _P2, "temps": 130, "fragils": [0],
+    (1, 2): {"plataformes": _P2, "temps": 150, "fragils": [0],
              "onades": [[("boss", 200), ("kamikaze", 30), ("kamikaze", 30)]],
              "perills": [("acid", [(430, 100)])]},
-    (2, 0): {"plataformes": _P1, "temps": 120,
+    (2, 0): {"plataformes": _P1, "temps": 160,
              "onades": [[("dron", 80)] * 2 + [("soldat", 70)], [("escut", 110), ("soldat", 70), ("soldat", 70)]],
              "perills": [("morter", 230)]},
-    (2, 1): {"plataformes": _P2, "temps": 160,
+    (2, 1): {"plataformes": _P2, "temps": 235,
              "onades": [[("soldat", 70), ("soldat", 70), ("escut", 110)], [("dron", 80), ("dron", 80), ("boss", 250)]],
              "perills": [("electric", [(40, 150), (400, 150), (760, 150)], 300)]},
-    (2, 2): {"plataformes": _P1, "temps": 150,
+    (2, 2): {"plataformes": _P1, "temps": 270,
              "onades": [[("final_comandant", 1200)]]},
-    (3, 0): {"plataformes": _P_ORBITA, "temps": 140, "mobils": {1: (70, 0, 300), 3: (0, 60, 240)},
+    (3, 0): {"plataformes": _P_ORBITA, "temps": 175, "mobils": {1: (70, 0, 300), 3: (0, 60, 240)},
              "onades": [[("dron", 100)] * 2 + [("cacador", 60)] * 2, [("soldat", 90), ("soldat", 90), ("escut", 140)]]},
-    (3, 1): {"plataformes": [(108, 390, 192), (360, 280, 240), (672, 360, 192)], "temps": 160,
+    (3, 1): {"plataformes": [(108, 390, 192), (360, 280, 240), (672, 360, 192)], "temps": 275,
              "onades": [[("cacador", 70)] * 3 + [("dron", 100)], [("lloctinent", 160), ("escut", 140), ("soldat", 90), ("soldat", 90)]],
              "perills": [("electric", [(0, 130), (300, 160), (620, 130)], 280)]},
-    (3, 2): {"plataformes": _P_ORBITA, "temps": 180, "mobils": {0: (40, 0, 260), 2: (60, 0, 320)},
+    (3, 2): {"plataformes": _P_ORBITA, "temps": 300, "mobils": {0: (40, 0, 260), 2: (60, 0, 320)},
              "onades": [[("final_nau", 1800)]]},
-    (4, 0): {"plataformes": _P_XYLOS, "temps": 160, "fragils": [0, 2],
+    (4, 0): {"plataformes": _P_XYLOS, "temps": 175, "fragils": [0, 2],
              "onades": [[("dron", 120)] * 2 + [("cacador", 80)] * 2,
                         [("lloctinent", 180), ("soldat", 110), ("soldat", 110), ("kamikaze", 50), ("kamikaze", 50)]]},
-    (4, 1): {"plataformes": [(168, 390, 168), (408, 300, 144), (624, 390, 168)], "temps": 170,
+    (4, 1): {"plataformes": [(168, 390, 168), (408, 300, 144), (624, 390, 168)], "temps": 240,
              "onades": [[("escut", 170), ("soldat", 110), ("soldat", 110), ("kamikaze", 50)],
                         [("boss", 450), ("cacador", 80), ("cacador", 80)]],
              "perills": [("acid", [(200, 110), (650, 110)])]},     # lluny de l'inici (x = 60)
-    (4, 2): {"plataformes": _P_XYLOS, "temps": 200, "fragils": [1],
+    (4, 2): {"plataformes": _P_XYLOS, "temps": 340, "fragils": [1],
              "onades": [[("final_nucli", 2400)]]},
 }
 TEMPS_ESTRELLA = {k: v["temps"] for k, v in NIVELLS.items()}
 XP_ESTRELLA = 30
+
+# Vida dels enemics sobre la que posa cada escenari (v4.1: el joc era massa fàcil amb les millores al màxim)
+VIDA_ENEMICS = 1.25         # enemics normals (i els que invoquen els caps)
+VIDA_CAPS = 1.5             # caps de sector i caps finals
+SPAWN_ITEMS = 480           # fotogrames entre ítem i ítem (vida o munició)
 
 # Dificultad: multiplica la vida, el daño y la cadencia de los enemigos y las monedas que se ganan
 DIFICULTATS = {
@@ -326,7 +334,7 @@ MILLORES = [
     # "estrelles": estrelles necessàries per a cada nivell (el nivell 3 es guanya jugant bé)
     {"id": "blindatge", "nom": "Blindaje", "desc": "+20 de vida máxima por nivel",
      "costos": [300, 1000, 2500], "req": [0, 4, 9], "estrelles": [0, 0, 18]},
-    {"id": "potencia", "nom": "Potencia", "desc": "+15% de daño con todas las armas",
+    {"id": "potencia", "nom": "Potencia", "desc": "+10% de daño con todas las armas",
      "costos": [400, 1200, 2800], "req": [1, 5, 10], "estrelles": [0, 0, 24]},
     {"id": "carregadors", "nom": "Cargadores", "desc": "+30% de munición máxima",
      "costos": [250, 900, 2200], "req": [0, 3, 8], "estrelles": [0, 0, 15]},
@@ -492,14 +500,14 @@ PASSOS_TUTORIAL = [
 # Detalle de cada mejora para la pantalla "Cómo funciona"
 DETALL_MILLORES = {
     "blindatge": "+20 de vida máxima por nivel (hasta 160).",
-    "potencia": "+15% de daño con todas las armas por nivel.",
-    "carregadors": "+30% de munición máxima por nivel (la minigun no gasta munición).",
+    "potencia": "+10% de daño con todas las armas por nivel.",
+    "carregadors": "+30% de munición máxima por nivel (la pistola y la minigun no gastan munición).",
     "iman": "Atrae desde lejos la vida y la munición que te falten.",
     "reflexos": "Corres un 6% más rápido y eres invulnerable más rato tras un golpe.",
     "doble_salt": "Un segundo salto en el aire. Imprescindible para algún secreto...",
 }
 DETALL_ARMES = {
-    "pistola": "Fiable y precisa. La única que se puede usar en todas partes.",
+    "pistola": "Fiable y precisa, y nunca se queda sin balas. La única que se puede usar en todas partes.",
     "escopeta": "Seis perdigones: devastadora de cerca, floja de lejos.",
     "fusell": "Automático y preciso: el arma de todo el juego.",
     "minigun": "No gasta munición, pero se calienta: suelta el gatillo antes de que se bloquee.",
@@ -513,6 +521,19 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.1", "titol": "Más difícil", "punts": [
+        ("enemic", "Los enemigos aguantan un 25% más y los jefes un 50% más: ya no caen en segundos aunque tengas "
+                   "las mejoras al máximo."),
+        ("arma:plasma", "Cañón de plasma: 30 de daño, dispara más despacio y lleva 16 cargas. Sigue atravesando "
+                        "enemigos y escudos."),
+        ("arma:fusell", "Fusil: 11 de daño y 24 balas por cargador."),
+        ("arma:minigun", "Minigun: 6 de daño, se calienta en unos 30 disparos y se queda bloqueada unos 3 segundos. "
+                         "Hay que disparar a ráfagas."),
+        ("arma:pistola", "La pistola ya no gasta munición: es tu arma de reserva cuando las demás se quedan sin balas."),
+        ("millora:potencia", "Potencia da +10% de daño por nivel (antes +15%) y los objetos de vida y munición salen "
+                             "más espaciados."),
+        ("estrella", "El tiempo para la estrella de cada escenario se ha alargado para la nueva dificultad."),
+    ]},
     {"versio": "4.0", "titol": "Jefes renovados", "punts": [
         ("jefe", "Los cinco jefes de sector ya no son el mismo platillo pintado de otro color: cada uno tiene su diseño."),
         ("estrella", "Cada jefe tiene un ataque propio con aviso: escotilla de drones, vainas de esporas, láser de puntería, "

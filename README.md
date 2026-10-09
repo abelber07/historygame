@@ -69,11 +69,11 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 
 | Arma | Daño | Balas | Disparos/s | Potencia | Coste | Disponible tras |
 |---|---|---|---|---|---|---|
-| Pistola | 5 | 20 | 6 | 1 | Inicial | — |
+| Pistola | 5 | ∞ | 6 | 1 | Inicial | — |
 | Escopeta | 6 × 6 perdigones | 12 | 1,8 | 2 | 500 | 1-2 |
-| Fusil | 15 | 30 | 6,7 | 3 | 900 | 1-3 |
-| Minigun | 9 (se calienta) | ∞ | hasta 12 | 4 | 1800 | 3-1 |
-| Cañón de plasma | 45 (atraviesa enemigos y escudos) | 30 | 3,8 | 5 | 3000 | 4-2 |
+| Fusil | 11 | 24 | 6,7 | 3 | 900 | 1-3 |
+| Minigun | 6 (se calienta en unos 30 disparos) | ∞ | hasta 12 | 4 | 2500 | 3-1 |
+| Cañón de plasma | 30 (atraviesa enemigos y escudos) | 16 | 2,7 | 5 | 4500 | 4-2 |
 
 Cada escenario tiene una **potencia máxima**: las armas más fuertes se bloquean (por ejemplo, en las ruinas inestables del sector 1, en el laboratorio con gas inflamable de la selva o en el campo supresor de la colmena). Si el arma equipada no está permitida, el juego elige la mejor que sí lo está. El selector de niveles muestra la potencia máxima de cada escenario.
 
@@ -86,7 +86,7 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 ## Tienda
 
 - **Armas**: compra y equipa las cinco armas. Algunas no se pueden comprar hasta que avanzas en la historia.
-- **Mejoras** (cada nivel también tiene un requisito de historia): Blindaje (+20 de vida), Potencia (+15% de daño), Cargadores (+30% de munición), Imán (atrae los objetos), Reflejos (velocidad e invulnerabilidad) y Propulsores (doble salto).
+- **Mejoras** (cada nivel también tiene un requisito de historia): Blindaje (+20 de vida), Potencia (+10% de daño), Cargadores (+30% de munición), Imán (atrae los objetos), Reflejos (velocidad e invulnerabilidad) y Propulsores (doble salto).
 - **Aspecto**: uniformes, aspectos de arma (cambian el color del metal y de las balas) y títulos.
 
 ## Battle Pass
@@ -94,6 +94,16 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 4.1: más difícil**
+- Los enemigos normales aguantan un 25% más y los jefes (de sector y finales) un 50% más, para que no caigan en segundos aunque tengas las mejoras al máximo.
+- **Cañón de plasma**: 30 de daño (antes 45), dispara más despacio (2,7 por segundo) y lleva 16 cargas (antes 30). Sigue atravesando enemigos y escudos.
+- **Fusil**: 11 de daño (antes 15) y 24 balas (antes 30).
+- **Minigun**: 6 de daño (antes 9), se calienta en unos 30 disparos y, si se bloquea, tarda unos 3 segundos en enfriarse; también se enfría más despacio cuando sueltas el gatillo.
+- **Pistola con balas infinitas**: es el arma de reserva. Con la pistola o la minigun en la mano, una caja de munición recarga las demás armas.
+- **Potencia** da +10% de daño por nivel (antes +15%).
+- Los objetos de vida y munición salen cada 8 segundos (antes cada 5).
+- El tiempo para la estrella de cada escenario se ha alargado según lo que tarda ahora en limpiarse (por ejemplo, el Comandante Supremo pasa de 150 a 270 segundos y el Núcleo de Xylos de 200 a 340).
 
 **Versión 4.0: jefes renovados**
 - **Cinco jefes de sector distintos** (antes eran el mismo platillo con otro color), cada uno con un ataque propio que avisa antes:

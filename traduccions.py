@@ -1802,3 +1802,54 @@ EN.update({"¡Equipar!": "Equip it!", "¡MASCOTA SECRETA DESBLOQUEADA!": "SECRET
            "Te acompaña en combate y te cura +5 de vida cada 8 s si estás herido":
                "Joins you in combat and heals you +5 HP every 8 s when you're hurt",
            "Código secreto": "Secret code"})
+
+CA.update({
+    "Más difícil": "Més difícil",
+    "Los enemigos aguantan un 25% más y los jefes un 50% más: ya no caen en segundos aunque tengas las mejoras al máximo.":
+        "Els enemics aguanten un 25% més i els caps un 50% més: ja no cauen en segons encara que tinguis les millores al màxim.",
+    "Cañón de plasma: 30 de daño, dispara más despacio y lleva 16 cargas. Sigue atravesando enemigos y escudos.":
+        "Canó de plasma: 30 de dany, dispara més a poc a poc i porta 16 càrregues. Continua travessant enemics i escuts.",
+    "Fusil: 11 de daño y 24 balas por cargador.": "Fusell: 11 de dany i 24 bales per carregador.",
+    "Minigun: 6 de daño, se calienta en unos 30 disparos y se queda bloqueada unos 3 segundos. Hay que disparar a ráfagas.":
+        "Minigun: 6 de dany, s'escalfa en uns 30 trets i es queda bloquejada uns 3 segons. Cal disparar a ràfegues.",
+    "La pistola ya no gasta munición: es tu arma de reserva cuando las demás se quedan sin balas.":
+        "La pistola ja no gasta munició: és la teva arma de reserva quan les altres es queden sense bales.",
+    "Potencia da +10% de daño por nivel (antes +15%) y los objetos de vida y munición salen más espaciados.":
+        "Potència dona +10% de dany per nivell (abans +15%) i els objectes de vida i munició surten més espaiats.",
+    "Ligera, fiable y con balas infinitas.": "Lleugera, fiable i amb bales infinites.",
+    "Fiable y precisa, y nunca se queda sin balas. La única que se puede usar en todas partes.":
+        "Fiable i precisa, i mai es queda sense bales. L'única que es pot fer servir a tot arreu.",
+    "+10% de daño con todas las armas": "+10% de dany amb totes les armes",
+    "+10% de daño con todas las armas por nivel.": "+10% de dany amb totes les armes per nivell.",
+    "+30% de munición máxima por nivel (la pistola y la minigun no gastan munición).":
+        "+30% de munició màxima per nivell (la pistola i la minigun no gasten munició).",
+    "Sin límite": "Sense límit",
+    "¡Armas recargadas!": "Armes recarregades!",
+})
+EN.update({
+    "Más difícil": "Tougher",
+    "Los enemigos aguantan un 25% más y los jefes un 50% más: ya no caen en segundos aunque tengas las mejoras al máximo.":
+        "Enemies have 25% more health and bosses 50% more: they no longer drop in seconds, even with every upgrade maxed.",
+    "Cañón de plasma: 30 de daño, dispara más despacio y lleva 16 cargas. Sigue atravesando enemigos y escudos.":
+        "Plasma cannon: 30 damage, fires more slowly and holds 16 charges. It still pierces enemies and shields.",
+    "Fusil: 11 de daño y 24 balas por cargador.": "Rifle: 11 damage and 24 rounds per magazine.",
+    "Minigun: 6 de daño, se calienta en unos 30 disparos y se queda bloqueada unos 3 segundos. Hay que disparar a ráfagas.":
+        "Minigun: 6 damage, overheats after about 30 shots and locks up for about 3 seconds. Fire in bursts.",
+    "La pistola ya no gasta munición: es tu arma de reserva cuando las demás se quedan sin balas.":
+        "The pistol no longer uses ammo: it's your backup when the other weapons run dry.",
+    "Potencia da +10% de daño por nivel (antes +15%) y los objetos de vida y munición salen más espaciados.":
+        "Power gives +10% damage per level (was +15%) and health and ammo pickups appear less often.",
+    "Ligera, fiable y con balas infinitas.": "Light, reliable and with infinite ammo.",
+    "Fiable y precisa, y nunca se queda sin balas. La única que se puede usar en todas partes.":
+        "Reliable, accurate and never runs out of ammo. The only weapon allowed everywhere.",
+    "+10% de daño con todas las armas": "+10% damage with all weapons",
+    "+10% de daño con todas las armas por nivel.": "+10% damage with every weapon per level.",
+    "+30% de munición máxima por nivel (la pistola y la minigun no gastan munición).":
+        "+30% max ammo per level (the pistol and the minigun don't use ammo).",
+    "Sin límite": "Unlimited",
+    "¡Armas recargadas!": "Weapons reloaded!",
+})
+CA.update({"El tiempo para la estrella de cada escenario se ha alargado para la nueva dificultad.":
+           "El temps per a l'estrella de cada escenari s'ha allargat per a la nova dificultat."})
+EN.update({"El tiempo para la estrella de cada escenario se ha alargado para la nueva dificultad.":
+           "The time limit for each stage's star has been extended to match the new difficulty."})

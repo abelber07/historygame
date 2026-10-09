@@ -20,7 +20,8 @@ from idiomes import IDIOMES, T, idioma, posar_idioma
 from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
-from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
+from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
+                   REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
@@ -6153,7 +6154,11 @@ class Game:
         return VIDA_MAX + 20 * self.nivell_millora("blindatge")
 
     def multiplicador_dany(self):
-        return 1 + 0.15 * self.nivell_millora("potencia")
+        return 1 + 0.10 * self.nivell_millora("potencia")
+
+    def dany_arma(self, arma):
+        """Dany de cada bala amb la Potencia (arrodonit cap amunt a partir de ,5: 6,5 -> 7)."""
+        return max(1, int(arma["dany"] * self.multiplicador_dany() + 0.5))
 
     def bales_max(self, i):
         base = ARMES[i]["bales_max"]
@@ -6610,6 +6615,8 @@ class Game:
     def crear_enemic(self, tipus, vida, x=None, y=None, nivell=None):
         if nivell is None:
             nivell = self.nivell_enemics
+        if self.mode != "tutorial":
+            vida *= VIDA_CAPS if tipus == "boss" or tipus.startswith("final_") else VIDA_ENEMICS
         vida = max(1, round(vida * self.dificultat()["vida"]))
         e = Enemic(tipus, vida, nivell, 0, random.randint(60, 220), self.dificultat())
         if x is None:
@@ -6726,15 +6733,22 @@ class Game:
     def tipus_item_necessari(self):
         bales = self.bales_armes[self.arma_actual]
         bales_max = self.bales_max(self.arma_actual)
-        poca_municio = bales_max is not None and bales < bales_max * 0.4
+        if bales_max is not None:
+            poca_municio = bales < bales_max * 0.4
+        else:                                   # amb la pistola o la minigun, compten les altres armes
+            poca_municio = any(self.bales_armes[k] < self.bales_max(k) * 0.4 for k in self.armes_per_recarregar())
         if poca_municio and self.jugador.vida > 40:
             return "bales"
         if self.jugador.vida <= self.jugador.vida_max * 0.6:
             return "vida"
-        if bales_max is None:
+        if bales_max is None and not self.armes_per_recarregar():
             return "vida"
         self.items_generats += 1
         return "vida" if self.items_generats % 2 else "bales"
+
+    def armes_per_recarregar(self):
+        """Armes que es poden fer servir aquí, amb munició limitada i sense el carregador ple."""
+        return [k for k in self.armes_usables() if self.bales_max(k) is not None and self.bales_armes[k] < self.bales_max(k)]
 
     def generar_item(self):
         if len(self.items) >= 3:
@@ -6766,7 +6780,7 @@ class Game:
         cx, cy = self.jugador.canons(spr)
         mx, my = ratoli()
         base = math.atan2(my - cy, mx - cx)
-        dany = max(1, round(arma["dany"] * self.multiplicador_dany()))
+        dany = self.dany_arma(arma)
         color = self.color_bala()
         for k in range(arma["perdigons"]):
             obertura = math.radians(arma["obertura"])
@@ -7024,7 +7038,7 @@ class Game:
         # minigun: gira (arrencada), s'escalfa i alenteix el soldat
         self.gir = min(1.0, self.gir + 1 / ARRENCADA) if disparant_minigun else max(0.0, self.gir - 1 / 20)
         if not disparant_minigun:
-            self.calor = max(0.0, self.calor - (0.9 if self.sobreescalfat else 1.1))
+            self.calor = max(0.0, self.calor - (REFREDAMENT_BLOQUEJADA if self.sobreescalfat else REFREDAMENT))
             if self.sobreescalfat and self.calor == 0:
                 self.sobreescalfat = False
         j.factor_vel = FRE_MINIGUN if disparant_minigun else 1.0
@@ -7156,7 +7170,8 @@ class Game:
         bmax_actual = self.bales_max(self.arma_actual)
         for it in self.items[:]:
             util = (j.vida < j.vida_max) if it.tipus == "vida" else (
-                it.tipus != "bales" or (bmax_actual is not None and self.bales_armes[self.arma_actual] < bmax_actual))
+                it.tipus != "bales" or (self.bales_armes[self.arma_actual] < bmax_actual if bmax_actual is not None
+                                        else bool(self.armes_per_recarregar())))
             if it.actualitzar(solides, iman if util else None):
                 self.items.remove(it)
                 continue
@@ -7174,6 +7189,11 @@ class Game:
                 self.bales_armes[i] = bmax
                 self.municio_t = 30
                 agafat, etiqueta, color = True, T("+{n} BALAS").format(n=guany), GROC
+            elif it.tipus == "bales" and bmax is None and self.armes_per_recarregar():
+                for k in self.armes_per_recarregar():           # amb la pistola o la minigun: recarrega les altres
+                    self.bales_armes[k] = self.bales_max(k)
+                self.municio_t = 30
+                agafat, etiqueta, color = True, T("¡Armas recargadas!"), GROC
             if agafat:
                 self.items.remove(it)
                 esclat(self.efectes, it.x + 12, it.y + 12, 12, [color, BLANC], vel=(1, 4), vida=(10, 25))
@@ -7185,7 +7205,7 @@ class Game:
             self.recollir_placa()
         if self.fase == "jugant" and self.mode != "tutorial":
             self.temps_spawn_items += 1
-            if self.temps_spawn_items >= 300:
+            if self.temps_spawn_items >= SPAWN_ITEMS:
                 self.temps_spawn_items = 0
                 self.generar_item()
 
@@ -7815,7 +7835,9 @@ class Game:
             self.armes_usades = set()
         elif clau == "items":
             j.vida = 60
-            self.bales_armes[self.arma_actual] = min(3, self.bales_armes[self.arma_actual] or 3)
+            for k in range(len(ARMES)):                 # poques bales a les armes que en gasten
+                if self.bales_max(k) is not None:
+                    self.bales_armes[k] = min(3, self.bales_armes[k])
             self.items = [Item(460, TERRA_Y - 30, "vida"), Item(700, TERRA_Y - 30, "bales")]
 
     def actualitzar_tutorial(self):
@@ -8043,10 +8065,10 @@ class Game:
                 p = (f % 20) / 20
                 bx = cano[0] + (caixa.right - 90 - cano[0]) * p
                 pygame.draw.circle(surf, TARONJA if fort else GROC, (int(bx), int(cano[1])), 5 if fort else 3)
-            valor = "17" if fort else "15"
+            valor = "12" if fort else "11"
             text(surf, valor, F_TITOL if fort else F_SUBTITOL, TARONJA if fort else BLANC,
                  (caixa.right - 60, peus - 100 - (f % 20)))
-            text(surf, "+15%" if fort else "", F_UI, VERD, (caixa.centerx, caixa.y + 70))
+            text(surf, "+10%" if fort else "", F_UI, VERD, (caixa.centerx, caixa.y + 70))
         elif ident == "carregadors":
             maxim = 20 if f < 60 else min(26, 20 + (f - 60) // 6)
             text(surf, f"{maxim}/{maxim}", F_TITOL, GROC if f >= 60 else BLANC, (cx, caixa.y + 90))
@@ -8517,8 +8539,9 @@ class Game:
                 dibuixar_cadenat(surf, rr.right - 9, rr.y + 11)
             else:
                 bmax = self.bales_max(i)
-                fr = (self.calor / 100) if bmax is None else self.bales_armes[i] / max(1, bmax)
-                col = (VERMELL if self.sobreescalfat else TARONJA) if bmax is None else (
+                minigun = ident == "minigun"
+                fr = (self.calor / 100 if minigun else 1.0) if bmax is None else self.bales_armes[i] / max(1, bmax)
+                col = (VERMELL if self.sobreescalfat else TARONJA) if minigun else COLOR_ARMA[ident] if bmax is None else (
                     VERMELL if fr <= 0.25 else COLOR_ARMA[ident])
                 pygame.draw.rect(surf, (40, 42, 60), (rr.x + 5, rr.bottom - 5, w - 10, 2))
                 pygame.draw.rect(surf, col, (rr.x + 5, rr.bottom - 5, int((w - 10) * fr), 2))
@@ -10838,12 +10861,13 @@ class Game:
         x0, y = dre.x + 22, dre.y + 26
         maxims = {"dany": max(a["dany"] * a["perdigons"] for a in ARMES), "cad": max(FPS / a["cadencia"] for a in ARMES)}
         bmax = self.bales_max(i)
-        dany = round(arma["dany"] * self.multiplicador_dany())
+        dany = self.dany_arma(arma)
         files = [
             ("Daño", f"{dany}" + (f" x{arma['perdigons']}" if arma["perdigons"] > 1 else ""),
              arma["dany"] * arma["perdigons"] / maxims["dany"]),
             ("Disparos por segundo", str(round(FPS / arma["cadencia"], 1)), (FPS / arma["cadencia"]) / maxims["cad"]),
-            ("Cargador", T("Sin límite (se calienta)") if bmax is None else str(bmax),
+            ("Cargador", (T("Sin límite (se calienta)") if arma["id"] == "minigun" else T("Sin límite")) if bmax is None
+             else str(bmax),
              1.0 if bmax is None else min(1.0, bmax / 40)),
             ("Precisión", ["", "Muy alta", "Alta", "Media", "Baja", "Muy baja"][min(5, max(1, round(arma["dispersio"] / 1.5) + 1))],
              max(0.1, 1 - arma["dispersio"] / 8)),
