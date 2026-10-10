@@ -34,16 +34,25 @@ WEB = sys.platform == "emscripten"
 
 
 def _prova_demanada():
-    """Prova de rendiment: s'activa obrint el joc amb ?prova=1 a l'adreça (o JOC_PROVA=1 a l'escriptori)."""
+    """Prova de rendiment: s'activa amb ?prova=1 a l'adreça o amb localStorage «invasio_prova» = "1" (que
+    s'esborra en començar, així la propera vegada el joc torna a ser normal); a l'escriptori, JOC_PROVA=1."""
     if WEB:
         try:
-            return "prova=1" in str(__import__("platform").window.location.search)
-        except Exception:
+            win = __import__("platform").window
+            marca = str(win.localStorage.getItem("invasio_prova"))
+            if marca == "1":
+                win.localStorage.removeItem("invasio_prova")
+                return True
+            return "prova=1" in str(win.location.href)
+        except Exception as err:
+            print(f"Prova de rendiment: {err}")
             return False
     return os.environ.get("JOC_PROVA") == "1"
 
 
 PROVA_RENDIMENT = _prova_demanada()
+if PROVA_RENDIMENT:
+    print("PROVA_INICI")
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 WIDTH, HEIGHT = 960, 540       # 16:9; x2 = 1920x1080 exactos (cada píxel del juego son 2x2 de pantalla)
