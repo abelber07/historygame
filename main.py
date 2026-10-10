@@ -218,6 +218,30 @@ class Pantalla:
         except Exception:
             pass
 
+    def es_completa(self):
+        if WEB:
+            try:
+                return bool(__import__("platform").window.document.fullscreenElement)
+            except Exception:
+                return False
+        return self.completa
+
+    def posar_completa(self, completa):
+        """Pantalla completa sí o no (al navegador ho ha de demanar un clic, com aquest)."""
+        if WEB:
+            try:
+                doc = __import__("platform").window.document
+                if completa:
+                    doc.documentElement.requestFullscreen()
+                elif doc.fullscreenElement:
+                    doc.exitFullscreen()
+            except Exception as err:
+                print(f"No s'ha pogut canviar la pantalla completa: {err}")
+            return
+        if self.completa != completa:
+            self.completa = completa
+            self.aplicar()
+
     def commutar_completa(self):
         if WEB:
             try:
@@ -6222,7 +6246,8 @@ class Game:
     ESTATS_SENSE_FOS = ("joc", "intro", "loading", "quit", "pausa")
 
     ESTATS_MUSICA_MENU = ("menu", "jugar", "selector", "supervivencia", "botiga", "passi", "colleccio", "diari",
-                          "desafiaments", "guia", "arxiu", "logros", "novetats", "revelacio", "idioma_inicial", "ajuda", "codis",
+                          "desafiaments", "guia", "arxiu", "logros", "novetats", "revelacio", "idioma_inicial", "dificultat_inicial",
+                          "ajuda", "codis",
                           "arma", "personalitzar")
 
     def canviar_estat(self, estat):
@@ -7779,21 +7804,34 @@ class Game:
         ]
 
     def entrar_idioma_inicial(self):
+        """Primera vegada (1/2): idioma i pantalla completa a la mateixa pantalla."""
         AUDIO.musica("menu")
         self.novetats_vistes = NOVETATS[0]["versio"]           # qui juga per primer cop no les necessita
+        if not hasattr(self, "completa_inicial"):
+            self.completa_inicial = PANTALLA.es_completa()
         b = []
         for k, codi in enumerate(IDIOMES):
             b.append(Boto(self.rect_idioma_inicial(k), "", lambda c=codi: self.triar_idioma_inicial(c), invisible=True))
+        for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
+            b.append(Boto((WIDTH // 2 + 10 + k * 110, 352, 100, 38), nom, lambda v=valor: self.triar_completa_inicial(v),
+                          VERD if self.completa_inicial == valor else BLAU, font=F_HUD))
+        b.append(Boto((WIDTH // 2 - 110, 436, 220, 46), "Continuar", self.entrar_dificultat_inicial, VERD))
         self.botons = b
         self.canviar_estat("idioma_inicial")
 
     def rect_idioma_inicial(self, k):
-        return pygame.Rect(WIDTH // 2 - 345 + k * 240, 170, 210, 200)
+        return pygame.Rect(WIDTH // 2 - 345 + k * 240, 150, 210, 180)
 
     def triar_idioma_inicial(self, codi):
         canviar_idioma(codi)
         self.desar_progres()
-        self.entrar_intro(self.entrar_tutorial_inicial)
+        self.entrar_idioma_inicial()
+
+    def triar_completa_inicial(self, completa):
+        self.completa_inicial = completa
+        PANTALLA.posar_completa(completa)
+        self.desar_progres()
+        self.entrar_idioma_inicial()
 
     def entrar_tutorial_inicial(self):
         self.iniciar_tutorial(lambda: self.entrar_ajuda(despres=self.entrar_menu, pagines=range(4)))
@@ -7803,19 +7841,91 @@ class Game:
         for k, (txt, font) in enumerate((("Elige tu idioma", F_TEXT), ("Tria el teu idioma", F_TEXT_P),
                                          ("Choose your language", F_TEXT_P))):
             img = render(txt, font, BLANC if k == 0 else GRIS)
-            surf.blit(img, img.get_rect(center=(WIDTH // 2, 70 + k * 32)))
+            surf.blit(img, img.get_rect(center=(WIDTH // 2, 52 + k * 30)))
         pos = ratoli()
         for k, codi in enumerate(IDIOMES):
             r = self.rect_idioma_inicial(k)
+            triat = idioma() == codi
             hover = r.collidepoint(pos)
-            panell(surf, r.move(0, -4 if hover else 0), GROC if hover else BLAU_CLAR)
+            dy = -4 if hover else 0
+            panell(surf, r.move(0, dy), VERD if triat else (GROC if hover else BLAU_CLAR))
             bandera = pygame.Rect(0, 0, 150, 96)
-            bandera.center = (r.centerx, r.y + 78 - (4 if hover else 0))
+            bandera.center = (r.centerx, r.y + 70 + dy)
             dibuixar_bandera(surf, codi, bandera)
-            img = render(IDIOMES[codi], F_TEXT, BLANC)
-            surf.blit(img, img.get_rect(center=(r.centerx, r.bottom - 36 - (4 if hover else 0))))
-        img = render("ESP / CAT / ENG", F_MINI, GRIS)
-        surf.blit(img, img.get_rect(center=(WIDTH // 2, HEIGHT - 40)))
+            img = render(IDIOMES[codi], F_TEXT, VERD if triat else BLANC)
+            surf.blit(img, img.get_rect(center=(r.centerx, r.bottom - 32 + dy)))
+        text(surf, T("Pantalla completa"), F_TEXT, BLANC, (WIDTH // 2 - 20, 371), ancora="midright")
+        if WEB:
+            text(surf, T("También con F11 o desde Opciones"), F_TEXT_PP, GRIS, (WIDTH // 2, 410))
+
+    # ----- Primera vegada (2/2): dificultat -----------------------------------------
+    DESC_DIFICULTAT = {"facil": "Para disfrutar de la historia sin agobios.",
+                       "normal": "La experiencia pensada para el juego.",
+                       "dificil": "Para quien busca un reto de verdad."}
+    COLOR_DIFICULTAT = {"facil": VERD, "normal": GROC, "dificil": VERMELL}
+
+    def rect_dificultat_inicial(self, k):
+        return pygame.Rect(WIDTH // 2 - 420 + k * 290, 104, 260, 262)
+
+    def entrar_dificultat_inicial(self):
+        b = []
+        for k, ident in enumerate(DIFICULTATS):
+            b.append(Boto(self.rect_dificultat_inicial(k), "", lambda i=ident: self.triar_dificultat_inicial(i),
+                          invisible=True))
+        b.append(Boto((30, HEIGHT - 62, 140, 42), "< Idioma", self.entrar_idioma_inicial, GRIS_FOSC))
+        b.append(Boto((WIDTH // 2 - 110, 452, 220, 46), "¡A jugar!", self.començar_primera_partida, VERD))
+        self.botons = b
+        self.canviar_estat("dificultat_inicial")
+
+    def triar_dificultat_inicial(self, ident):
+        self.nivell_dificultat = ident
+        self.desar_progres()
+        AUDIO.so("item")
+
+    def començar_primera_partida(self):
+        self.desar_progres()
+        self.entrar_intro(self.entrar_tutorial_inicial)
+
+    def dibuixar_dificultat_inicial(self, surf):
+        self.fons_menu.dibuixar(surf)
+        text(surf, T("Elige la dificultad"), F_SUBTITOL, BLANC, (WIDTH // 2, 52))
+        pos = ratoli()
+        for k, (ident, d) in enumerate(DIFICULTATS.items()):
+            r = self.rect_dificultat_inicial(k)
+            triat = self.nivell_dificultat == ident
+            hover = r.collidepoint(pos)
+            dy = -4 if hover else 0
+            r = r.move(0, dy)
+            color = self.COLOR_DIFICULTAT.get(ident, BLANC)
+            panell(surf, r, VERD if triat else (GROC if hover else BLAU_CLAR), 235 if triat else 200)
+            text(surf, T(d["nom"]).upper(), F_UI, color, (r.centerx, r.y + 30))
+            for n in range(3):                                   # barretes de dificultat
+                x = r.centerx - 33 + n * 24
+                ple = n <= k
+                pygame.draw.rect(surf, NEGRE, (x, r.y + 52 + (12 - n * 6), 18, 12 + n * 6 + 2))
+                pygame.draw.rect(surf, color if ple else GRIS_FOSC, (x, r.y + 50 + (12 - n * 6), 18, 12 + n * 6))
+            if ident == "normal":
+                text(surf, T("Recomendada"), F_MINI, GROC, (r.centerx, r.y + 92))
+            files = [("Vida de los enemigos", f"{round(d['vida'] * 100)}%"),
+                     ("Daño de los enemigos", f"{round(d['dany'] * 100)}%"),
+                     ("Ritmo de disparo", T("Lento") if d["cadencia"] > 1 else (T("Rápido") if d["cadencia"] < 1 else T("Normal"))),
+                     ("Monedas", f"{round(d['monedes'] * 100)}%")]
+            for i, (nom, valor) in enumerate(files):
+                y = r.y + 118 + i * 25
+                text(surf, T(nom), F_TEXT_PP, GRIS, (r.x + 18, y), ancora="midleft", ombra=False)
+                text(surf, valor, F_TEXT_PP, BLANC, (r.right - 18, y), ancora="midright", ombra=False)
+            for i, linia in enumerate(ajustar_linies(T(self.DESC_DIFICULTAT.get(ident, "")), F_TEXT_PP, r.w - 30)[:2]):
+                text(surf, linia, F_TEXT_PP, color, (r.centerx, r.bottom - 42 + i * 20), ombra=False)
+        # es pot canviar a Opcions: el mateix engranatge que al menú
+        missatge = T("Puedes cambiarla cuando quieras en Opciones (el engranaje del menú).")
+        amp = F_TEXT_PP.size(missatge)[0]
+        x0 = WIDTH // 2 - (amp + 46) // 2
+        caixa = pygame.Rect(x0, 384, 38, 38)
+        pygame.draw.rect(surf, NEGRE, caixa.move(0, 3), border_radius=8)
+        pygame.draw.rect(surf, (30, 34, 66), caixa, border_radius=8)
+        pygame.draw.rect(surf, (80, 90, 140), caixa, 2, border_radius=8)
+        dibuixar_icona_menu(surf, "opcions", caixa.centerx, caixa.centery, self.t_global)
+        text(surf, missatge, F_TEXT_PP, BLANC, (caixa.right + 10, caixa.centery), ancora="midleft")
 
     # ----- Entrenament ------------------------------------------------------------
 
@@ -11613,6 +11723,13 @@ class Game:
         elif self.estat == "ajuda":
             if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
                 self.ajuda_despres()
+        elif self.estat == "idioma_inicial" and ev.type == pygame.KEYDOWN and ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            self.entrar_dificultat_inicial()
+        elif self.estat == "dificultat_inicial" and ev.type == pygame.KEYDOWN:
+            if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.començar_primera_partida()
+            elif ev.key == pygame.K_ESCAPE:
+                self.entrar_idioma_inicial()
         elif self.estat == "novetats" and ev.type == pygame.KEYDOWN:
             if ev.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                 self.sortir_novetats()
@@ -11660,7 +11777,7 @@ class Game:
             av[1] += 1
         self.avisos_logro = [av for av in self.avisos_logro if av[1] < 240]
         if self.estat in ("loading", "menu", "selector", "botiga", "guia", "credits", "passi", "arxiu", "opcions",
-                          "supervivencia", "logros", "idioma_inicial", "ajuda"):
+                          "supervivencia", "logros", "idioma_inicial", "dificultat_inicial", "ajuda"):
             self.fons_menu.actualitzar()
         if self.estat == "loading" and self.temps_estat > FPS * 6:
             self.sortir_carrega()
@@ -11681,7 +11798,8 @@ class Game:
             "joc": self.dibuixar_joc, "pausa": self.dibuixar_pausa, "passi": self.dibuixar_passi,
             "arxiu": self.dibuixar_arxiu, "intro": lambda s: self.intro.dibuixar(s), "opcions": self.dibuixar_opcions,
             "supervivencia": self.dibuixar_supervivencia, "logros": self.dibuixar_logros,
-            "idioma_inicial": self.dibuixar_idioma_inicial, "ajuda": self.dibuixar_ajuda,
+            "idioma_inicial": self.dibuixar_idioma_inicial, "dificultat_inicial": self.dibuixar_dificultat_inicial,
+            "ajuda": self.dibuixar_ajuda,
             "novetats": self.dibuixar_novetats, "colleccio": self.dibuixar_colleccio,
             "desafiaments": self.dibuixar_desafiaments, "diari": self.dibuixar_diari,
             "jugar": self.dibuixar_jugar, "revelacio": self.dibuixar_revelacio,

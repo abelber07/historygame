@@ -1886,3 +1886,28 @@ EN.update({
         "Reliable and accurate. When you're not firing, it recovers one round per second. The only weapon allowed everywhere.",
     "se recarga sola": "reloads itself",
 })
+
+CA.update({
+    "Pantalla completa": "Pantalla completa", "Monedas": "Monedes",
+    "También con F11 o desde Opciones": "També amb F11 o des d'Opcions",
+    "Elige la dificultad": "Tria la dificultat", "Recomendada": "Recomanada", "< Idioma": "< Idioma",
+    "¡A jugar!": "A jugar!", "Vida de los enemigos": "Vida dels enemics", "Daño de los enemigos": "Dany dels enemics",
+    "Ritmo de disparo": "Ritme de tir", "Lento": "Lent", "Rápido": "Ràpid",
+    "Para disfrutar de la historia sin agobios.": "Per gaudir de la història sense agobis.",
+    "La experiencia pensada para el juego.": "L'experiència pensada per al joc.",
+    "Para quien busca un reto de verdad.": "Per a qui busca un repte de debò.",
+    "Puedes cambiarla cuando quieras en Opciones (el engranaje del menú).":
+        "La pots canviar quan vulguis a Opcions (l'engranatge del menú).",
+})
+EN.update({
+    "Pantalla completa": "Fullscreen", "Monedas": "Coins",
+    "También con F11 o desde Opciones": "Also with F11 or from Options",
+    "Elige la dificultad": "Choose the difficulty", "Recomendada": "Recommended", "< Idioma": "< Language",
+    "¡A jugar!": "Let's play!", "Vida de los enemigos": "Enemy health", "Daño de los enemigos": "Enemy damage",
+    "Ritmo de disparo": "Fire rate", "Lento": "Slow", "Rápido": "Fast",
+    "Para disfrutar de la historia sin agobios.": "Enjoy the story without the stress.",
+    "La experiencia pensada para el juego.": "The experience the game was designed for.",
+    "Para quien busca un reto de verdad.": "For those who want a real challenge.",
+    "Puedes cambiarla cuando quieras en Opciones (el engranaje del menú).":
+        "You can change it any time in Options (the gear in the menu).",
+})

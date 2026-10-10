@@ -101,6 +101,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - La **pistola** vuelve a tener cargador: 12 balas que se recuperan solas, una por segundo, mientras no la disparas. Sirve de reserva, pero ya no permite pasarse el juego solo con ella.
 - El objeto de vida cura 15 en lugar de 20.
 - Tiempos de la estrella de los jefes finales: Comandante 360 s, Nave Nodriza 400 s, Núcleo 450 s.
+- **Primera partida**: en la pantalla del idioma también se elige si jugar a pantalla completa, y después la dificultad (Fácil, Normal o Difícil, con lo que cambia cada una). Se avisa de que se puede cambiar en cualquier momento desde Opciones.
 
 **Versión 4.1: más difícil**
 - Los enemigos normales aguantan un 25% más y los jefes (de sector y finales) un 50% más, para que no caigan en segundos aunque tengas las mejoras al máximo.
