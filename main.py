@@ -31,6 +31,19 @@ from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORI
 # Configuració general
 # ---------------------------------------------------------------------------
 WEB = sys.platform == "emscripten"
+
+
+def _prova_demanada():
+    """Prova de rendiment: s'activa obrint el joc amb ?prova=1 a l'adreça (o JOC_PROVA=1 a l'escriptori)."""
+    if WEB:
+        try:
+            return "prova=1" in str(__import__("platform").window.location.search)
+        except Exception:
+            return False
+    return os.environ.get("JOC_PROVA") == "1"
+
+
+PROVA_RENDIMENT = _prova_demanada()
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 WIDTH, HEIGHT = 960, 540       # 16:9; x2 = 1920x1080 exactos (cada píxel del juego son 2x2 de pantalla)
@@ -77,6 +90,9 @@ class Desat:
 
     @classmethod
     def carregar(cls):
+        if PROVA_RENDIMENT:                              # partida nova i neta, sempre igual
+            return {"reinici": cls.REINICI, "intro_vista": True, "tutorial_vist": True, "novetats_vistes": "prova",
+                    "opcions": {"idioma": "es", "musica": 0.0, "efectes": 0.0}}
         try:
             if WEB:
                 st = cls._storage()
@@ -102,6 +118,8 @@ class Desat:
 
     @classmethod
     def desar(cls, dades):
+        if PROVA_RENDIMENT:
+            return
         try:
             dades = dict(dades, reinici=cls.REINICI)
             txt = json.dumps(dades)
@@ -6008,8 +6026,153 @@ def raigs(surf, cx, cy, t, color, n=12, r=420):
         pygame.draw.polygon(surf, color, punts)
 
 
+class ProvaRendiment:
+    """Prova de rendiment automàtica (?prova=1): juga sola unes quantes escenes carregades, mesura cada
+    fotograma (FPS reals, mil·lisegons de feina i on es gasten) i ensenya els resultats. No desa res."""
+
+    ESCENES = [
+        {"nom": "Menú", "menu": True},
+        {"nom": "1-1 combate", "nivell": (0, 0), "enemics": 6},
+        {"nom": "1-1 + latido rojo", "nivell": (0, 0), "enemics": 6, "batec": True},
+        {"nom": "1-1 + destellos", "nivell": (0, 0), "enemics": 6, "flaix": True},
+        {"nom": "1-1 + golpes", "nivell": (0, 0), "enemics": 6, "cops": True},
+        {"nom": "3-1 focos", "nivell": (2, 0), "enemics": 6},
+        {"nom": "3-3 Comandante", "nivell": (2, 2), "enemics": 0},
+        {"nom": "4-2 alarma", "nivell": (3, 1), "enemics": 6, "batec": True},
+        {"nom": "5-3 Núcleo", "nivell": (4, 2), "enemics": 0},
+    ]
+    ESCALFAMENT, MESURA = 90, 360                  # fotogrames per escena: primer s'escalfa i després es mesura
+    SECCIONS = ("lògica", "fons", "entitats", "efectes", "capes", "còpia", "hud", "pantalla")
+
+    def __init__(self):
+        self.i, self.f = -1, 0
+        self.resultats = []
+        self.acabada = False
+        self.pos = (700, 260)
+        self.t_ultima = 0.0
+
+    def marca(self, nom):
+        t = time.perf_counter()
+        if self.mesurant:
+            self.seccions[nom] = self.seccions.get(nom, 0.0) + t - self.t_ultima
+        self.t_ultima = t
+
+    @property
+    def mesurant(self):
+        return not self.acabada and self.i >= 0 and self.f > self.ESCALFAMENT
+
+    def començar_escena(self, g):
+        self.i += 1
+        self.f = 0
+        self.seccions, self.feines, self.t0 = {}, [], None
+        if self.i >= len(self.ESCENES):
+            self.acabar(g)
+            return
+        e = self.ESCENES[self.i]
+        globals()["ratoli"] = lambda: self.pos
+        pygame.mouse.get_pressed = lambda *a: (not e.get("menu"), False, False)
+        if e.get("menu"):
+            g.entrar_menu()
+            return
+        g.armes_propies = {a["id"] for a in ARMES}
+        g.mode = "historia"
+        g.nivell_actual, g.escenari_actual = e["nivell"]
+        g.iniciar_joc()
+        g.presentacio = None
+        g.radio.buidar()
+        g.estat = "joc"
+
+    def abans(self, g):
+        """Abans de cada fotograma: mou l'escena (dispara, manté enemics, cops, flaixos...)."""
+        if self.acabada:
+            return
+        self.f += 1
+        if self.i < 0 or self.f > self.ESCALFAMENT + self.MESURA:
+            self.començar_escena(g)
+            if self.acabada:
+                return
+        if self.f == self.ESCALFAMENT + 1:
+            self.t0 = time.perf_counter()
+        self.t_ultima = time.perf_counter()
+        e = self.ESCENES[self.i]
+        if e.get("menu") or g.estat != "joc":
+            return
+        j = g.jugador
+        g.presentacio = None
+        g.esperar_alliberar = False
+        g.clic_pendent = 3
+        j.vida = 15 if e.get("batec") else j.vida_max
+        vius = [x for x in g.enemics if x.vida > 0]
+        if len(vius) < e.get("enemics", 0) and (self.f % 20 == 0 or not vius):
+            tipus = random.choice(("soldat", "dron", "dron", "lloctinent"))
+            g.enemics.append(g.crear_enemic(tipus, 60, random.uniform(300, 900), random.uniform(80, 220)))
+        for x in g.enemics:
+            if x.es_boss or x.es_final:
+                x.vida = max(x.vida, x.vida_max * 0.6)            # el cap no s'acaba mai durant la prova
+        if vius:
+            obj = vius[(self.f // 90) % len(vius)]
+            self.pos = (int(obj.centre[0]), int(obj.centre[1]))
+        g.espera_onada = 0 if g.espera_onada == 0 else 10 ** 6
+        if e.get("flaix") and self.f % 30 == 0:
+            g.flaix = max(g.flaix, 8)
+        if e.get("cops") and self.f % 45 == 0:
+            j.invulnerable = 0
+            g.ferir_jugador(10)
+            j.vida = j.vida_max
+
+    def despres(self, g, feina):
+        if self.mesurant:
+            self.feines.append(feina)
+            if self.f == self.ESCALFAMENT + self.MESURA:
+                durada = time.perf_counter() - self.t0
+                ordenades = sorted(self.feines)
+                n = len(ordenades)
+                self.resultats.append({
+                    "escena": self.ESCENES[self.i]["nom"], "fps": round(n / durada, 1),
+                    "ms": round(sum(ordenades) / n * 1000, 2), "p95": round(ordenades[int(n * 0.95)] * 1000, 2),
+                    "max": round(ordenades[-1] * 1000, 1),
+                    "seccions": {k: round(v / n * 1000, 2) for k, v in self.seccions.items()}})
+                print("PROVA", json.dumps(self.resultats[-1], ensure_ascii=False))
+
+    def acabar(self, g):
+        self.acabada = True
+        globals()["ratoli"] = lambda: PANTALLA.a_virtual(pygame.mouse.get_pos())
+        pygame.mouse.get_pressed = _PREMUT_ORIGINAL
+        text_json = json.dumps(self.resultats, ensure_ascii=False)
+        print("PROVA_FI", text_json)
+        if WEB:
+            try:
+                __import__("platform").window.prova_rendiment = text_json
+            except Exception:
+                pass
+        g.botons = []
+        g.canviar_estat("prova")
+
+    def dibuixar(self, surf):
+        surf.fill((12, 14, 28))
+        text(surf, "PRUEBA DE RENDIMIENTO", F_UI, BLANC, (WIDTH // 2, 26))
+        cols = ["Escena", "FPS", "ms", "p95"] + list(self.SECCIONS)
+        xs = [16, 186, 236, 286] + [340 + k * 77 for k in range(len(self.SECCIONS))]
+        for x, c in zip(xs, cols):
+            text(surf, c, F_MINI, GRIS, (x, 60), ancora="midleft")
+        for r, res in enumerate(self.resultats):
+            y = 84 + r * 26
+            fps = res["fps"]
+            color = VERD if fps >= 57 else (GROC if fps >= 45 else VERMELL)
+            vals = [res["escena"], f"{fps:.0f}", f"{res['ms']:.1f}", f"{res['p95']:.1f}"] + \
+                   [f"{res['seccions'].get(k, 0):.1f}" for k in self.SECCIONS]
+            for x, v in zip(xs, vals):
+                text(surf, v, F_MINI, color if v == vals[1] else BLANC, (x, y), ancora="midleft")
+        text(surf, "Tiempos en milisegundos por fotograma. No se ha guardado nada.", F_TEXT_PP, GRIS,
+             (WIDTH // 2, HEIGHT - 24))
+
+
+_PREMUT_ORIGINAL = pygame.mouse.get_pressed
+
+
 class Game:
     def __init__(self):
+        self.prova = ProvaRendiment() if PROVA_RENDIMENT else None
         self.clock = pygame.time.Clock()
         self.estat = "loading"
         self.temps_estat = 0
@@ -11079,7 +11242,12 @@ class Game:
         if e.laser and jugant and rj.clipline(e.laser[0], e.laser[1]):
             self.ferir_jugador(e.dany)
 
+    def marca(self, nom):
+        if self.prova:
+            self.prova.marca(nom)
+
     def dibuixar_joc(self, surf):
+        self.marca("lògica")
         c = self.capa
         fons = FONS_NIVELLS.get((self.nivell_actual, self.escenari_actual))
         if fons and self.mode == "desafiament":
@@ -11098,6 +11266,7 @@ class Game:
         else:
             c.fill(FONS)
         self.ambient.dibuixar_fons(c)
+        self.marca("fons")
         for p in self.plataformes:
             p.dibuixar(c)
         self.perills.dibuixar(c, self.efectes)
@@ -11128,6 +11297,7 @@ class Game:
                     pygame.draw.line(c, (90, 160, 230), (jx, jy), (px, py), 1)
         else:
             self.jugador.dibuixar_mort(c, spr)
+        self.marca("entitats")
         for b in self.bales:
             b.dibuixar(c)
         for b in self.bales_enemics:
@@ -11138,6 +11308,7 @@ class Game:
         self.ambient.dibuixar_davant(c)
         for t in self.textos:
             t.dibuixar(c)
+        self.marca("efectes")
         if self.flaix:
             vel = CAPA_TRANSPARENT
             vel.fill((255, 255, 255, int(16 * self.flaix)))
@@ -11147,7 +11318,7 @@ class Game:
             k = max(0.0, 1 - p / 12, 0.75 * (1 - abs(p - 15) / 8))
             ALARMA.set_alpha(int(35 + 90 * k))
             c.blit(ALARMA, (0, 0))
-
+        self.marca("capes")
         if self.tremolor > 0.5:
             ox = random.randint(-int(self.tremolor), int(self.tremolor))
             oy = random.randint(-int(self.tremolor), int(self.tremolor))
@@ -11155,7 +11326,9 @@ class Game:
             surf.blit(c, (ox, oy))
         else:
             surf.blit(c, (0, 0))
+        self.marca("còpia")
         self.dibuixar_hud(surf)
+        self.marca("hud")
 
     def dibuixar_hud(self, surf):
         j = self.jugador
@@ -11813,6 +11986,7 @@ class Game:
             "novetats": self.dibuixar_novetats, "colleccio": self.dibuixar_colleccio,
             "desafiaments": self.dibuixar_desafiaments, "diari": self.dibuixar_diari,
             "jugar": self.dibuixar_jugar, "revelacio": self.dibuixar_revelacio,
+            "prova": lambda s: self.prova.dibuixar(s) if self.prova else None,
         }.get(self.estat)
         if dibuix:
             dibuix(surf)
@@ -11869,6 +12043,8 @@ class Game:
     def pas(self):
         """Un fotograma complet (també l'utilitzen les proves automàtiques)."""
         inici = time.perf_counter()
+        if self.prova:
+            self.prova.abans(self)
         for ev in pygame.event.get():
             if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and hasattr(ev, "pos"):
                 ev = pygame.event.Event(ev.type, {**ev.dict, "pos": PANTALLA.a_virtual(ev.pos)})
@@ -11880,7 +12056,12 @@ class Game:
             return False
         self.dibuixar(screen)
         self.mesurar_fps(inici, time.perf_counter() - inici)
+        if self.prova:
+            self.prova.t_ultima = time.perf_counter()
         PANTALLA.presentar(screen)
+        if self.prova:
+            self.prova.marca("pantalla")
+            self.prova.despres(self, time.perf_counter() - inici)
         return True
 
     async def main(self):
