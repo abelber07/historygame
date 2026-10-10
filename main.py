@@ -6107,6 +6107,7 @@ class Game:
         opcions = d.get("opcions") if isinstance(d.get("opcions"), dict) else {}
         self.nivell_dificultat = opcions.get("dificultat") if opcions.get("dificultat") in DIFICULTATS else "normal"
         self.numeros_dany = bool(opcions.get("numeros", True))
+        self.mostrar_fps = bool(opcions.get("fps", False))
         self.arena = 0
         self.nivell_enemics = 0
         self.logros = {x for x in d.get("logros", []) if isinstance(x, str)} if isinstance(d.get("logros"), list) else set()
@@ -6143,7 +6144,8 @@ class Game:
             **self.dades_contingut(),
             "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
                         "completa": PANTALLA.completa, "suau": PANTALLA.suau,
-                        "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany},
+                        "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany,
+                        "fps": getattr(self, "mostrar_fps", False)},
         })
 
     def esborrar_progres(self):
@@ -6531,37 +6533,45 @@ class Game:
     def entrar_opcions(self, tornada=None):
         self.tornada_opcions = tornada or self.entrar_menu
         self.lliscadors = [
-            Lliscador(400, 105, 320, AUDIO.vol_musica, lambda v: AUDIO.canviar_volums(musica=v), self.desar_progres),
-            Lliscador(400, 157, 320, AUDIO.vol_efectes, lambda v: AUDIO.canviar_volums(efectes=v),
+            Lliscador(400, 97, 320, AUDIO.vol_musica, lambda v: AUDIO.canviar_volums(musica=v), self.desar_progres),
+            Lliscador(400, 141, 320, AUDIO.vol_efectes, lambda v: AUDIO.canviar_volums(efectes=v),
                       lambda: (AUDIO.so("moneda"), self.desar_progres())),
         ]
         b = []
         if WEB:
-            b.append(Boto((400, 196, 320, 40), "Pantalla completa (F11)", PANTALLA.commutar_completa, BLAU, font=F_HUD))
+            b.append(Boto((400, 172, 320, 36), "Pantalla completa (F11)", PANTALLA.commutar_completa, BLAU, font=F_HUD))
         else:
-            b.append(Boto((400, 196, 155, 40), "Completa", lambda: self.posar_pantalla(True),
+            b.append(Boto((400, 172, 155, 36), "Completa", lambda: self.posar_pantalla(True),
                           VERD if PANTALLA.completa else BLAU, font=F_HUD))
-            b.append(Boto((565, 196, 155, 40), "Ventana", lambda: self.posar_pantalla(False),
+            b.append(Boto((565, 172, 155, 36), "Ventana", lambda: self.posar_pantalla(False),
                           VERD if not PANTALLA.completa else BLAU, font=F_HUD))
-        b.append(Boto((400, 248, 155, 40), "Suave", lambda: self.posar_suau(True), VERD if PANTALLA.suau else BLAU,
+        b.append(Boto((400, 216, 155, 36), "Suave", lambda: self.posar_suau(True), VERD if PANTALLA.suau else BLAU,
                       font=F_HUD))
-        b.append(Boto((565, 248, 155, 40), "Nítido", lambda: self.posar_suau(False),
+        b.append(Boto((565, 216, 155, 36), "Nítido", lambda: self.posar_suau(False),
                       VERD if not PANTALLA.suau else BLAU, font=F_HUD))
         for k, (ident, d) in enumerate(DIFICULTATS.items()):
-            b.append(Boto((400 + k * 110, 300, 100, 40), d["nom"], lambda i=ident: self.posar_dificultat(i),
+            b.append(Boto((400 + k * 110, 260, 100, 36), d["nom"], lambda i=ident: self.posar_dificultat(i),
                           VERD if self.nivell_dificultat == ident else BLAU, font=F_HUD))
         for k, (ident, nom) in enumerate(IDIOMES.items()):
-            b.append(Boto((400 + k * 110, 352, 100, 40), nom, lambda i=ident: self.posar_idioma(i),
+            b.append(Boto((400 + k * 110, 304, 100, 36), nom, lambda i=ident: self.posar_idioma(i),
                           VERD if idioma() == ident else BLAU, font=F_HUD))
         for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
-            b.append(Boto((450 + k * 110, 406, 100, 34), nom, lambda v=valor: self.posar_numeros(v),
+            b.append(Boto((450 + k * 110, 350, 100, 32), nom, lambda v=valor: self.posar_numeros(v),
                           VERD if self.numeros_dany == valor else BLAU, font=F_HUD))
+        for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
+            b.append(Boto((450 + k * 110, 394, 100, 32), nom, lambda v=valor: self.posar_fps(v),
+                          VERD if self.mostrar_fps == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
         if self.tornada_opcions == self.entrar_menu:
             b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
                           color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
         self.canviar_estat("opcions")
+
+    def posar_fps(self, valor):
+        self.mostrar_fps = valor
+        self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
 
     def posar_numeros(self, valor):
         self.numeros_dany = valor
@@ -6584,8 +6594,8 @@ class Game:
     def dibuixar_opcions(self, surf):
         self.fons_menu.dibuixar(surf)
         text(surf, T("OPCIONES"), F_SUBTITOL, BLANC, (WIDTH // 2, 46))
-        files = [("Música", 112), ("Efectos", 164), ("Pantalla", 216), ("Escalado", 268), ("Dificultad", 320),
-                 ("Idioma", 372), ("Números de daño", 423)]
+        files = [("Música", 104), ("Efectos", 148), ("Pantalla", 190), ("Escalado", 234), ("Dificultad", 278),
+                 ("Idioma", 322), ("Números de daño", 366), ("Contador de FPS", 410)]
         for nom, y in files:
             text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft")
         for l in self.lliscadors:
@@ -11821,6 +11831,8 @@ class Game:
                 text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 60, HEIGHT - 28))
         if self.avisos_logro and self.estat != "loading":
             self.dibuixar_avisos_logro(surf)
+        if getattr(self, "mostrar_fps", False):
+            self.dibuixar_fps(surf)
         trans = getattr(self, "transicio", None)
         if trans:
             trans[0].set_alpha(int(255 * (trans[1] / 12) ** 1.5))
@@ -11829,8 +11841,34 @@ class Game:
             if trans[1] <= 0:
                 self.transicio = None
 
+    def mesurar_fps(self, inici, feina):
+        """Fotogrames per segon reals i temps de feina de cada fotograma (mitjanes de mig segon)."""
+        m = self.__dict__.setdefault("_fps", {"t0": inici, "n": 0, "feina": 0.0, "fps": 0.0, "ms": 0.0})
+        m["n"] += 1
+        m["feina"] += feina
+        if inici - m["t0"] >= 0.5:
+            m["fps"] = m["n"] / (inici - m["t0"])
+            m["ms"] = m["feina"] / m["n"] * 1000
+            m["t0"], m["n"], m["feina"] = inici, 0, 0.0
+
+    def dibuixar_fps(self, surf):
+        """Comptador petit a dalt al centre, on no tapa res de l'HUD."""
+        m = getattr(self, "_fps", None)
+        if not m or not m["fps"]:
+            return
+        fps = m["fps"]
+        color = VERD if fps >= 55 else (GROC if fps >= 40 else VERMELL)
+        clau = (round(fps), round(m["ms"], 1), color)
+        if getattr(self, "_fps_img", (None,))[0] != clau:
+            txt = f"{round(fps)} FPS · {m['ms']:.1f} ms".replace(".", ",") if idioma() != "en" else f"{round(fps)} FPS · {m['ms']:.1f} ms"
+            self._fps_img = (clau, text_contorn(txt, F_MINI, color))
+        img = self._fps_img[1]
+        img.set_alpha(200)
+        surf.blit(img, img.get_rect(midtop=(WIDTH // 2, 4)))
+
     def pas(self):
         """Un fotograma complet (també l'utilitzen les proves automàtiques)."""
+        inici = time.perf_counter()
         for ev in pygame.event.get():
             if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and hasattr(ev, "pos"):
                 ev = pygame.event.Event(ev.type, {**ev.dict, "pos": PANTALLA.a_virtual(ev.pos)})
@@ -11841,6 +11879,7 @@ class Game:
         if self.estat == "quit":
             return False
         self.dibuixar(screen)
+        self.mesurar_fps(inici, time.perf_counter() - inici)
         PANTALLA.presentar(screen)
         return True
 

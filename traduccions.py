@@ -1911,3 +1911,5 @@ EN.update({
     "Puedes cambiarla cuando quieras en Opciones (el engranaje del menú).":
         "You can change it any time in Options (the gear in the menu).",
 })
+CA.update({"Contador de FPS": "Comptador de FPS"})
+EN.update({"Contador de FPS": "FPS counter"})
