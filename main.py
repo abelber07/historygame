@@ -6036,8 +6036,9 @@ def raigs(surf, cx, cy, t, color, n=12, r=420):
 
 
 class ProvaRendiment:
-    """Prova de rendiment automàtica (?prova=1): juga sola unes quantes escenes carregades, mesura cada
-    fotograma (FPS reals, mil·lisegons de feina i on es gasten) i ensenya els resultats. No desa res."""
+    """Prova de rendiment automàtica (?prova=1): juga sola unes quantes escenes carregades com ho faria una
+    persona (corre, salta, fa tombarelles, canvia entre totes les armes, rep trets), mesura cada fotograma
+    (FPS reals, mil·lisegons de feina i on es gasten) i ensenya els resultats. No desa res."""
 
     ESCENES = [
         {"nom": "Menú", "menu": True},
@@ -6048,6 +6049,7 @@ class ProvaRendiment:
         {"nom": "3-1 focos", "nivell": (2, 0), "enemics": 6},
         {"nom": "3-3 Comandante", "nivell": (2, 2), "enemics": 0},
         {"nom": "4-2 alarma", "nivell": (3, 1), "enemics": 6, "batec": True},
+        {"nom": "5-2 colmena", "nivell": (4, 1), "enemics": 7},
         {"nom": "5-3 Núcleo", "nivell": (4, 2), "enemics": 0},
     ]
     ESCALFAMENT, MESURA = 90, 360                  # fotogrames per escena: primer s'escalfa i després es mesura
@@ -6059,6 +6061,7 @@ class ProvaRendiment:
         self.acabada = False
         self.pos = (700, 260)
         self.t_ultima = 0.0
+        self.tecles = set()
 
     def marca(self, nom):
         t = time.perf_counter()
@@ -6080,9 +6083,16 @@ class ProvaRendiment:
         e = self.ESCENES[self.i]
         globals()["ratoli"] = lambda: self.pos
         pygame.mouse.get_pressed = lambda *a: (not e.get("menu"), False, False)
+        tecles = self.tecles
+
+        class Teclat:
+            def __getitem__(self, k):
+                return k in tecles
+        pygame.key.get_pressed = lambda: Teclat()
         if e.get("menu"):
             g.entrar_menu()
             return
+        g.potencia_max = lambda: 5                     # totes les armes, a tots els escenaris
         g.armes_propies = {a["id"] for a in ARMES}
         g.mode = "historia"
         g.nivell_actual, g.escenari_actual = e["nivell"]
@@ -6110,10 +6120,27 @@ class ProvaRendiment:
         g.presentacio = None
         g.esperar_alliberar = False
         g.clic_pendent = 3
-        j.vida = 15 if e.get("batec") else j.vida_max
+        if g.fase == "mort":
+            g.fase = "jugant"
+        if e.get("batec"):                               # poca vida (latido) però sense morir
+            j.vida = 15
+            j.invulnerable = max(j.invulnerable, 2)
+        else:
+            j.vida = j.vida_max                          # els trets enemics sí que el toquen (efectes de cop)
+        # moure's com una persona: córrer a banda i banda, saltar i fer tombarelles
+        self.tecles.clear()
+        self.tecles.add(pygame.K_d if (self.f // 70) % 2 == 0 else pygame.K_a)
+        if self.f % 55 < 14:
+            self.tecles.add(pygame.K_SPACE)
+        if self.f % 160 == 80:
+            g.esquivar()
+        # canviar entre totes les armes (amb munició)
+        if self.f % 110 == 1:
+            g.canviar_arma((g.arma_actual + 1) % len(ARMES))
+        g.bales_armes = [g.bales_max(k) for k in range(len(ARMES))]
         vius = [x for x in g.enemics if x.vida > 0]
         if len(vius) < e.get("enemics", 0) and (self.f % 20 == 0 or not vius):
-            tipus = random.choice(("soldat", "dron", "dron", "lloctinent"))
+            tipus = random.choice(("soldat", "dron", "dron", "lloctinent", "escut", "kamikaze", "cacador"))
             g.enemics.append(g.crear_enemic(tipus, 60, random.uniform(300, 900), random.uniform(80, 220)))
         for x in g.enemics:
             if x.es_boss or x.es_final:
@@ -6147,6 +6174,7 @@ class ProvaRendiment:
         self.acabada = True
         globals()["ratoli"] = lambda: PANTALLA.a_virtual(pygame.mouse.get_pos())
         pygame.mouse.get_pressed = _PREMUT_ORIGINAL
+        pygame.key.get_pressed = _TECLAT_ORIGINAL
         text_json = json.dumps(self.resultats, ensure_ascii=False)
         print("PROVA_FI", text_json)
         if WEB:
@@ -6177,6 +6205,7 @@ class ProvaRendiment:
 
 
 _PREMUT_ORIGINAL = pygame.mouse.get_pressed
+_TECLAT_ORIGINAL = pygame.key.get_pressed
 
 
 class Game:
