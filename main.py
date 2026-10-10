@@ -20,7 +20,7 @@ from idiomes import IDIOMES, T, idioma, posar_idioma
 from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
-from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
+from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, PASSOS_TUTORIAL_MANDO, PASSOS_TUTORIAL_TACTIL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
                    REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
@@ -255,6 +255,14 @@ class Pantalla:
         except Exception:
             pass
 
+    @staticmethod
+    def demanar_completa_web():
+        """Pantalla completa al navegador; al mòbil, a més, en horitzontal."""
+        __import__("platform").window.eval(
+            "(function(){var d=document.documentElement;var p=(d.requestFullscreen||d.webkitRequestFullscreen).call(d);"
+            "if(p&&p.then){p.then(function(){if(screen.orientation&&screen.orientation.lock)"
+            "{return screen.orientation.lock('landscape');}}).catch(function(){});}})()")
+
     def es_completa(self):
         if WEB:
             try:
@@ -269,7 +277,7 @@ class Pantalla:
             try:
                 doc = __import__("platform").window.document
                 if completa:
-                    doc.documentElement.requestFullscreen()
+                    self.demanar_completa_web()
                 elif doc.fullscreenElement:
                     doc.exitFullscreen()
             except Exception as err:
@@ -282,7 +290,7 @@ class Pantalla:
     def commutar_completa(self):
         if WEB:
             try:
-                __import__("platform").window.document.documentElement.requestFullscreen()
+                self.demanar_completa_web()
             except Exception as err:
                 print(f"No s'ha pogut posar a pantalla completa: {err}")
             return
@@ -325,8 +333,21 @@ PANTALLA = Pantalla(bool(OPCIONS_INICIALS.get("completa", True)), bool(OPCIONS_I
 screen = pygame.Surface((WIDTH, HEIGHT))       # llenç virtual on es dibuixa tot el joc
 
 
+PEU_AMPLE = 760          # amplada dels textos d'ajuda del peu (entre el botó de tornar i la vora dreta)
+
+
+def peu(surf, txt, color, font=None):
+    """Text d'ajuda al peu de les pantalles de menú: entre el botó de tornar i la vora dreta, en dues línies si cal."""
+    text_bloc(surf, txt, font or F_TEXT_PP, color, (178, HEIGHT - 64, WIDTH - 186, 48), ombra=True)
+
+
 def ratoli():
-    """Posició del ratolí en coordenades del joc, sigui quina sigui la resolució."""
+    """Posició del ratolí en coordenades del joc, sigui quina sigui la resolució. Amb el mando és el cursor
+    (o el punt de mira, jugant) i amb la pantalla tàctil, el dit."""
+    if CONTROL is not None:
+        p = CONTROL.posicio()
+        if p is not None:
+            return p
     return PANTALLA.a_virtual(pygame.mouse.get_pos())
 
 
@@ -340,11 +361,17 @@ FONTS_PIXEL = set()
 SENSE_ACCENT = str.maketrans("ÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛ", "AAAAEEEEIIIIOOOOUUUU")
 
 
+INFO_FONTS = {}              # id(font) -> (fitxer, mida): per poder fer la mateixa lletra més petita si un text no hi cap
+_FONTS_MIDA = {}
+
+
 def carregar_font(nom, mida):
     try:
         f = pygame.font.Font(ruta("fonts", nom), mida)
         if nom.startswith("PressStart"):
             FONTS_PIXEL.add(id(f))
+        INFO_FONTS[id(f)] = (nom, mida)
+        _FONTS_MIDA.setdefault((nom, mida), f)
         return f
     except (OSError, pygame.error):
         return pygame.font.Font(None, int(mida * 1.5))
@@ -1077,14 +1104,75 @@ def render(txt, font, color):
     return s
 
 
-def text(surf, txt, font, color, pos, ancora="center", ombra=True):
+def font_mida(font, mida):
+    """La mateixa lletra que `font`, a una altra mida."""
+    info = INFO_FONTS.get(id(font))
+    if info is None or info[1] == mida:
+        return font
+    f = _FONTS_MIDA.get((info[0], mida))
+    if f is None:
+        f = carregar_font(info[0], mida)
+    return f
+
+
+def font_que_cap(txt, font, ample):
+    """La lletra més gran (de la mateixa família, sense passar de `font`) amb què `txt` fa com a molt `ample` píxels."""
+    if font.size(txt)[0] <= ample:
+        return font
+    info = INFO_FONTS.get(id(font))
+    if info is None:
+        return font
+    minim = 7 if id(font) in FONTS_PIXEL else 15
+    for m in range(info[1] - 1, minim - 1, -1):
+        f = font_mida(font, m)
+        if f.size(txt)[0] <= ample:
+            return f
+    return font_mida(font, minim)
+
+
+def text(surf, txt, font, color, pos, ancora="center", ombra=True, max_w=None):
     txt = T(txt)
+    if max_w is None and font.size(txt)[0] > WIDTH - 12:
+        max_w = WIDTH - 12                              # mai més ample que la pantalla
+    if max_w is not None:
+        font = font_que_cap(txt, font, max_w)
     img = render(txt, font, color)
     rect = img.get_rect(**{ancora: pos})
     if ombra:
         surf.blit(render(txt, font, NEGRE), rect.move(2, 2))
     surf.blit(img, rect)
     return rect
+
+
+def text_bloc(surf, txt, font, color, rect, alinea="center", vertical="center", ombra=False, interlinia=0.82,
+              max_linies=None):
+    """Escriu `txt` dins de `rect`: el parteix en línies i, si no hi cap, fa la lletra més petita fins que hi cap."""
+    txt = T(txt)
+    rect = pygame.Rect(rect)
+    info = INFO_FONTS.get(id(font))
+    minim = 7 if id(font) in FONTS_PIXEL else 15
+    mides = range(info[1], minim - 1, -1) if info else [None]
+    for m in mides:
+        f = font if m is None else font_mida(font, m)
+        linies = ajustar_linies(txt, f, rect.w)
+        pas = max(8, int(f.get_height() * interlinia))
+        alt = pas * (len(linies) - 1) + f.get_height()
+        cap = alt <= rect.h and all(f.size(l)[0] <= rect.w for l in linies)
+        if cap and (max_linies is None or len(linies) <= max_linies):
+            break
+    if max_linies is not None:
+        linies = linies[:max_linies]
+    alt = pas * (len(linies) - 1) + f.get_height()
+    y = rect.y if vertical == "top" else (rect.bottom - alt if vertical == "bottom" else rect.centery - alt // 2)
+    for k, l in enumerate(linies):
+        yy = y + k * pas
+        if alinea == "left":
+            text(surf, l, f, color, (rect.x, yy), ancora="topleft", ombra=ombra, max_w=rect.w)
+        elif alinea == "right":
+            text(surf, l, f, color, (rect.right, yy), ancora="topright", ombra=ombra, max_w=rect.w)
+        else:
+            text(surf, l, f, color, (rect.centerx, yy), ancora="midtop", ombra=ombra, max_w=rect.w)
+    return f, len(linies)
 
 
 def ajustar_linies(txt, font, ample):
@@ -2066,7 +2154,7 @@ class Boto:
             pygame.draw.rect(surf, tuple(int(c + (255 - c) * k) for c in aclarir(color, 60)), r, 2, border_radius=8)
         else:
             pygame.draw.rect(surf, aclarir(color, 60), r, 2, border_radius=8)
-        text(surf, T(self.txt), self.font, self.color_text if self.actiu else GRIS, r.center)
+        text(surf, T(self.txt), self.font, self.color_text if self.actiu else GRIS, r.center, max_w=self.rect.w - 14)
 
     def gestionar(self, event):
         if (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.actiu
@@ -4638,8 +4726,8 @@ class PantallaText:
             text(surf, linia, F_TEXT_P, color, (WIDTH // 2, panell.bottom + 22 + i * 26))
         for b in self.botons:
             b.dibuixar(surf)
-        pista = self.pista or ("Clic / ESPACIO para continuar" if self.complet else "Clic / ESPACIO para ver todo el texto")
-        text(surf, pista, F_MINI, GRIS, (WIDTH // 2, HEIGHT - 22))
+        txt = self.pista or ("Clic / ESPACIO para continuar" if self.complet else "Clic / ESPACIO para ver todo el texto")
+        text(surf, pista(txt), F_MINI, GRIS, (WIDTH // 2, HEIGHT - 22))
 
 
 # ---------------------------------------------------------------------------
@@ -6318,8 +6406,629 @@ _PREMUT_ORIGINAL = pygame.mouse.get_pressed
 _TECLAT_ORIGINAL = pygame.key.get_pressed
 
 
+# ---------------------------------------------------------------------------
+# Mando i pantalla tàctil
+# ---------------------------------------------------------------------------
+# Al navegador, els dits i el mando es llegeixen amb un petit codi JavaScript propi (esdeveniments tàctils
+# i la Gamepad API): així no depèn de com els tracti SDL. El joc ho consulta una vegada per fotograma.
+JS_ENTRADA = r"""
+(function () {
+  if (window.jocEntrada) return;
+  var events = [];
+  function canvas() { return document.getElementById('canvas'); }
+  function posar(tipus) {
+    return function (e) {
+      var c = canvas();
+      if (!c) return;
+      var r = c.getBoundingClientRect();
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        events.push([tipus, t.identifier, (t.clientX - r.left) / r.width, (t.clientY - r.top) / r.height]);
+      }
+      if (e.cancelable) e.preventDefault();
+    };
+  }
+  var op = {passive: false};
+  window.addEventListener('touchstart', posar('d'), op);
+  window.addEventListener('touchmove', posar('m'), op);
+  window.addEventListener('touchend', posar('u'), op);
+  window.addEventListener('touchcancel', posar('u'), op);
+  window.addEventListener('contextmenu', function (e) { if (events.length || window.jocTactil) e.preventDefault(); });
+  try {
+    var c = canvas();
+    if (c) { c.style.touchAction = 'none'; c.style.webkitUserSelect = 'none'; c.style.userSelect = 'none'; }
+    document.body.style.touchAction = 'none';
+    document.body.style.overscrollBehavior = 'none';
+  } catch (err) {}
+  window.jocEntrada = function () {
+    var out = {t: events};
+    if (events.length) window.jocTactil = true;
+    events = [];
+    var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (var i = 0; i < pads.length; i++) {
+      var p = pads[i];
+      if (p && p.connected) {
+        var b = [];
+        for (var k = 0; k < p.buttons.length; k++) b.push(Math.round(p.buttons[k].value * 100) / 100);
+        var a = [];
+        for (var k = 0; k < p.axes.length && k < 4; k++) a.push(Math.round(p.axes[k] * 100) / 100);
+        out.g = {b: b, a: a, id: p.id, m: p.mapping};
+        break;
+      }
+    }
+    out.v = (window.innerHeight > window.innerWidth * 1.05) ? 1 : 0;
+    return JSON.stringify(out);
+  };
+})();
+"""
+
+
+class Control:
+    """Mando (Xbox, PlayStation, genèric) i pantalla tàctil, a més del teclat i el ratolí.
+
+    `mode` diu què s'ha fet servir per últim cop: "teclat" (també el ratolí), "mando" o "tactil". Segons el
+    mode, el joc ensenya els controls tàctils, el cursor del mando o les ajudes de cada dispositiu."""
+
+    # botons amb la disposició estàndard de la Gamepad API (Xbox: A B X Y · PlayStation: Creu Cercle Quadrat Triangle)
+    A, B, X, Y, LB, RB, LT, RT, SELECT, START, LS, RS, AMUNT, AVALL, ESQ, DRE = range(16)
+    MORT = 0.3                         # zona morta dels joysticks
+    R_STICK = 62                       # radi dels joysticks tàctils (en píxels del joc)
+    # botons tàctils de la partida: (nom, centre, radi)
+    BOTONS_TACTILS = (("salt", (896, 404), 40), ("esquiva", (806, 446), 30), ("arma", (906, 312), 25),
+                      ("pausa", (712, 32), 20))
+
+    def __init__(self):
+        self.mode = "teclat"
+        self.b = [0.0] * 17
+        self.ant = [0.0] * 17
+        self.eixos = [0.0] * 4
+        self.nom_mando = ""
+        self.play = False                # mando de PlayStation (per als noms dels botons)
+        self.js = False
+        self.pad = None
+        self.vertical = False
+        self.toques = {}
+        self.ms_toc = -10 ** 9
+        self.cursor = [WIDTH / 2, HEIGHT / 2]
+        self.pos_tactil = None
+        self.angle = None                # cap on s'apunta amb el mando o el dit (radians); None = cap on mires
+        self.mira = (WIDTH // 2, HEIGHT // 2)
+        self.objectiu = None             # enemic on ajuda a apuntar
+        self.ultims_botons = None
+        self.ultim_estat = None
+        self.repeticio = {}
+        self.boto_a = False
+        self.apuntant = False
+        self.salt_tactil = False
+        self.amunt_tactil = False
+        self.esq = self.dre = self.salt = self.avall = self.disparant = False
+        self.tactil_joc = {"esq": False, "dre": False, "salt": False, "avall": False, "dispara": False}
+        if WEB:
+            try:
+                __import__("platform").window.eval(JS_ENTRADA)
+                self.js = True
+            except Exception as err:
+                print(f"Sense entrada tàctil/mando: {err}")
+        else:
+            try:
+                from pygame._sdl2 import controller as _ctl
+                _ctl.init()
+                self._ctl = _ctl
+            except Exception:
+                self._ctl = None
+
+    # ----- lectura --------------------------------------------------------
+    def posar_mode(self, mode):
+        if mode != self.mode:
+            self.mode = mode
+            pygame.mouse.set_visible(mode == "teclat" and getattr(self, "g", None) is not None and self.g.estat != "joc")
+
+    def premut(self, i):
+        return self.b[i] > 0.5 and self.ant[i] <= 0.5
+
+    def deixat(self, i):
+        return self.b[i] <= 0.5 and self.ant[i] > 0.5
+
+    def _llegir_natiu(self):
+        ctl = getattr(self, "_ctl", None)
+        if ctl is None:
+            return
+        try:
+            if self.pad is None:
+                if ctl.get_count() > 0:
+                    self.pad = ctl.Controller(0)
+                    self.nom_mando = self.pad.name or ""
+                else:
+                    return
+            p = self.pad
+            if not p.attached():
+                self.pad = None
+                return
+            ordre = (pygame.CONTROLLER_BUTTON_A, pygame.CONTROLLER_BUTTON_B, pygame.CONTROLLER_BUTTON_X,
+                     pygame.CONTROLLER_BUTTON_Y, pygame.CONTROLLER_BUTTON_LEFTSHOULDER,
+                     pygame.CONTROLLER_BUTTON_RIGHTSHOULDER, None, None, pygame.CONTROLLER_BUTTON_BACK,
+                     pygame.CONTROLLER_BUTTON_START, pygame.CONTROLLER_BUTTON_LEFTSTICK,
+                     pygame.CONTROLLER_BUTTON_RIGHTSTICK, pygame.CONTROLLER_BUTTON_DPAD_UP,
+                     pygame.CONTROLLER_BUTTON_DPAD_DOWN, pygame.CONTROLLER_BUTTON_DPAD_LEFT,
+                     pygame.CONTROLLER_BUTTON_DPAD_RIGHT, pygame.CONTROLLER_BUTTON_GUIDE)
+            b = [float(p.get_button(c)) if c is not None else 0.0 for c in ordre]
+            b[self.LT] = max(0.0, p.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767)
+            b[self.RT] = max(0.0, p.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767)
+            self.b = b
+            self.eixos = [max(-1.0, p.get_axis(a) / 32767) for a in (pygame.CONTROLLER_AXIS_LEFTX, pygame.CONTROLLER_AXIS_LEFTY,
+                                                                    pygame.CONTROLLER_AXIS_RIGHTX, pygame.CONTROLLER_AXIS_RIGHTY)]
+        except Exception as err:
+            print(f"Mando: {err}")
+            self.pad = None
+
+    def llegir(self, g):
+        """Una vegada per fotograma, abans dels esdeveniments: dits, mando i què se n'ha de fer."""
+        self.g = g
+        self.ant = self.b[:]
+        toques = []
+        if self.js:
+            try:
+                dades = json.loads(str(__import__("platform").window.jocEntrada()))
+            except Exception:
+                dades = {}
+            toques = dades.get("t") or []
+            self.vertical = bool(dades.get("v")) and self.ms_toc > -10 ** 9
+            gp = dades.get("g")
+            if gp:
+                self.b = ([float(v) for v in gp.get("b", [])] + [0.0] * 17)[:17]
+                self.eixos = ([float(v) for v in gp.get("a", [])] + [0.0] * 4)[:4]
+                if gp.get("id") != self.nom_mando:
+                    self.nom_mando = str(gp.get("id", ""))
+            else:
+                self.b, self.eixos = [0.0] * 17, [0.0] * 4
+        else:
+            self._llegir_natiu()
+        nom = self.nom_mando.lower()
+        self.play = any(k in nom for k in ("054c", "playstation", "dualsense", "dualshock", "wireless controller", "ps4", "ps5"))
+        if any(v > 0.5 for v in self.b) or any(abs(e) > 0.5 for e in self.eixos):
+            self.posar_mode("mando")
+        if toques:
+            self.ms_toc = pygame.time.get_ticks()
+            self.posar_mode("tactil")
+        for tipus, ident, x, y in toques:
+            self.toc(g, tipus, ident, float(x) * WIDTH, float(y) * HEIGHT)
+        if self.mode == "mando":
+            self.mando(g)
+        else:
+            self.esq = self.dre = self.salt = self.avall = self.disparant = False
+        if self.mode == "tactil":
+            self.actualitzar_tactil(g)
+        if g.estat == "joc" and self.mode in ("mando", "tactil"):
+            self.calcular_mira(g)
+
+    def toc_recent(self):
+        """Els navegadors fan clics de ratolí falsos després d'un toc: aquests no han de canviar res."""
+        return pygame.time.get_ticks() - self.ms_toc < 900
+
+    # ----- esdeveniments sintètics ---------------------------------------------
+    @staticmethod
+    def enviar(tipus, **dades):
+        dades["sintetic"] = True
+        pygame.event.post(pygame.event.Event(tipus, dades))
+
+    def clic(self, pos, avall=True):
+        pos = (int(pos[0]), int(pos[1]))
+        self.enviar(pygame.MOUSEMOTION, pos=pos, rel=(0, 0), buttons=(1 if avall else 0, 0, 0))
+        self.enviar(pygame.MOUSEBUTTONDOWN if avall else pygame.MOUSEBUTTONUP, pos=pos, button=1)
+
+    def tecla(self, key):
+        self.enviar(pygame.KEYDOWN, key=key, mod=0, unicode="", scancode=0)
+        self.enviar(pygame.KEYUP, key=key, mod=0, unicode="", scancode=0)
+
+    # ----- tàctil -------------------------------------------------------------
+    def controls_tactils_actius(self, g):
+        return g.estat == "joc" and not g.presentacio and self.mode == "tactil"
+
+    def rol_toc(self, g, x, y):
+        if not self.controls_tactils_actius(g):
+            return "menu"
+        for b in g.botons:                              # botons de la pantalla (p. ex. saltar el tutorial)
+            if b.actiu and not b.invisible and b.rect.collidepoint(x, y):
+                return "menu"
+        for nom, (cx, cy), r in self.BOTONS_TACTILS:
+            if math.hypot(x - cx, y - cy) <= r + 12:
+                return nom
+        for i, rr in g.rects_ranures():
+            if rr.inflate(4, 10).collidepoint(x, y):
+                return ("ranura", i)
+        return "mou" if x < WIDTH * 0.46 else "apunta"
+
+    def toc(self, g, tipus, ident, x, y):
+        if tipus == "d":
+            rol = self.rol_toc(g, x, y)
+            self.toques[ident] = {"x": x, "y": y, "x0": x, "y0": y, "t": 0, "rol": rol}
+            if rol == "menu":
+                self.pos_tactil = (int(x), int(y))
+                self.clic((x, y))
+            elif g.estat == "joc" and g.fase == "jugant":
+                if rol == "salt":
+                    g.jugador.demanar_salt()
+                elif rol == "esquiva":
+                    g.esquivar()
+                elif rol == "arma":
+                    g.seguent_arma(1)
+                elif isinstance(rol, tuple):
+                    g.canviar_arma(rol[1])
+            if rol == "pausa" and g.estat == "joc" and g.fase == "jugant" and g.mode != "tutorial":
+                g.pausar()
+            return
+        t = self.toques.get(ident)
+        if t is None:
+            return
+        t["x"], t["y"] = x, y
+        if t["rol"] == "menu":
+            self.pos_tactil = (int(x), int(y))
+            if tipus == "m":
+                self.enviar(pygame.MOUSEMOTION, pos=(int(x), int(y)), rel=(0, 0), buttons=(1, 0, 0))
+        if tipus == "u":
+            if t["rol"] == "menu":
+                self.clic((x, y), avall=False)
+                self.pos_tactil = None
+            elif t["rol"] == "apunta" and t["t"] < 14 and math.hypot(x - t["x0"], y - t["y0"]) < 18:
+                # toc curt: dispara una vegada cap a l'enemic més proper
+                if g.estat == "joc" and g.fase == "jugant":
+                    e = self.enemic_proper(g)
+                    if e is not None:
+                        jx, jy = g.jugador.centre
+                        self.angle = math.atan2(e.centre[1] - jy, e.centre[0] - jx)
+                        self.calcular_mira(g)
+                    g.clic_pendent = 12
+            del self.toques[ident]
+
+    def actualitzar_tactil(self, g):
+        est = {"esq": False, "dre": False, "salt": False, "avall": False, "dispara": False}
+        amunt = False
+        for t in self.toques.values():
+            t["t"] += 1
+            rol = t["rol"]
+            if rol in ("mou", "apunta"):
+                dx, dy = t["x"] - t["x0"], t["y"] - t["y0"]
+                d = math.hypot(dx, dy)
+                if d > self.R_STICK:                    # la base segueix el dit si s'allunya massa
+                    k = (d - self.R_STICK) / d
+                    t["x0"] += dx * k
+                    t["y0"] += dy * k
+                    dx, dy = t["x"] - t["x0"], t["y"] - t["y0"]
+                    d = self.R_STICK
+                vx, vy = dx / self.R_STICK, dy / self.R_STICK
+                if rol == "mou":
+                    est["esq"] = vx < -0.32
+                    est["dre"] = vx > 0.32
+                    est["avall"] = vy > 0.62 and abs(vx) < 0.75
+                    amunt = vy < -0.6
+                elif d / self.R_STICK > 0.28:
+                    self.angle = math.atan2(dy, dx)
+                    est["dispara"] = True
+            elif rol == "salt":
+                est["salt"] = True
+        if amunt and not self.amunt_tactil and g.estat == "joc" and g.fase == "jugant":
+            g.jugador.demanar_salt()
+        self.amunt_tactil = amunt
+        est["salt"] = est["salt"] or amunt
+        self.apuntant = est["dispara"]
+        if g.estat == "joc" and g.fase == "jugant" and self.vertical:
+            g.pausar()                                  # mòbil en vertical: la partida s'espera
+        self.tactil_joc = est
+        self.esq, self.dre, self.salt, self.avall, self.disparant = (est["esq"], est["dre"], est["salt"], est["avall"],
+                                                                      est["dispara"])
+
+    # ----- mando ----------------------------------------------------------------
+    def mando(self, g):
+        lx, ly, rx, ry = self.eixos
+        b = self.b
+        if g.estat == "joc" and not g.presentacio:
+            self.esq = lx < -0.35 or b[self.ESQ] > 0.5
+            self.dre = lx > 0.35 or b[self.DRE] > 0.5
+            self.avall = (ly > 0.6 and abs(lx) < 0.7) or b[self.AVALL] > 0.5
+            self.salt = b[self.A] > 0.5 or b[self.AMUNT] > 0.5
+            mag = math.hypot(rx, ry)
+            self.apuntant = mag > self.MORT
+            if self.apuntant:
+                self.angle = math.atan2(ry, rx)
+            self.disparant = b[self.RT] > 0.35 or mag > 0.78
+            jugant = g.fase == "jugant"
+            if jugant and (self.premut(self.A) or self.premut(self.AMUNT)):
+                g.jugador.demanar_salt()
+            if jugant and (self.premut(self.B) or self.premut(self.LT)):
+                g.esquivar()
+            if jugant and (self.premut(self.RB) or self.premut(self.X)):
+                g.seguent_arma(1)
+            if jugant and (self.premut(self.LB) or self.premut(self.Y)):
+                g.seguent_arma(-1)
+            if self.premut(self.RT):
+                g.esperar_alliberar = False
+                g.clic_pendent = 12
+            if self.premut(self.START) and jugant:
+                g.pausar()
+            return
+        self.esq = self.dre = self.salt = self.avall = self.disparant = False
+        if g.estat == "joc" and g.presentacio:
+            if self.premut(self.A) or self.premut(self.START):
+                self.tecla(pygame.K_RETURN)
+            return
+        self.menus(g)
+
+    def candidats(self, g):
+        if g.estat == "menu" and g.menu_idioma:
+            return list(g.rects_idioma().values())
+        if g.estat == "intro" and getattr(g, "intro", None) is not None:
+            return [g.intro.boto_saltar.rect]
+        rects = [b.rect for b in g.botons if b.actiu]
+        if g.estat == "opcions":
+            rects += [l.rect.inflate(0, 16) for l in g.lliscadors]
+        return rects
+
+    def per_defecte(self, g, cands):
+        if not cands:
+            return None
+        botons = [b for b in g.botons if b.actiu]
+        for b in botons:
+            if not str(b.txt).startswith("<"):
+                return b.rect
+        return cands[0]
+
+    def navegar(self, g, dx, dy):
+        cands = self.candidats(g)
+        cx, cy = self.cursor
+        millor = None
+        for r in cands:
+            vx, vy = r.centerx - cx, r.centery - cy
+            avanc = vx * dx + vy * dy
+            if avanc <= 6:
+                continue
+            lateral = abs(vx * dy - vy * dx)
+            if lateral > avanc * 2.2:                   # massa de costat: no és en aquesta direcció
+                continue
+            puntuacio = avanc + lateral * 2.4
+            if millor is None or puntuacio < millor[0]:
+                millor = (puntuacio, r)
+        if millor:
+            self.cursor = [millor[1].centerx, millor[1].centery]
+            AUDIO.so("click", 60)
+
+    def lliscador_sota(self, g):
+        if g.estat != "opcions":
+            return None
+        for l in g.lliscadors:
+            if l.rect.inflate(20, 26).collidepoint(self.cursor):
+                return l
+        return None
+
+    def menus(self, g):
+        """Als menús: el joystick mou el cursor, la creueta salta d'un botó a l'altre, A fa clic i B torna enrere."""
+        if self.ultims_botons is not g.botons or self.ultim_estat != g.estat:
+            self.ultims_botons, self.ultim_estat = g.botons, g.estat
+            cands = self.candidats(g)
+            if not any(r.collidepoint(self.cursor) for r in cands):
+                r = self.per_defecte(g, cands)
+                if r is not None:
+                    self.cursor = [r.centerx, r.centery]
+        lx, ly, rx, ry = self.eixos
+        mag = math.hypot(lx, ly)
+        if mag > self.MORT:
+            v = 2.0 + 9.0 * ((mag - self.MORT) / (1 - self.MORT)) ** 1.6
+            self.cursor[0] = max(0, min(WIDTH - 1, self.cursor[0] + lx / mag * v))
+            self.cursor[1] = max(0, min(HEIGHT - 1, self.cursor[1] + ly / mag * v))
+        # creueta (i joystick dret) amb repetició si es manté
+        direccions = {(0, -1): self.b[self.AMUNT] > 0.5 or ry < -0.6, (0, 1): self.b[self.AVALL] > 0.5 or ry > 0.6,
+                      (-1, 0): self.b[self.ESQ] > 0.5 or rx < -0.6, (1, 0): self.b[self.DRE] > 0.5 or rx > 0.6}
+        for d, actiu in direccions.items():
+            if not actiu:
+                self.repeticio.pop(d, None)
+                continue
+            n = self.repeticio.get(d, 0)
+            self.repeticio[d] = n + 1
+            if n == 0 or (n >= 20 and (n - 20) % 7 == 0):
+                l = self.lliscador_sota(g) if d[1] == 0 else None
+                if l is not None:
+                    l.valor = max(0.0, min(1.0, l.valor + 0.05 * d[0]))
+                    l.en_canvi(l.valor)
+                    if l.en_deixar:
+                        l.en_deixar()
+                else:
+                    self.navegar(g, *d)
+        if self.premut(self.A):
+            self.clic(self.cursor)
+            self.boto_a = True
+        elif self.deixat(self.A) and self.boto_a:
+            self.clic(self.cursor, avall=False)
+            self.boto_a = False
+        if self.premut(self.B):
+            if g.estat == "menu" and g.menu_idioma:
+                g.menu_idioma = False
+            else:
+                self.tecla(pygame.K_ESCAPE)
+        if self.premut(self.START):
+            self.tecla(pygame.K_ESCAPE if g.estat == "pausa" else pygame.K_RETURN)
+        if self.premut(self.LB):
+            self.tecla(pygame.K_LEFT)
+        if self.premut(self.RB):
+            self.tecla(pygame.K_RIGHT)
+
+    # ----- apuntar ----------------------------------------------------------------
+    @staticmethod
+    def enemics_visibles(g):
+        return [e for e in g.enemics if e.vida > 0 and -20 < e.centre[0] < WIDTH + 20 and -20 < e.centre[1] < HEIGHT]
+
+    def enemic_proper(self, g):
+        jx, jy = g.jugador.centre
+        vius = self.enemics_visibles(g)
+        return min(vius, key=lambda e: math.hypot(e.centre[0] - jx, e.centre[1] - jy)) if vius else None
+
+    def calcular_mira(self, g):
+        """Punt de mira del mando o del tàctil: en la direcció triada, amb una mica d'ajuda cap a l'enemic més alineat."""
+        j = g.jugador
+        cx, cy = j.canons(g.spr_jugador())
+        if not self.apuntant and not self.disparant and (self.esq or self.dre):
+            self.angle = math.pi if self.esq else 0.0   # sense apuntar: mira cap on camines
+        a = self.angle if self.angle is not None else (0.0 if j.direccio > 0 else math.pi)
+        millor, dist = None, 260.0
+        for e in self.enemics_visibles(g):
+            ex, ey = e.centre
+            ae = math.atan2(ey - cy, ex - cx)
+            dif = abs((ae - a + math.pi) % (2 * math.pi) - math.pi)
+            if dif < 0.24:
+                d = math.hypot(ex - cx, ey - cy) * (1 + dif * 3)
+                if millor is None or d < millor[0]:
+                    millor = (d, ae, math.hypot(ex - cx, ey - cy))
+        if millor:
+            a, dist = millor[1], max(60.0, millor[2])
+        self.mira = (int(max(4, min(WIDTH - 4, cx + math.cos(a) * dist))),
+                     int(max(4, min(HEIGHT - 4, cy + math.sin(a) * dist))))
+
+    def posicio(self):
+        """La posició «del ratolí» que ha de fer servir el joc, o None si mana el ratolí de veritat."""
+        g = getattr(self, "g", None)
+        if g is None or self.mode == "teclat":
+            return None
+        if g.estat == "joc":
+            return self.mira
+        if self.mode == "mando":
+            return int(self.cursor[0]), int(self.cursor[1])
+        return self.pos_tactil if self.pos_tactil is not None else (-60, -60)
+
+    def sentit(self):
+        return (1 if self.dre else 0) - (1 if self.esq else 0)
+
+    # ----- dibuix -------------------------------------------------------------------
+    _CACHE = {}
+
+    @classmethod
+    def cercle(cls, r, color, alfa, gruix=0):
+        clau = (r, color, alfa, gruix)
+        s = cls._CACHE.get(clau)
+        if s is None:
+            s = pygame.Surface((2 * r + 4, 2 * r + 4), pygame.SRCALPHA)
+            pygame.draw.circle(s, (*color, alfa), (r + 2, r + 2), r, gruix)
+            cls._CACHE[clau] = s
+        return s
+
+    @classmethod
+    def icona(cls, nom, r):
+        clau = ("icona", nom, r)
+        s = cls._CACHE.get(clau)
+        if s is not None:
+            return s
+        s = pygame.Surface((2 * r, 2 * r), pygame.SRCALPHA)
+        c = (r, r)
+        blanc = (255, 255, 255, 235)
+        if nom == "salt":
+            k = r * 0.45
+            pygame.draw.polygon(s, blanc, [(c[0], c[1] - k * 1.1), (c[0] + k, c[1] + k * 0.25), (c[0] + k * 0.42, c[1] + k * 0.25),
+                                           (c[0] + k * 0.42, c[1] + k * 0.9), (c[0] - k * 0.42, c[1] + k * 0.9),
+                                           (c[0] - k * 0.42, c[1] + k * 0.25), (c[0] - k, c[1] + k * 0.25)])
+        elif nom == "esquiva":
+            rr = int(r * 0.5)
+            pygame.draw.arc(s, blanc, (c[0] - rr, c[1] - rr, 2 * rr, 2 * rr), 0.6, 5.6, 4)
+            x2, y2 = c[0] + rr * math.cos(0.6), c[1] - rr * math.sin(0.6)
+            pygame.draw.polygon(s, blanc, [(x2 + 6, y2 + 1), (x2 - 5, y2 - 6), (x2 - 3, y2 + 6)])
+        elif nom == "arma":
+            k = r * 0.5
+            for sg in (-1, 1):
+                y = c[1] + sg * k * 0.45
+                pygame.draw.line(s, blanc, (c[0] - k, y), (c[0] + k, y), 3)
+                punta = c[0] + k * sg
+                pygame.draw.polygon(s, blanc, [(punta + sg * 4, y), (punta - sg * 3, y - 5), (punta - sg * 3, y + 5)])
+        elif nom == "pausa":
+            k = r * 0.38
+            pygame.draw.rect(s, blanc, (c[0] - k, c[1] - k, k * 0.7, 2 * k))
+            pygame.draw.rect(s, blanc, (c[0] + k * 0.3, c[1] - k, k * 0.7, 2 * k))
+        cls._CACHE[clau] = s
+        return s
+
+    def dibuixar(self, surf, g):
+        if self.mode == "tactil" and self.controls_tactils_actius(g):
+            self.dibuixar_tactil(surf, g)
+        elif self.mode == "mando" and g.estat not in ("joc", "loading"):
+            x, y = int(self.cursor[0]), int(self.cursor[1])
+            punts = [(x, y), (x, y + 19), (x + 5, y + 14), (x + 9, y + 22), (x + 12, y + 20), (x + 8, y + 13), (x + 14, y + 13)]
+            pygame.draw.polygon(surf, NEGRE, [(px + 2, py + 2) for px, py in punts])
+            pygame.draw.polygon(surf, BLANC, punts)
+            pygame.draw.polygon(surf, NEGRE, punts, 1)
+        if self.vertical and self.mode == "tactil":
+            self.dibuixar_gira(surf)
+
+    def dibuixar_tactil(self, surf, g):
+        actius = {t["rol"]: t for t in self.toques.values()}
+        # joystick de moure
+        for rol, defecte in (("mou", (130, 392)), ("apunta", (650, 392))):
+            t = actius.get(rol)
+            if t:
+                bx, by = int(t["x0"]), int(t["y0"])
+                kx, ky = int(t["x"]), int(t["y"])
+                alfa = 60
+            else:
+                bx, by = defecte
+                kx, ky = defecte
+                alfa = 26
+            base = self.cercle(self.R_STICK, (255, 255, 255), alfa, 3)
+            surf.blit(base, base.get_rect(center=(bx, by)))
+            fons = self.cercle(self.R_STICK - 4, (10, 14, 30), 50 if t else 30)
+            surf.blit(fons, fons.get_rect(center=(bx, by)))
+            pom = self.cercle(26, (90, 230, 255) if rol == "apunta" else (255, 255, 255), 110 if t else 50)
+            surf.blit(pom, pom.get_rect(center=(kx, ky)))
+            if not t:
+                text(surf, "Mover" if rol == "mou" else "Apuntar", F_MINI, (200, 210, 230), (bx, by + self.R_STICK + 12),
+                     ombra=False)
+        for nom, (cx, cy), r in self.BOTONS_TACTILS:
+            premut = nom in actius
+            fons = self.cercle(r, (40, 60, 110) if not premut else (90, 140, 230), 120 if premut else 80)
+            surf.blit(fons, fons.get_rect(center=(cx, cy)))
+            vora = self.cercle(r, (255, 255, 255), 120, 2)
+            surf.blit(vora, vora.get_rect(center=(cx, cy)))
+            ic = self.icona(nom, r)
+            surf.blit(ic, ic.get_rect(center=(cx, cy + (2 if premut else 0))))
+
+    def dibuixar_gira(self, surf):
+        vel = pygame.Surface((WIDTH, HEIGHT))
+        vel.fill((6, 8, 20))
+        surf.blit(vel, (0, 0))
+        t = pygame.time.get_ticks() / 1000
+        a = math.sin(t * 2) * 0.5 + 0.5
+        cx, cy = WIDTH // 2, HEIGHT // 2 - 40
+        w, h = int(60 + 60 * a), int(110 - 50 * a)
+        r = pygame.Rect(0, 0, w, h)
+        r.center = (cx, cy)
+        pygame.draw.rect(surf, BLANC, r, 4, border_radius=10)
+        text(surf, "Gira el móvil para jugar", F_TEXT, BLANC, (cx, cy + 110), max_w=WIDTH - 40)
+        text(surf, "El juego se ve en horizontal.", F_TEXT_P, GRIS, (cx, cy + 146), max_w=WIDTH - 40)
+
+
+CONTROL = None
+
+
+PISTES_CONTROL = {          # ajudes amb tecles -> (amb mando, amb pantalla tàctil)
+    "Clic / ESPACIO para continuar": ("A para continuar", "Toca para continuar"),
+    "Clic / ESPACIO para ver todo el texto": ("A para ver todo el texto", "Toca para ver todo el texto"),
+    "R / ENTER: reintentar  ·  ESC: menú": ("A: elegir  ·  B: menú", ""),
+    "ESPACIO / clic: saltar": ("A: saltar", "Toca para saltar"),
+    "ESPACIO / flecha abajo: más rápido": ("A / abajo: más rápido", "Mantén el dedo en la pantalla: más rápido"),
+    "Haz clic para empezar": ("Pulsa A para empezar", "Toca la pantalla para empezar"),
+    "Escribe un código y pulsa Enter": ("Pulsa A en el recuadro para escribir el código",
+                                        "Toca el recuadro para escribir el código"),
+    "M: sonido ON": ("", ""),
+    "M: sonido OFF": ("", ""),
+}
+
+
+def pista(txt):
+    """L'ajuda adequada al que s'està fent servir (teclat i ratolí, mando o pantalla tàctil)."""
+    alt = PISTES_CONTROL.get(txt)
+    if alt is None or CONTROL is None or CONTROL.mode == "teclat":
+        return txt
+    return alt[0] if CONTROL.mode == "mando" else alt[1]
+
+
 class Game:
     def __init__(self):
+        global CONTROL
+        if CONTROL is None:
+            CONTROL = Control()
         self.prova = ProvaRendiment() if PROVA_RENDIMENT else None
         self.clock = pygame.time.Clock()
         VINYETA_RAPIDA.preparar()                     # la vinyeta i el batec vermell, ja a la pantalla de càrrega
@@ -6573,7 +7282,7 @@ class Game:
                 self.transicio = [screen.copy(), 12]          # fos encadenat entre pantalles
         self.estat = estat
         self.temps_estat = 0
-        pygame.mouse.set_visible(estat != "joc")
+        pygame.mouse.set_visible(estat != "joc" and (CONTROL is None or CONTROL.mode == "teclat"))
         # música: en pausa s'atura; tornant a jugar continua; a qualsevol pantalla de menú, la del menú
         if estat == "pausa":
             AUDIO.pausar()
@@ -6778,9 +7487,15 @@ class Game:
         self.entrada_arxiu = i
         self.entrar_arxiu()
 
-    def entrar_guia(self):
+    def entrar_guia(self, control=None):
         self.confirmar_reinici = False
-        self.botons = [self.boto_tornar(),
+        if control is None and self.estat != "guia":
+            control = CONTROL.mode
+        self.guia_control = control or getattr(self, "guia_control", "teclat")
+        pestanyes = [Boto((WIDTH - 486 + k * 158, 26, 150, 34), nom, lambda c=ident: self.entrar_guia(c),
+                          VERD if self.guia_control == ident else BLAU, font=F_MINI)
+                     for k, (ident, nom) in enumerate((("teclat", "Teclado"), ("mando", "Mando"), ("tactil", "Táctil")))]
+        self.botons = pestanyes + [self.boto_tornar(),
                        Boto((WIDTH - 370, HEIGHT - 62, 170, 42), "Tutorial", lambda: self.iniciar_tutorial(self.entrar_guia),
                             VERD, font=F_HUD),
                        Boto((WIDTH - 190, HEIGHT - 62, 170, 42), "Cómo funciona",
@@ -6921,7 +7636,7 @@ class Game:
             detall = T("suavizado") if PANTALLA.suau else T("píxeles nítidos")
         text(surf, T("Resolución actual: {w}x{h} ({d})").format(w=w, h=h, d=detall), F_TEXT_P, GRIS, (WIDTH // 2, 458))
         text(surf, T("La dificultad se aplica al empezar el siguiente escenario."), F_TEXT_PP, GRIS, (WIDTH // 2, 479))
-        text(surf, T("F11: pantalla completa  ·  M: silenciar"), F_TEXT_PP, GRIS, (WIDTH // 2 + 80, 499))
+        peu(surf, T("F11: pantalla completa  ·  M: silenciar"), GRIS, F_TEXT_PP)
 
     def reprendre(self):
         self.botons = [self.boto_saltar_tutorial()] if self.mode == "tutorial" else []
@@ -7353,11 +8068,12 @@ class Game:
             self.temps_joc += 1
         self.radio.actualitzar()
         teclat = pygame.key.get_pressed()
-        esq = teclat[pygame.K_a] or teclat[pygame.K_LEFT]
-        dre = teclat[pygame.K_d] or teclat[pygame.K_RIGHT]
-        salt = teclat[pygame.K_SPACE] or teclat[pygame.K_w] or teclat[pygame.K_UP]
-        avall = teclat[pygame.K_s] or teclat[pygame.K_DOWN]
-        premut = pygame.mouse.get_pressed()[0]
+        c = CONTROL
+        esq = teclat[pygame.K_a] or teclat[pygame.K_LEFT] or c.esq
+        dre = teclat[pygame.K_d] or teclat[pygame.K_RIGHT] or c.dre
+        salt = teclat[pygame.K_SPACE] or teclat[pygame.K_w] or teclat[pygame.K_UP] or c.salt
+        avall = teclat[pygame.K_s] or teclat[pygame.K_DOWN] or c.avall
+        premut = (pygame.mouse.get_pressed()[0] and c.mode != "tactil") or c.disparant
         mx, _ = ratoli()
         j = self.jugador
         clau = (self.nivell_actual, self.escenari_actual)
@@ -7414,6 +8130,8 @@ class Game:
             cx, cy = j.canons(self.spr_jugador())
             self.efectes.append(Particula(cx, cy, random.uniform(-0.5, 0.5), random.uniform(-1.6, -0.8),
                                           random.choice(((210, 210, 220), (170, 170, 185))), vida=26, mida=random.uniform(3, 5)))
+        if CONTROL.disparant and not arma["auto"]:
+            self.clic_pendent = max(self.clic_pendent, 2)       # mando i dits: les semiautomàtiques disparen soles
         if pot_disparar and self.cooldown == 0 and not (minigun and self.sobreescalfat):
             if (arma["auto"] and premut) or self.clic_pendent:
                 self.clic_pendent = 0
@@ -7743,7 +8461,7 @@ class Game:
     def esquivar(self):
         teclat = pygame.key.get_pressed()
         sentit = (1 if teclat[pygame.K_d] or teclat[pygame.K_RIGHT] else 0) - \
-                 (1 if teclat[pygame.K_a] or teclat[pygame.K_LEFT] else 0)
+                 (1 if teclat[pygame.K_a] or teclat[pygame.K_LEFT] else 0) or CONTROL.sentit()
         if self.jugador.esquivar(sentit or None):
             AUDIO.so("envestida", 100)
             self.comptar("voltes", "voltes", 100)
@@ -7940,7 +8658,7 @@ class Game:
             text(surf, pr["nom"], F_TITOL, (255, 225, 225), (x_nom, HEIGHT - 132))
             pygame.draw.line(surf, VERMELL, (x_nom - 260, HEIGHT - 104), (x_nom + 260, HEIGHT - 104), 2)
             text(surf, pr["sub"], F_TEXT, (255, 190, 190), (x_sub, HEIGHT - 80))
-            text(surf, "ESPACIO / clic: saltar", F_MINI, GRIS, (WIDTH - 14, HEIGHT - 14), ancora="midright")
+            text(surf, pista("ESPACIO / clic: saltar"), F_MINI, GRIS, (WIDTH - 14, HEIGHT - 14), ancora="midright")
 
     def desbloquejar(self, ident):
         """Desbloqueja un logro: avís a la pantalla, monedes i XP de premi i desat."""
@@ -8040,12 +8758,10 @@ class Game:
             panell(surf, r, CATEGORIES_LOGRO[logro["cat"]]["color"] if obert else GRIS_FOSC)
             dibuixar_medalla(surf, r.x + 32, r.centery, 22, logro["cat"], obert)
             nom = T("Logro secreto") if secret else T(logro["nom"])
-            font_nom = F_TEXT_P if F_TEXT_P.size(nom)[0] <= r.w - 72 else F_TEXT_PP
-            text(surf, nom, font_nom, BLANC if obert else GRIS, (r.x + 64, r.y + 16), ancora="midleft")
+            text(surf, nom, F_TEXT_P, BLANC if obert else GRIS, (r.x + 64, r.y + 16), ancora="midleft", max_w=r.w - 74)
             desc = T(logro.get("pista", "")) if secret else T(logro["desc"])
-            for i, linia in enumerate(ajustar_linies(desc, F_TEXT_PP, r.w - 76)[:3]):
-                text(surf, linia, F_TEXT_PP, (200, 205, 225) if obert else (110, 112, 134), (r.x + 64, r.y + 34 + i * 17),
-                     ancora="topleft", ombra=False)
+            text_bloc(surf, desc, F_TEXT_PP, (200, 205, 225) if obert else (110, 112, 134),
+                      (r.x + 64, r.y + 31, r.w - 74, r.h - 35), alinea="left", vertical="top")
         pagines = (len(LOGROS) + 11) // 12
         text(surf, f"{self.pagina_logros + 1}/{pagines}", F_UI, BLANC, (WIDTH // 2, 490))
         text(surf, "Bronce 50 · Plata 150 · Oro 400 · Platino 1000 monedas", F_MINI, GRIS, (WIDTH - 20, 520),
@@ -8354,8 +9070,10 @@ class Game:
         for k in range(len(PASSOS_TUTORIAL)):
             color = VERD if k < pas or (k == pas and fet) else (CIAN if k == pas else GRIS_FOSC)
             pygame.draw.circle(surf, color, (caixa.right - 16 - (len(PASSOS_TUTORIAL) - 1 - k) * 14, caixa.y + 14), 4)
-        for i, linia in enumerate(ajustar_linies(T(PASSOS_TUTORIAL[pas][1]), F_TEXT_P, caixa.w - 28)[:2]):
-            text(surf, linia, F_TEXT_P, BLANC, (caixa.x + 14, caixa.y + 28 + i * 22), ancora="topleft")
+        clau, txt = PASSOS_TUTORIAL[pas]
+        txt = {"mando": PASSOS_TUTORIAL_MANDO, "tactil": PASSOS_TUTORIAL_TACTIL}.get(CONTROL.mode, {}).get(clau, txt)
+        text_bloc(surf, txt, F_TEXT_P, BLANC, (caixa.x + 14, caixa.y + 26, caixa.w - 28, caixa.h - 30), alinea="left",
+                  vertical="top", ombra=True, max_linies=2)
         if fet and PASSOS_TUTORIAL[pas][0] != "fi":
             text(surf, "¡Bien!", F_TITOL, VERD, (WIDTH // 2, caixa.bottom + 46))
 
@@ -8577,10 +9295,10 @@ class Game:
             costos = " / ".join(str(c) for c in mi["costos"])
             text(surf, T("Precio: {c} monedas").format(c=costos), F_TEXT_PP, GRIS, (fila.right - 10, fila.y + 13),
                  ancora="midright")
-            detall = ajustar_linies(T(DETALL_MILLORES[mi["id"]]), F_TEXT_PP, fila.w - 24)[0]
-            text(surf, detall, F_TEXT_PP, BLANC, (fila.x + 12, fila.y + 34), ancora="midleft")
+            text(surf, T(DETALL_MILLORES[mi["id"]]), F_TEXT_PP, BLANC, (fila.x + 12, fila.y + 35), ancora="midleft",
+                 max_w=fila.w - 22)
         text(surf, "Se compran en Tienda > Mejoras. Cada nivel se abre al avanzar en la historia.", F_TEXT_PP, GROC,
-             (r.centerx, r.bottom - 10))
+             (r.centerx, r.bottom - 16), max_w=r.w - 40)
 
     def _ajuda_2(self, surf, r):
         """Armes animades: el soldat dispara l'arma marcada contra dos drons."""
@@ -8657,7 +9375,7 @@ class Game:
         for i, tros in enumerate(linies[:3]):
             text(surf, tros, F_TEXT_P, BLANC, (caixa.x, caixa.bottom + 14 + i * 24), ancora="topleft")
         text(surf, "Cada escenario tiene una potencia máxima: las armas más fuertes no siempre se pueden usar.",
-             F_TEXT_PP, GROC, (r.centerx, r.bottom - 10))
+             F_TEXT_PP, GROC, (r.centerx, r.bottom - 16), max_w=r.w - 40)
 
     def _ajuda_3(self, surf, r):
         """Estrelles, logros i supervivència, en tres petites escenes que es van alternant."""
@@ -8973,6 +9691,14 @@ class Game:
         if b == 0 and (self.t_global // 10) % 2 == 0:
             text(surf, "¡SIN BALAS!", F_MINI, VERMELL, ((x0 + x1) // 2, r.y + 27))
 
+    def rects_ranures(self):
+        """Les caselles d'armes del HUD (per triar-les amb el dit): [(índex, rect)]."""
+        usables = self.armes_usables()
+        mostrar = [i for i, a in enumerate(ARMES) if a["id"] in self.armes_propies or i in usables]
+        w, h, sep = 42, 34, 4
+        x = WIDTH - 6 - len(mostrar) * (w + sep) + sep
+        return [(i, pygame.Rect(x + k * (w + sep), HEIGHT - 6 - h, w, h)) for k, i in enumerate(mostrar)]
+
     def _hud_ranures(self, surf):
         """Ranures d'armes (1-5) a baix a la dreta, amb icona, munició i cadenat si no es pot fer servir."""
         usables = self.armes_usables()
@@ -9194,7 +9920,7 @@ class Game:
         # punts: entren un darrere l'altre lliscant des de la dreta
         punts = nov["punts"]
         y0 = r.y + 70
-        alt = min(44, (r.bottom - 8 - y0) // max(1, len(punts)))
+        alt = min(70, (r.bottom - 8 - y0) // max(1, len(punts)))
         for i, (icona, txt) in enumerate(punts):
             k = max(0.0, min(1.0, (t - 8 - i * 6) / 12))
             if k <= 0:
@@ -9207,9 +9933,8 @@ class Game:
                 fila.fill((40, 60, 120, int(70 * suau)))
                 surf.blit(fila, (r.x + 16, y + 2))
             self.icona_novetat(surf, icona, x + 30, y + alt // 2, t + i * 11)
-            linies = ajustar_linies(T(txt), F_TEXT_PP, r.right - 24 - (x + 70))[:2]
-            for j, l in enumerate(linies):
-                text(surf, l, F_TEXT_PP, BLANC, (x + 70, y + alt // 2 - (len(linies) - 1) * 9 + j * 18), ancora="midleft")
+            text_bloc(surf, txt, F_TEXT_PP, BLANC, (x + 70, y + 3, r.right - 24 - (x + 70), alt - 6), alinea="left",
+                      ombra=True)
         # indicador de pàgines (una per versió)
         for k in range(len(NOVETATS)):
             cx = 575 + (k - (len(NOVETATS) - 1) / 2) * 16
@@ -10012,8 +10737,7 @@ class Game:
                 pygame.draw.circle(surf, BLANC if obert else GRIS_FOSC, (cx, cy), 16, 2)
                 if obert:
                     pygame.draw.lines(surf, NEGRE, False, [(cx - 7, cy), (cx - 2, cy + 6), (cx + 8, cy - 6)], 3)
-        text(surf, "Sube cada arma eliminando enemigos: bronce (4), plata (7), oro (10). Todas en oro: diamante.",
-             F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+        peu(surf, "Sube cada arma eliminando enemigos: bronce (4), plata (7), oro (10). Todas en oro: diamante.", CIAN, F_TEXT_PP)
 
     def _col_rangs(self, surf):
         rang = self.rang_actual()
@@ -10041,18 +10765,18 @@ class Game:
             panell(surf, cel, VERD if i == rang else (BLAU_CLAR if assolit else GRIS_FOSC))
             dibuixar_insignia(surf, cel.x + 24, cel.centery - 2, i, 28)
             for k, linia in enumerate(ajustar_linies(T(r["nom"]), F_TEXT_PP, 112)[:2]):
-                text(surf, linia, F_TEXT_PP, BLANC if assolit else GRIS, (cel.x + 46, cel.y + 18 + k * 17), ancora="midleft")
+                text(surf, linia, F_TEXT_PP, BLANC if assolit else GRIS, (cel.x + 46, cel.y + 18 + k * 17), ancora="midleft",
+                     max_w=cel.right - cel.x - 50)
             text(surf, f"{r['xp']} XP", F_MINI, GRIS, (cel.x + 46, cel.bottom - 12), ancora="midleft")
             if cel.collidepoint(pos):
                 info = T(r["nom"]) + ": " + (", ".join(nom_premi(t, v) for t, v in r["premi"]) or T("sin recompensa"))
-        text(surf, info or "Toda la XP que ganas cuenta para tu rango. Cada ascenso da una recompensa.",
-             F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+        peu(surf, info or "Toda la XP que ganas cuenta para tu rango. Cada ascenso da una recompensa.", CIAN, F_TEXT_PP)
 
     def _col_bestiari(self, surf):
         fitxes = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
         histories = sum(self.baixes_bestiari(b["clau"]) >= b["cal"] for b in BESTIARI)
         text(surf, T("Fichas {a}/{t} · Historias {b}/{t}").format(a=fitxes, b=histories, t=len(BESTIARI)), F_HUD,
-             CIAN, (WIDTH // 2 + 80, 499))
+             CIAN, (WIDTH // 2 + 80, 499), max_w=PEU_AMPLE)
         for k, entrada in enumerate(BESTIARI):
             r = self.rect_bestiari(k)
             n = self.baixes_bestiari(entrada["clau"])
@@ -10134,8 +10858,8 @@ class Game:
             obert = estrelles >= d["estrelles"]
             reg = self.desafiaments.get(ident, {})
             panell(surf, r, GROC if reg.get("fet") else (BLAU_CLAR if obert else GRIS_FOSC))
-            text(surf, T(d["nom"]).upper(), F_UI, BLANC if obert else GRIS, (r.centerx, r.y + 22))
-            text(surf, T(d["sub"]), F_TEXT_PP, CIAN if obert else GRIS, (r.centerx, r.y + 44))
+            text(surf, T(d["nom"]).upper(), F_UI, BLANC if obert else GRIS, (r.centerx, r.y + 22), max_w=r.w - 16)
+            text(surf, T(d["sub"]), F_TEXT_PP, CIAN if obert else GRIS, (r.centerx, r.y + 44), max_w=r.w - 16)
             # il·lustració
             if ident == "rush":
                 for j in range(5):
@@ -10157,19 +10881,19 @@ class Game:
                 dibuixar_cadenat(surf, r.centerx, r.y + 100)
             y = r.y + 158
             for linia in ajustar_linies(T(d["desc"]), F_TEXT_PP, r.w - 24)[:4]:
-                text(surf, linia, F_TEXT_PP, (210, 215, 235) if obert else GRIS, (r.centerx, y))
+                text(surf, linia, F_TEXT_PP, (210, 215, 235) if obert else GRIS, (r.centerx, y), max_w=r.w - 16)
                 y += 17
             y += 6
-            text(surf, T("Premio la primera vez:"), F_MINI, GROC, (r.centerx, y))
+            text(surf, T("Premio la primera vez:"), F_MINI, GROC, (r.centerx, y), max_w=r.w - 16)
             y += 18
             for tipus, valor in d["premi"]:
-                text(surf, nom_premi(tipus, valor), F_TEXT_PP, BLANC if obert else GRIS, (r.centerx, y))
+                text(surf, nom_premi(tipus, valor), F_TEXT_PP, BLANC if obert else GRIS, (r.centerx, y), max_w=r.w - 16)
                 y += 17
             if reg.get("millor"):
                 text(surf, T("Mejor tiempo: {t}").format(t=self.format_temps(reg["millor"])), F_MINI, VERD,
                      (r.centerx, y + 6))
         if not self.missatge:
-            text(surf, "Los desafíos se abren con las estrellas de la historia.", F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+            peu(surf, "Los desafíos se abren con las estrellas de la historia.", CIAN, F_TEXT_PP)
 
     # ----- Diario: retos de hoy y ofertas del día --------------------------------------------------------
 
@@ -10933,7 +11657,7 @@ class Game:
         text(surf, T("Nivel {n}").format(n=nivell) + f" · {baixes} " + T("bajas"), F_HUD, BLANC, (barra.centerx, barra.y - 16))
         nom = T(CAMUFLATGES[camo]["nom"])
         color = CAMUFLATGES[camo]["tint"] or GRIS
-        text(surf, nom, F_UI, color, (caixa.centerx, caixa.y + 92))
+        text(surf, nom, F_UI, color, (caixa.centerx, caixa.y + 92), max_w=caixa.w - 16)
         for i, c in enumerate(("bronze", "plata", "or", "diamant")):
             x = caixa.x + 60 + i * 60
             obert = c == camo or ("bronze", "plata", "or", "diamant").index(c) < \
@@ -11109,7 +11833,7 @@ class Game:
             if r.collidepoint(pos):
                 info = nom_premi(tipus, ident)
         if not self.missatge:
-            text(surf, info or "Lo que compres se equipa en Personalizar: haz clic en Nexus en el menú.", F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+            peu(surf, info or "Lo que compres se equipa en Personalizar: haz clic en Nexus en el menú.", CIAN, F_TEXT_PP)
 
     ETIQUETA_TIPUS = {"estela": "Estela", "efecte": "Efecto de eliminación", "mira": "Punto de mira",
                       "tema": "Tema del HUD", "targeta": "Tarjeta", "dron": "Dron", "uniforme": "Uniforme",
@@ -11122,8 +11846,26 @@ class Game:
         self.codi_text = ""
         self.codi_resultat = resultat
         self.botons = [Boto((WIDTH // 2 - 110, 336, 220, 46), "Canjear", self.bescanviar_codi, VERD),
-                       Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_botiga, GRIS_FOSC)]
+                       Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_botiga, GRIS_FOSC),
+                       Boto((WIDTH // 2 - 220, 248, 440, 56), "", self.escriure_codi, invisible=True)]
         self.canviar_estat("codis")
+
+    def escriure_codi(self):
+        """Al mòbil o amb el mando no hi ha teclat: el navegador obre un quadre per escriure el codi."""
+        if not WEB or CONTROL.mode == "teclat":
+            return
+        try:
+            res = __import__("platform").window.prompt(T("Escribe el código"), self.codi_text)
+        except Exception as err:
+            print(f"No s'ha pogut demanar el codi: {err}")
+            return
+        if res is None or str(res) in ("None", "null", "undefined"):
+            return
+        net = "".join(c for c in str(res).upper() if c.isalnum() or c == "-")[:24]
+        self.codi_text = net
+        self.codi_resultat = None
+        if net:
+            self.bescanviar_codi()
 
     @staticmethod
 
@@ -11147,6 +11889,7 @@ class Game:
 
     def bescanviar_codi(self):
         if not self.codi_text.strip():
+            self.escriure_codi()
             return
         clau = self.empremta_codi(self.codi_text)
         codi = CODIS.get(clau)
@@ -11226,7 +11969,7 @@ class Game:
         caixa = pygame.Rect(WIDTH // 2 - 260, 120, 520, 290)
         panell(surf, caixa, BLAU_CLAR)
         dibuixar_calculadora(surf, caixa.centerx, caixa.y + 46, 1.3)
-        text(surf, "Escribe un código y pulsa Enter", F_TEXT_P, GRIS, (caixa.centerx, caixa.y + 104))
+        text(surf, pista("Escribe un código y pulsa Enter"), F_TEXT_P, GRIS, (caixa.centerx, caixa.y + 104), max_w=caixa.w - 30)
         camp = pygame.Rect(caixa.x + 40, caixa.y + 128, caixa.w - 80, 56)
         pygame.draw.rect(surf, (8, 10, 22), camp, border_radius=8)
         pygame.draw.rect(surf, CIAN, camp, 2, border_radius=8)
@@ -11356,7 +12099,7 @@ class Game:
             info = "La potencia decide en qué escenarios se puede usar cada arma."
             if estat == "bloquejada":
                 info = T("Disponible al completar {e}.").format(e=nom_escenari(arma["req"]))
-            text(surf, info, F_TEXT_PP, GRIS, (WIDTH // 2 - 40, HEIGHT - 20))
+            text_bloc(surf, info, F_TEXT_PP, GRIS, (182, HEIGHT - 58, WIDTH - 300 - 194, 50))
 
     IMATGE_FITXA = {}
 
@@ -11601,7 +12344,7 @@ class Game:
                          self.nivell_passi(), self.temporada - 1, self.monedes, self.estrelles_totals())
         self.dibuixar_destacat(surf, self.rect_destacat())
         estat_so = "M: sonido OFF" if AUDIO.silenci else "M: sonido ON"
-        text(surf, estat_so, F_MINI, GRIS, (20, HEIGHT - 20), ancora="midleft")
+        text(surf, pista(estat_so), F_MINI, GRIS, (20, HEIGHT - 20), ancora="midleft")
         self.dibuixar_avisos(surf, 346, x=WIDTH - 166, font=F_MINI, ample=300, pas=20)
 
     def dibuixar_selector(self, surf):
@@ -11621,8 +12364,8 @@ class Game:
                     dibuixar_pips(surf, x + 2, y + 28, POTENCIA_MAX[(n, e)], mida=6, color=TARONJA)
                     for k, ple in enumerate(self.estrelles[n][e]):
                         dibuixar_estrella(surf, x + 66 + k * 14, y + 31, 6, ple)
-        text(surf, "Verde = completado · Cuadros = potencia · Estrellas: completar, sin daño, rápido", F_MINI, GRIS,
-             (WIDTH // 2 - 20, HEIGHT - 16))
+        text_bloc(surf, "Verde = completado · Cuadros = potencia · Estrellas: completar, sin daño, rápido", F_TEXT_PP, GRIS,
+                  (184, HEIGHT - 60, 520, 52))
 
     def dibuixar_botiga(self, surf):
         self.fons_menu.dibuixar(surf)
@@ -11683,8 +12426,7 @@ class Game:
             text(surf, txt, F_MINI, BLANC if estat != "bloquejada" else GRIS, caixa.center)
         if self.missatge:
             return
-        text(surf, "Haz clic en un arma para verla en tus manos con todos sus datos.", F_TEXT_PP, CIAN,
-             (WIDTH // 2 + 80, 499))
+        peu(surf, "Haz clic en un arma para verla en tus manos con todos sus datos.", CIAN)
 
     # ----- Fitxa d'una arma: el teu Nexus amb l'arma i les dades ----------------------------------------
 
@@ -11694,11 +12436,11 @@ class Game:
             nivell = self.nivell_millora(m["id"])
             panell(surf, fila, VERD if nivell >= len(m["costos"]) else BLAU_CLAR)
             text(surf, m["nom"], F_UI, BLANC, (fila.left + 16, fila.top + 15), ancora="midleft")
-            text(surf, m["desc"], F_TEXT_P, GRIS, (fila.left + 16, fila.top + 36), ancora="midleft", ombra=False)
+            text(surf, m["desc"], F_TEXT_P, GRIS, (fila.left + 16, fila.top + 36), ancora="midleft", ombra=False,
+                 max_w=580 - fila.left)
             dibuixar_pips(surf, 604, fila.top + 18, nivell, total=len(m["costos"]), color=VERD, mida=14)
         if not self.missatge:
-            text(surf, "Las mejoras se abren al avanzar en la historia; el último nivel pide estrellas.", F_TEXT_P, CIAN,
-                 (WIDTH // 2 + 80, 499))
+            peu(surf, "Las mejoras se abren al avanzar en la historia; el último nivel pide estrellas.", CIAN, F_TEXT_P)
 
     def dibuixar_botiga_aparenca(self, surf):
         t = self.t_global
@@ -11737,9 +12479,9 @@ class Game:
                 surf.blit(img, img.get_rect(center=(r.centerx, r.y + 70)))
                 if camo == "diamant" and obert and (t // 6) % 4 == 0:
                     pygame.draw.circle(surf, BLANC, (r.centerx + random.randint(-20, 20), r.y + random.randint(40, 100)), 2)
-                text(surf, T(dades["nom"]), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 34))
+                text(surf, T(dades["nom"]), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 34), max_w=r.w - 8)
                 req = T("Todas en oro") if camo == "diamant" else T("Maestría {n}").format(n=dades["nivell"])
-                text(surf, req, F_MINI, VERD if obert else (255, 170, 120), (r.centerx, r.bottom - 16))
+                text(surf, req, F_MINI, VERD if obert else (255, 170, 120), (r.centerx, r.bottom - 16), max_w=r.w - 8)
                 if hover:
                     info = T("Sube de nivel de maestría eliminando enemigos con esta arma.")
             nivell = self.nivell_mestria(arma_id)
@@ -11755,7 +12497,7 @@ class Game:
             else:
                 pygame.draw.rect(surf, GROC, barra, border_radius=5)
                 txt = T("Maestría {a}: nivel máximo ({b} bajas)").format(a=T(ARMES[ARMA_PER_ID[arma_id]]["nom"]), b=b)
-            text(surf, txt, F_TEXT_P, BLANC, (barra.centerx, barra.bottom + 20))
+            text(surf, txt, F_TEXT_P, BLANC, (barra.centerx, barra.bottom + 20), max_w=barra.w)
         else:
             equipat = self.equipat_de(cat)
             for k, ident in enumerate(self.cosmetics_visibles(cat)):
@@ -11770,12 +12512,12 @@ class Game:
                     surf.blit(capa, (r.x + 2, r.y + 2))
                     dibuixar_cadenat(surf, r.right - 14, r.y + 14)
                 if cat != "titol":
-                    text(surf, nom_cosmetic(cat, ident), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 12))
+                    text(surf, nom_cosmetic(cat, ident), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 12),
+                         max_w=r.w - 8)
                 if hover:
                     info = (T("Equipado") if equipat == ident else T("Clic para equipar")) if obert else self.origen_cosmetic(cat, ident)
         if not self.missatge:
-            text(surf, info or T("Consigue más en el Battle Pass, los rangos, los desafíos y las ofertas del día."),
-                 F_TEXT_PP, CIAN, (WIDTH // 2 + 80, 499))
+            peu(surf, info or T("Consigue más en el Battle Pass, los rangos, los desafíos y las ofertas del día."), CIAN, F_TEXT_PP)
 
     # ----- Battle Pass per pàgines ------------------------------------------------------------------
 
@@ -11867,23 +12609,47 @@ class Game:
 
     def dibuixar_guia(self, surf):
         self.fons_menu.dibuixar(surf)
-        text(surf, "GUÍA", F_SUBTITOL, BLANC, (WIDTH // 2, 42))
-        controls = [
-            ("A / D  o  flechas", "Moverse"),
-            ("ESPACIO / W / arriba", "Saltar (doble salto con Propulsores)"),
-            ("S / abajo", "Bajar de una plataforma"),
-            ("MAYÚS / clic derecho", "Voltereta: esquiva sin recibir daño"),
-            ("Clic izquierdo", "Disparar (mantén: armas automáticas)"),
-            ("1-5 / Q / rueda", "Cambiar de arma"),
-            ("P / ESC", "Pausa"),
-            ("G", "Volver al menú"),
-            ("M", "Activar / silenciar el sonido"),
-            ("F11", "Pantalla completa (volumen y vídeo en Opciones)"),
-        ]
+        text(surf, "GUÍA", F_SUBTITOL, BLANC, (150, 42))
+        controls = {
+            "teclat": [
+                ("A / D  o  flechas", "Moverse"),
+                ("ESPACIO / W / arriba", "Saltar (doble salto con Propulsores)"),
+                ("S / abajo", "Bajar de una plataforma"),
+                ("MAYÚS / clic derecho", "Voltereta: esquiva sin recibir daño"),
+                ("Clic izquierdo", "Disparar (mantén: armas automáticas)"),
+                ("1-5 / Q / rueda", "Cambiar de arma"),
+                ("P / ESC", "Pausa"),
+                ("G", "Volver al menú"),
+                ("M", "Activar / silenciar el sonido"),
+                ("F11", "Pantalla completa (volumen y vídeo en Opciones)"),
+            ],
+            "mando": [
+                ("Joystick izq. / cruceta", "Moverse (abajo: bajar de una plataforma)"),
+                ("A / Cruz", "Saltar (doble salto con Propulsores)"),
+                ("B / Círculo · LT / L2", "Voltereta: esquiva sin recibir daño"),
+                ("Joystick derecho", "Apuntar (empújalo a fondo para disparar)"),
+                ("RT / R2", "Disparar"),
+                ("RB / R1 · LB / L1", "Cambiar de arma"),
+                ("START / OPTIONS", "Pausa"),
+                ("Menús", "Joystick: cursor · cruceta: botones · A: aceptar · B: atrás"),
+                ("Compatibles", "Xbox, PlayStation y la mayoría de mandos USB o Bluetooth"),
+            ],
+            "tactil": [
+                ("Mitad izquierda", "Arrastra el pulgar para moverte"),
+                ("Joystick arriba / abajo", "Saltar / bajar de una plataforma"),
+                ("Mitad derecha", "Arrastra para apuntar y disparar"),
+                ("Toque rápido", "Un disparo al enemigo más cercano"),
+                ("Botón de la flecha", "Saltar (doble salto con Propulsores)"),
+                ("Botón de rodar", "Voltereta: esquiva sin recibir daño"),
+                ("Casillas de armas", "Toca una para cambiar de arma"),
+                ("Botón de pausa", "Pausa (arriba)"),
+                ("Consejo", "Juega con el móvil en horizontal y en pantalla completa"),
+            ],
+        }[getattr(self, "guia_control", "teclat")]
         for i, (tecla, accio) in enumerate(controls):
             y = 86 + i * 27
-            text(surf, tecla, F_TEXT_P, GROC, (130, y), ancora="midleft")
-            text(surf, accio, F_TEXT_P, BLANC, (400, y), ancora="midleft")
+            text(surf, tecla, F_TEXT_P, GROC, (130, y), ancora="midleft", max_w=262)
+            text(surf, accio, F_TEXT_P, BLANC, (400, y), ancora="midleft", max_w=WIDTH - 420)
         consells = [
             "Cada escenario limita la potencia de las armas que puedes usar.",
             "Cuando un enemigo brilla, va a atacar: ¡apártate o rueda!",
@@ -11897,7 +12663,8 @@ class Game:
         """Crèdits que pugen sols (ESPAI o fletxa avall per anar més de pressa)."""
         self.fons_menu.dibuixar(surf)
         teclat = pygame.key.get_pressed()
-        rapid = teclat[pygame.K_SPACE] or teclat[pygame.K_DOWN] or pygame.mouse.get_pressed()[0]
+        rapid = (teclat[pygame.K_SPACE] or teclat[pygame.K_DOWN] or pygame.mouse.get_pressed()[0] or bool(CONTROL.toques)
+                 or CONTROL.b[Control.A] > 0.5 or CONTROL.b[Control.AVALL] > 0.5 or CONTROL.eixos[1] > 0.5)
         enrere = teclat[pygame.K_UP]
         self.credits_y += 2.5 if enrere else -(4.0 if rapid else 0.75)
         alts = {"logo": LOGO_MENU.h, "petit": 26, "gran": 70, "seccio": 40, "nom": 34, "text": 28, "gracies": 60}
@@ -11934,7 +12701,7 @@ class Game:
         dron = SPR_ENEMIC.get("dron")
         if dron:
             surf.blit(dron, dron.get_rect(center=(WIDTH - 120, HEIGHT - 120 + math.sin(self.t_global * 0.05) * 10)))
-        text(surf, "ESPACIO / flecha abajo: más rápido", F_MINI, GRIS, (WIDTH - 20, HEIGHT - 20), ancora="midright")
+        text(surf, pista("ESPACIO / flecha abajo: más rápido"), F_MINI, GRIS, (WIDTH - 20, HEIGHT - 20), ancora="midright")
 
     def dibuixar_loading(self, surf):
         self.fons_menu.dibuixar(surf)
@@ -11945,7 +12712,7 @@ class Game:
         pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=4)
         pygame.draw.rect(surf, CIAN, (barra.x, barra.y, int(barra.w * progres), barra.h), border_radius=4)
         if progres >= 1 and (pygame.time.get_ticks() // 400) % 2:
-            text(surf, "Haz clic para empezar", F_HUD, GROC, (WIDTH // 2, 462))
+            text(surf, pista("Haz clic para empezar"), F_HUD, GROC, (WIDTH // 2, 462))
 
     def dibuixar_pausa(self, surf):
         self.dibuixar_joc(surf)
@@ -12149,13 +12916,14 @@ class Game:
         if self.missatge and self.estat != "joc":
             col = VERD if getattr(self, "missatge_ok", False) else VERMELL
             if self.estat in ("botiga", "personalitzar"):
-                text(surf, self.missatge, F_HUD, col, (WIDTH // 2 + 80, 499))
+                peu(surf, self.missatge, col, F_HUD)
             elif self.estat == "arma":
-                text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 40, HEIGHT - 20))
+                text_bloc(surf, self.missatge, F_HUD, col, (182, HEIGHT - 58, WIDTH - 300 - 194, 50), ombra=True)
             else:
-                text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 60, HEIGHT - 28))
+                text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 60, HEIGHT - 28), max_w=WIDTH - 360)
         if self.avisos_logro and self.estat != "loading":
             self.dibuixar_avisos_logro(surf)
+        CONTROL.dibuixar(surf, self)
         if getattr(self, "mostrar_fps", False):
             self.dibuixar_fps(surf)
         trans = getattr(self, "transicio", None)
@@ -12196,9 +12964,18 @@ class Game:
         inici = time.perf_counter()
         if self.prova:
             self.prova.abans(self)
+        CONTROL.llegir(self)
         for ev in pygame.event.get():
-            if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and hasattr(ev, "pos"):
-                ev = pygame.event.Event(ev.type, {**ev.dict, "pos": PANTALLA.a_virtual(ev.pos)})
+            sintetic = getattr(ev, "sintetic", False)
+            if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and not sintetic:
+                if getattr(ev, "touch", False) or (CONTROL.js and CONTROL.toc_recent()):
+                    continue                            # els tocs ja els tracta Control
+                if ev.type == pygame.MOUSEBUTTONDOWN or (ev.type == pygame.MOUSEMOTION and sum(map(abs, ev.rel)) > 3):
+                    CONTROL.posar_mode("teclat")
+                if hasattr(ev, "pos"):
+                    ev = pygame.event.Event(ev.type, {**ev.dict, "pos": PANTALLA.a_virtual(ev.pos)})
+            elif ev.type == pygame.KEYDOWN and not sintetic:
+                CONTROL.posar_mode("teclat")
             self.gestionar_event(ev)
         if self.estat == "quit":
             return False

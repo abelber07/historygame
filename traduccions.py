@@ -1913,3 +1913,128 @@ EN.update({
 })
 CA.update({"Contador de FPS": "Comptador de FPS"})
 EN.update({"Contador de FPS": "FPS counter"})
+
+# Mando i pantalla tàctil
+_CONTROLS = {
+    # ajudes segons el control
+    "A para continuar": ("A per continuar", "A to continue"),
+    "Toca para continuar": ("Toca per continuar", "Tap to continue"),
+    "A para ver todo el texto": ("A per veure tot el text", "A to show all the text"),
+    "Toca para ver todo el texto": ("Toca per veure tot el text", "Tap to show all the text"),
+    "A: elegir  ·  B: menú": ("A: triar  ·  B: menú", "A: choose  ·  B: menu"),
+    "A: saltar": ("A: saltar", "A: skip"),
+    "Toca para saltar": ("Toca per saltar", "Tap to skip"),
+    "A / abajo: más rápido": ("A / avall: més ràpid", "A / down: faster"),
+    "Mantén el dedo en la pantalla: más rápido": ("Mantén el dit a la pantalla: més ràpid", "Keep your finger on the screen: faster"),
+    "Pulsa A para empezar": ("Prem A per començar", "Press A to start"),
+    "Toca la pantalla para empezar": ("Toca la pantalla per començar", "Tap the screen to start"),
+    "Pulsa A en el recuadro para escribir el código": ("Prem A al requadre per escriure el codi", "Press A on the box to type the code"),
+    "Toca el recuadro para escribir el código": ("Toca el requadre per escriure el codi", "Tap the box to type the code"),
+    "Escribe el código": ("Escriu el codi", "Type the code"),
+    # controls tàctils i mòbil
+    "Mover": ("Moure", "Move"),
+    "Apuntar": ("Apuntar", "Aim"),
+    "Gira el móvil para jugar": ("Gira el mòbil per jugar", "Turn your phone to play"),
+    "El juego se ve en horizontal.": ("El joc es veu en horitzontal.", "The game is played in landscape."),
+    # entrenament amb mando
+    "Muévete con el joystick izquierdo (o con la cruceta).": ("Mou-te amb el joystick esquerre (o amb la creueta).",
+                                                               "Move with the left stick (or the D-pad)."),
+    "Salta con A / Cruz (mantén pulsado para saltar más alto) y sube a la plataforma.":
+        ("Salta amb A / Creu (mantén-lo premut per saltar més amunt) i puja a la plataforma.",
+         "Jump with A / Cross (hold it to jump higher) and get on the platform."),
+    "Baja de la plataforma empujando el joystick izquierdo hacia abajo.":
+        ("Baixa de la plataforma empenyent el joystick esquerre cap avall.", "Drop off the platform by pushing the left stick down."),
+    "Haz dos volteretas con B / Círculo (o LT / L2): mientras ruedas no te hacen daño.":
+        ("Fes dues tombarelles amb B / Cercle (o LT / L2): mentre rodoles no et fan mal.",
+         "Do two dodge rolls with B / Circle (or LT / L2): you can't be hurt while rolling."),
+    "Apunta con el joystick derecho y dispara con RT / R2. Destruye los tres blancos.":
+        ("Apunta amb el joystick dret i dispara amb RT / R2. Destrueix els tres blancs.",
+         "Aim with the right stick and shoot with RT / R2. Destroy the three targets."),
+    "Cambia al fusil con RB / R1 (LB / L1 va hacia atrás).": ("Canvia al fusell amb RB / R1 (LB / L1 va enrere).",
+                                                             "Switch to the rifle with RB / R1 (LB / L1 goes back)."),
+    "¡Entrenamiento completado! Con START / OPTIONS puedes pausar cuando quieras.":
+        ("Entrenament completat! Amb START / OPTIONS pots fer pausa quan vulguis.",
+         "Training complete! Press START / OPTIONS to pause whenever you like."),
+    # entrenament tàctil
+    "Muévete arrastrando el pulgar por la mitad izquierda de la pantalla.":
+        ("Mou-te arrossegant el polze per la meitat esquerra de la pantalla.", "Move by dragging your thumb on the left half of the screen."),
+    "Salta con el botón de la flecha (o empujando el joystick hacia arriba) y sube a la plataforma.":
+        ("Salta amb el botó de la fletxa (o empenyent el joystick cap amunt) i puja a la plataforma.",
+         "Jump with the arrow button (or by pushing the stick up) and get on the platform."),
+    "Baja de la plataforma empujando el joystick hacia abajo.": ("Baixa de la plataforma empenyent el joystick cap avall.",
+                                                                 "Drop off the platform by pushing the stick down."),
+    "Haz dos volteretas con el botón de rodar: mientras ruedas no te hacen daño.":
+        ("Fes dues tombarelles amb el botó de rodolar: mentre rodoles no et fan mal.",
+         "Do two dodge rolls with the roll button: you can't be hurt while rolling."),
+    "Arrastra el pulgar por la mitad derecha para apuntar y disparar. Destruye los tres blancos.":
+        ("Arrossega el polze per la meitat dreta per apuntar i disparar. Destrueix els tres blancs.",
+         "Drag your thumb on the right half to aim and shoot. Destroy the three targets."),
+    "Cambia al fusil tocando su casilla (abajo a la derecha) o con el botón de cambiar de arma.":
+        ("Canvia al fusell tocant la seva casella (a baix a la dreta) o amb el botó de canviar d'arma.",
+         "Switch to the rifle by tapping its slot (bottom right) or with the switch-weapon button."),
+    "¡Entrenamiento completado! Con el botón de pausa (arriba) puedes parar cuando quieras.":
+        ("Entrenament completat! Amb el botó de pausa (a dalt) pots aturar-te quan vulguis.",
+         "Training complete! Use the pause button (at the top) to stop whenever you like."),
+    # guia
+    "Teclado": ("Teclat", "Keyboard"),
+    "Mando": ("Comandament", "Controller"),
+    "Táctil": ("Tàctil", "Touch"),
+    "Joystick izq. / cruceta": ("Joystick esq. / creueta", "Left stick / D-pad"),
+    "Moverse (abajo: bajar de una plataforma)": ("Moure's (avall: baixar d'una plataforma)", "Move (down: drop off a platform)"),
+    "A / Cruz": ("A / Creu", "A / Cross"),
+    "B / Círculo · LT / L2": ("B / Cercle · LT / L2", "B / Circle · LT / L2"),
+    "Joystick derecho": ("Joystick dret", "Right stick"),
+    "Apuntar (empújalo a fondo para disparar)": ("Apuntar (empeny-lo a fons per disparar)", "Aim (push it all the way to shoot)"),
+    "RT / R2": ("RT / R2", "RT / R2"),
+    "Disparar": ("Disparar", "Shoot"),
+    "RB / R1 · LB / L1": ("RB / R1 · LB / L1", "RB / R1 · LB / L1"),
+    "START / OPTIONS": ("START / OPTIONS", "START / OPTIONS"),
+    "Menús": ("Menús", "Menus"),
+    "Joystick: cursor · cruceta: botones · A: aceptar · B: atrás":
+        ("Joystick: cursor · creueta: botons · A: acceptar · B: enrere", "Stick: cursor · D-pad: buttons · A: confirm · B: back"),
+    "Compatibles": ("Compatibles", "Supported"),
+    "Xbox, PlayStation y la mayoría de mandos USB o Bluetooth":
+        ("Xbox, PlayStation i la majoria de comandaments USB o Bluetooth", "Xbox, PlayStation and most USB or Bluetooth controllers"),
+    "Mitad izquierda": ("Meitat esquerra", "Left half"),
+    "Arrastra el pulgar para moverte": ("Arrossega el polze per moure't", "Drag your thumb to move"),
+    "Joystick arriba / abajo": ("Joystick amunt / avall", "Stick up / down"),
+    "Saltar / bajar de una plataforma": ("Saltar / baixar d'una plataforma", "Jump / drop off a platform"),
+    "Mitad derecha": ("Meitat dreta", "Right half"),
+    "Arrastra para apuntar y disparar": ("Arrossega per apuntar i disparar", "Drag to aim and shoot"),
+    "Toque rápido": ("Toc ràpid", "Quick tap"),
+    "Un disparo al enemigo más cercano": ("Un tret a l'enemic més proper", "One shot at the nearest enemy"),
+    "Botón de la flecha": ("Botó de la fletxa", "Arrow button"),
+    "Saltar (doble salto con Propulsores)": None,
+    "Botón de rodar": ("Botó de rodolar", "Roll button"),
+    "Voltereta: esquiva sin recibir daño": None,
+    "Casillas de armas": ("Caselles d'armes", "Weapon slots"),
+    "Toca una para cambiar de arma": ("Toca'n una per canviar d'arma", "Tap one to switch weapons"),
+    "Botón de pausa": ("Botó de pausa", "Pause button"),
+    "Pausa (arriba)": ("Pausa (a dalt)", "Pause (at the top)"),
+    "Consejo": ("Consell", "Tip"),
+    "Juega con el móvil en horizontal y en pantalla completa": ("Juga amb el mòbil en horitzontal i a pantalla completa",
+                                                                "Play with your phone in landscape and full screen"),
+}
+for _es, _tr in _CONTROLS.items():
+    if _tr:
+        CA.setdefault(_es, _tr[0])
+        EN.setdefault(_es, _tr[1])
+
+_NOVETATS_43 = {
+    "Mando y móvil": ("Comandament i mòbil", "Controller and mobile"),
+    "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick izquierdo para moverte, derecho para apuntar y RT / R2 para disparar. En los menús, A acepta y B vuelve.":
+        ("Es pot jugar amb comandament (Xbox, PlayStation i la majoria de comandaments USB o Bluetooth): joystick esquerre per moure't, dret per apuntar i RT / R2 per disparar. Als menús, A accepta i B torna enrere.",
+         "You can play with a controller (Xbox, PlayStation and most USB or Bluetooth pads): left stick to move, right stick to aim and RT / R2 to shoot. In menus, A confirms and B goes back."),
+    "En el móvil y la tableta aparecen controles táctiles: un joystick para moverte, otro para apuntar y disparar, y botones para saltar, rodar, cambiar de arma y pausar. Se juega en horizontal.":
+        ("Al mòbil i la tauleta apareixen controls tàctils: un joystick per moure't, un altre per apuntar i disparar, i botons per saltar, rodolar, canviar d'arma i fer pausa. Es juga en horitzontal.",
+         "On phones and tablets you get touch controls: one stick to move, another to aim and shoot, and buttons to jump, roll, switch weapons and pause. Play in landscape."),
+    "La Guía enseña los controles del teclado, del mando y de la pantalla táctil.":
+        ("La Guia ensenya els controls del teclat, del comandament i de la pantalla tàctil.",
+         "The Guide shows the keyboard, controller and touch controls."),
+    "Arreglados los textos que se salían de los recuadros (logros, tienda, desafíos, rangos...) en los tres idiomas.":
+        ("Arreglats els textos que sortien dels requadres (assoliments, botiga, desafiaments, rangs...) en els tres idiomes.",
+         "Fixed text spilling out of its boxes (achievements, shop, challenges, ranks...) in all three languages."),
+}
+for _es, (_ca, _en) in _NOVETATS_43.items():
+    CA.setdefault(_es, _ca)
+    EN.setdefault(_es, _en)

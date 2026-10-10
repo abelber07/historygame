@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.2"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.3"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 5
 
 
@@ -500,6 +500,25 @@ PASSOS_TUTORIAL = [
     ("items", "Recoge el corazón (vida) y la caja (munición)."),
     ("fi", "¡Entrenamiento completado! Con P o ESC puedes pausar cuando quieras."),
 ]
+# El mismo entrenamiento, explicado con mando o con la pantalla táctil (los pasos que cambian)
+PASSOS_TUTORIAL_MANDO = {
+    "moure": "Muévete con el joystick izquierdo (o con la cruceta).",
+    "saltar": "Salta con A / Cruz (mantén pulsado para saltar más alto) y sube a la plataforma.",
+    "baixar": "Baja de la plataforma empujando el joystick izquierdo hacia abajo.",
+    "voltereta": "Haz dos volteretas con B / Círculo (o LT / L2): mientras ruedas no te hacen daño.",
+    "disparar": "Apunta con el joystick derecho y dispara con RT / R2. Destruye los tres blancos.",
+    "arma": "Cambia al fusil con RB / R1 (LB / L1 va hacia atrás).",
+    "fi": "¡Entrenamiento completado! Con START / OPTIONS puedes pausar cuando quieras.",
+}
+PASSOS_TUTORIAL_TACTIL = {
+    "moure": "Muévete arrastrando el pulgar por la mitad izquierda de la pantalla.",
+    "saltar": "Salta con el botón de la flecha (o empujando el joystick hacia arriba) y sube a la plataforma.",
+    "baixar": "Baja de la plataforma empujando el joystick hacia abajo.",
+    "voltereta": "Haz dos volteretas con el botón de rodar: mientras ruedas no te hacen daño.",
+    "disparar": "Arrastra el pulgar por la mitad derecha para apuntar y disparar. Destruye los tres blancos.",
+    "arma": "Cambia al fusil tocando su casilla (abajo a la derecha) o con el botón de cambiar de arma.",
+    "fi": "¡Entrenamiento completado! Con el botón de pausa (arriba) puedes parar cuando quieras.",
+}
 # Detalle de cada mejora para la pantalla "Cómo funciona"
 DETALL_MILLORES = {
     "blindatge": "+20 de vida máxima por nivel (hasta 160).",
@@ -524,6 +543,15 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.3", "titol": "Mando y móvil", "punts": [
+        ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "
+                 "izquierdo para moverte, derecho para apuntar y RT / R2 para disparar. En los menús, A acepta y B vuelve."),
+        ("saltar", "En el móvil y la tableta aparecen controles táctiles: un joystick para moverte, otro para apuntar "
+                   "y disparar, y botones para saltar, rodar, cambiar de arma y pausar. Se juega en horizontal."),
+        ("llibre", "La Guía enseña los controles del teclado, del mando y de la pantalla táctil."),
+        ("globus", "Arreglados los textos que se salían de los recuadros (logros, tienda, desafíos, rangos...) en los "
+                   "tres idiomas."),
+    ]},
     {"versio": "4.2", "titol": "Enemigos más peligrosos", "punts": [
         ("enemic", "Los disparos y golpes de los enemigos hacen un 30% más de daño. Disparan igual de seguido, así que "
                    "si esquivas bien la estrella sin daño sigue siendo posible."),
