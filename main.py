@@ -50,6 +50,16 @@ def _prova_demanada():
     return os.environ.get("JOC_PROVA") == "1"
 
 
+def pestanya_oculta():
+    """Al navegador: la pestanya del joc no es veu (n'has obert una altra o has minimitzat la finestra)."""
+    if not WEB:
+        return False
+    try:
+        return bool(__import__("platform").window.document.hidden)
+    except Exception:
+        return False
+
+
 PROVA_RENDIMENT = _prova_demanada()
 if PROVA_RENDIMENT:
     print("PROVA_INICI")
@@ -12157,12 +12167,42 @@ class Game:
             self.prova.despres(self, time.perf_counter() - inici)
         return True
 
+    def en_segon_pla(self):
+        """La pestanya ja no es veu: la partida es posa en pausa i la música s'atura."""
+        self.musica_aturada_fora = False
+        if self.estat == "joc" and self.fase == "jugant" and self.mode != "tutorial":
+            self.pausar()
+        if AUDIO_OK and not AUDIO.pausada:
+            AUDIO.pausar()
+            self.musica_aturada_fora = True
+
+    def en_primer_pla(self):
+        """Tornes a la pestanya: la música continua (si no estàs al menú de pausa) i tot torna a anar."""
+        if getattr(self, "musica_aturada_fora", False) and self.estat != "pausa":
+            AUDIO.reprendre()
+        self.musica_aturada_fora = False
+        self.clock.tick(FPS)
+        if self.prova and not self.prova.acabada:     # la prova torna a començar l'escena (el temps fora no compta)
+            self.prova.f = 0
+
     async def main(self):
         if not AUDIO.silenci:
             AUDIO.musica("menu")
         if WEB:
             self.descarrega = asyncio.create_task(DESCARREGUES.executar())    # música en segon pla
-        while self.pas():
+        oculta = False
+        while True:
+            if pestanya_oculta():                   # a una altra pestanya: tot quiet, sense gastar recursos
+                if not oculta:
+                    oculta = True
+                    self.en_segon_pla()
+                await asyncio.sleep(0.25)
+                continue
+            if oculta:
+                oculta = False
+                self.en_primer_pla()
+            if not self.pas():
+                break
             self.clock.tick(FPS)
             await asyncio.sleep(0)      # imprescindible al navegador: retorna el control al bucle d'esdeveniments
         pygame.quit()
