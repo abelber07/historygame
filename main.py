@@ -259,9 +259,11 @@ class Pantalla:
     def demanar_completa_web():
         """Pantalla completa al navegador; al mòbil, a més, en horitzontal."""
         __import__("platform").window.eval(
-            "(function(){var d=document.documentElement;var p=(d.requestFullscreen||d.webkitRequestFullscreen).call(d);"
-            "if(p&&p.then){p.then(function(){if(screen.orientation&&screen.orientation.lock)"
-            "{return screen.orientation.lock('landscape');}}).catch(function(){});}})()")
+            "(function(){window.jocVolCompleta=true;if(window.jocCompleta){window.jocCompleta();return;}"
+            "var d=document.documentElement;var f=d.requestFullscreen||d.webkitRequestFullscreen;if(!f)return;"
+            "var p=f.call(d);if(p&&p.then){p.then(function(){window.jocVolCompleta=false;"
+            "if(screen.orientation&&screen.orientation.lock){return screen.orientation.lock('landscape');}})"
+            ".catch(function(){});}})()")
 
     def es_completa(self):
         if WEB:
@@ -6428,6 +6430,24 @@ JS_ENTRADA = r"""
       if (e.cancelable) e.preventDefault();
     };
   }
+  // pantalla completa: el navegador només la deixa demanar dins d'un gest (en deixar anar el dit, no en posar-lo)
+  window.jocCompleta = function () {
+    var d = document.documentElement;
+    var f = d.requestFullscreen || d.webkitRequestFullscreen;
+    if (!f) return false;
+    try {
+      var p = f.call(d);
+      if (p && p.then) {
+        p.then(function () { window.jocVolCompleta = false;
+          if (screen.orientation && screen.orientation.lock) return screen.orientation.lock('landscape'); })
+         .catch(function () {});
+      }
+    } catch (err) { return false; }
+    return true;
+  };
+  window.addEventListener('touchend', function () {
+    if (window.jocVolCompleta && !document.fullscreenElement && !document.webkitFullscreenElement) window.jocCompleta();
+  }, true);
   var op = {passive: false};
   window.addEventListener('touchstart', posar('d'), op);
   window.addEventListener('touchmove', posar('m'), op);
@@ -7567,7 +7587,8 @@ class Game:
         ]
         b = []
         if WEB:
-            b.append(Boto((400, 172, 320, 36), "Pantalla completa (F11)", PANTALLA.commutar_completa, BLAU, font=F_HUD))
+            b.append(Boto((400, 172, 320, 36), "Pantalla completa (F11)" if CONTROL.mode == "teclat" else "Pantalla completa",
+                          PANTALLA.commutar_completa, BLAU, font=F_HUD))
         else:
             b.append(Boto((400, 172, 155, 36), "Completa", lambda: self.posar_pantalla(True),
                           VERD if PANTALLA.completa else BLAU, font=F_HUD))
