@@ -72,13 +72,13 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 | Joystick izquierdo / cruceta | Moverse (abajo: bajar de una plataforma) |
 | A / Cruz | Saltar |
 | B / Círculo · LT / L2 | Voltereta |
-| Joystick derecho | Apuntar (a fondo también dispara) |
+| Joystick derecho | Apuntar |
 | RT / R2 | Disparar |
 | RB / R1 · LB / L1 | Cambiar de arma |
 | START / OPTIONS | Pausa |
 | Menús | Joystick: cursor · cruceta: botones · A: aceptar · B: atrás |
 
-**En el móvil o la tableta** aparecen controles en pantalla: arrastra el pulgar en la mitad izquierda para moverte (arriba salta, abajo baja de una plataforma) y en la mitad derecha para apuntar y disparar; un toque rápido dispara al enemigo más cercano. Hay botones para saltar, rodar, cambiar de arma (o toca su casilla) y pausar. Se juega en horizontal; para escribir un código, toca el recuadro.
+**En el móvil o la tableta** aparecen controles en pantalla: arrastra el pulgar en la mitad izquierda para moverte (arriba salta, abajo baja de una plataforma) y en la mitad derecha para apuntar y disparar; un toque rápido hace un disparo hacia donde apuntas. No hay ayuda para apuntar. Hay botones para saltar, rodar, cambiar de arma (o toca su casilla) y pausar. Se juega en horizontal; para escribir un código, toca el recuadro.
 
 ## Armas y potencia
 
@@ -111,7 +111,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 ## Novedades
 
 **Versión 4.3: mando y móvil**
-- **Mando**: Xbox, PlayStation y la mayoría de mandos USB o Bluetooth. Joystick izquierdo para moverte, derecho para apuntar (con una pequeña ayuda hacia el enemigo más alineado), RT / R2 para disparar, A para saltar, B o LT para rodar y RB / LB para cambiar de arma. En los menús hay un cursor: la cruceta salta de botón en botón, A acepta y B vuelve atrás.
+- **Mando**: Xbox, PlayStation y la mayoría de mandos USB o Bluetooth. Joystick izquierdo para moverte, derecho para apuntar (sin ayuda para apuntar; solo dispara el gatillo) y RT / R2 para disparar, A para saltar, B o LT para rodar y RB / LB para cambiar de arma. En los menús hay un cursor: la cruceta salta de botón en botón, A acepta y B vuelve atrás.
 - **Pantalla táctil**: joystick para moverte, joystick para apuntar y disparar, y botones para saltar, rodar, cambiar de arma y pausar. Si el móvil está en vertical, el juego se pausa y pide girarlo. Los códigos se escriben en un cuadro del navegador.
 - La **Guía** tiene pestañas con los controles del teclado, del mando y de la pantalla táctil, y el entrenamiento explica cada paso con el control que estés usando.
 - **Textos arreglados**: ya no se salen de los recuadros en los logros, la tienda, los desafíos, los rangos, las fichas de las armas y los botones, en ninguno de los tres idiomas. Si un texto no cabe, se hace un poco más pequeño o pasa a dos líneas.

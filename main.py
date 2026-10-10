@@ -6725,13 +6725,8 @@ class Control:
                 self.clic((x, y), avall=False)
                 self.pos_tactil = None
             elif t["rol"] == "apunta" and t["t"] < 14 and math.hypot(x - t["x0"], y - t["y0"]) < 18:
-                # toc curt: dispara una vegada cap a l'enemic més proper
+                # toc curt: un tret cap on s'apunta (sense ajuda per apuntar)
                 if g.estat == "joc" and g.fase == "jugant":
-                    e = self.enemic_proper(g)
-                    if e is not None:
-                        jx, jy = g.jugador.centre
-                        self.angle = math.atan2(e.centre[1] - jy, e.centre[0] - jx)
-                        self.calcular_mira(g)
                     g.clic_pendent = 12
             del self.toques[ident]
 
@@ -6785,7 +6780,7 @@ class Control:
             self.apuntant = mag > self.MORT
             if self.apuntant:
                 self.angle = math.atan2(ry, rx)
-            self.disparant = b[self.RT] > 0.35 or mag > 0.78
+            self.disparant = b[self.RT] > 0.35          # només dispara el gatell (RT / R2), apuntar no dispara
             jugant = g.fase == "jugant"
             if jugant and (self.premut(self.A) or self.premut(self.AMUNT)):
                 g.jugador.demanar_salt()
@@ -6906,33 +6901,14 @@ class Control:
             self.tecla(pygame.K_RIGHT)
 
     # ----- apuntar ----------------------------------------------------------------
-    @staticmethod
-    def enemics_visibles(g):
-        return [e for e in g.enemics if e.vida > 0 and -20 < e.centre[0] < WIDTH + 20 and -20 < e.centre[1] < HEIGHT]
-
-    def enemic_proper(self, g):
-        jx, jy = g.jugador.centre
-        vius = self.enemics_visibles(g)
-        return min(vius, key=lambda e: math.hypot(e.centre[0] - jx, e.centre[1] - jy)) if vius else None
-
     def calcular_mira(self, g):
-        """Punt de mira del mando o del tàctil: en la direcció triada, amb una mica d'ajuda cap a l'enemic més alineat."""
+        """Punt de mira del mando o del tàctil: exactament en la direcció triada (sense ajuda per apuntar)."""
         j = g.jugador
         cx, cy = j.canons(g.spr_jugador())
         if not self.apuntant and not self.disparant and (self.esq or self.dre):
             self.angle = math.pi if self.esq else 0.0   # sense apuntar: mira cap on camines
         a = self.angle if self.angle is not None else (0.0 if j.direccio > 0 else math.pi)
-        millor, dist = None, 260.0
-        for e in self.enemics_visibles(g):
-            ex, ey = e.centre
-            ae = math.atan2(ey - cy, ex - cx)
-            dif = abs((ae - a + math.pi) % (2 * math.pi) - math.pi)
-            if dif < 0.24:
-                d = math.hypot(ex - cx, ey - cy) * (1 + dif * 3)
-                if millor is None or d < millor[0]:
-                    millor = (d, ae, math.hypot(ex - cx, ey - cy))
-        if millor:
-            a, dist = millor[1], max(60.0, millor[2])
+        dist = 220.0
         self.mira = (int(max(4, min(WIDTH - 4, cx + math.cos(a) * dist))),
                      int(max(4, min(HEIGHT - 4, cy + math.sin(a) * dist))))
 
@@ -12683,7 +12659,7 @@ class Game:
                 ("Joystick izq. / cruceta", "Moverse (abajo: bajar de una plataforma)"),
                 ("A / Cruz", "Saltar (doble salto con Propulsores)"),
                 ("B / Círculo · LT / L2", "Voltereta: esquiva sin recibir daño"),
-                ("Joystick derecho", "Apuntar (empújalo a fondo para disparar)"),
+                ("Joystick derecho", "Apuntar"),
                 ("RT / R2", "Disparar"),
                 ("RB / R1 · LB / L1", "Cambiar de arma"),
                 ("START / OPTIONS", "Pausa"),
@@ -12694,7 +12670,7 @@ class Game:
                 ("Mitad izquierda", "Arrastra el pulgar para moverte"),
                 ("Joystick arriba / abajo", "Saltar / bajar de una plataforma"),
                 ("Mitad derecha", "Arrastra para apuntar y disparar"),
-                ("Toque rápido", "Un disparo al enemigo más cercano"),
+                ("Toque rápido", "Un disparo hacia donde apuntas"),
                 ("Botón de la flecha", "Saltar (doble salto con Propulsores)"),
                 ("Botón de rodar", "Voltereta: esquiva sin recibir daño"),
                 ("Casillas de armas", "Toca una para cambiar de arma"),

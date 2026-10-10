@@ -2002,6 +2002,7 @@ _CONTROLS = {
     "Mitad derecha": ("Meitat dreta", "Right half"),
     "Arrastra para apuntar y disparar": ("Arrossega per apuntar i disparar", "Drag to aim and shoot"),
     "Toque rápido": ("Toc ràpid", "Quick tap"),
+    "Un disparo hacia donde apuntas": ("Un tret cap on apuntes", "One shot where you're aiming"),
     "Un disparo al enemigo más cercano": ("Un tret a l'enemic més proper", "One shot at the nearest enemy"),
     "Botón de la flecha": ("Botó de la fletxa", "Arrow button"),
     "Saltar (doble salto con Propulsores)": None,
