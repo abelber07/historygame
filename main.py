@@ -6448,6 +6448,41 @@ JS_ENTRADA = r"""
   window.addEventListener('touchend', function () {
     if (window.jocVolCompleta && !document.fullscreenElement && !document.webkitFullscreenElement) window.jocCompleta();
   }, true);
+  // so al mòbil: el navegador només deixa engegar l'àudio dins d'un gest (en deixar anar el dit, un clic, una tecla).
+  // La música (MM, elements <audio>) que el joc ha demanat i no ha pogut sonar es torna a provar al gest següent,
+  // i el context d'àudio dels efectes (SDL) es reprèn si està aturat.
+  window.jocMusica = null;
+  try {
+    var MMo = window.MM;
+    if (MMo && !MMo.jocPatch) {
+      MMo.jocPatch = true;
+      var embolcallar = function (nom, volguda) {
+        var orig = MMo[nom];
+        if (typeof orig !== 'function') return;
+        MMo[nom] = function (tid) {
+          window.jocMusica = volguda ? tid : null;
+          return orig.apply(this, arguments);
+        };
+      };
+      embolcallar('play', true);
+      embolcallar('unpause', true);
+      embolcallar('pause', false);
+      embolcallar('stop', false);
+    }
+  } catch (err) {}
+  function desbloquejar() {
+    try {
+      var c = window.Module && window.Module.SDL2 && window.Module.SDL2.audioContext;
+      if (c && c.state !== 'running' && c.resume) c.resume();
+    } catch (err) {}
+    try {
+      var tid = window.jocMusica, t = (tid !== null && window.MM) ? window.MM[tid] : null;
+      if (t && t.media && t.media.paused) { var p = t.media.play(); if (p && p.catch) p.catch(function () {}); }
+    } catch (err) {}
+  }
+  window.addEventListener('touchend', desbloquejar, true);
+  window.addEventListener('click', desbloquejar, true);
+  window.addEventListener('keydown', desbloquejar, true);
   var op = {passive: false};
   window.addEventListener('touchstart', posar('d'), op);
   window.addEventListener('touchmove', posar('m'), op);
