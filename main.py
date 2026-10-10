@@ -12968,7 +12968,7 @@ class Game:
         for ev in pygame.event.get():
             sintetic = getattr(ev, "sintetic", False)
             if ev.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION) and not sintetic:
-                if getattr(ev, "touch", False) or (CONTROL.js and CONTROL.toc_recent()):
+                if CONTROL.js and (getattr(ev, "touch", False) or CONTROL.toc_recent()):
                     continue                            # els tocs ja els tracta Control
                 if ev.type == pygame.MOUSEBUTTONDOWN or (ev.type == pygame.MOUSEMOTION and sum(map(abs, ev.rel)) > 3):
                     CONTROL.posar_mode("teclat")
