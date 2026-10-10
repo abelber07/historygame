@@ -1511,35 +1511,6 @@ def llum(radi, color):
     return s
 
 
-_CACHE_NIVELLS = {}
-
-
-def capa_nivell(base, alpha, pas=16):
-    """`base` amb la transparència global ja aplicada als píxels, arrodonida a esglaons de `pas`.
-    Pintar-la és ~2,5 vegades més ràpid que fer set_alpha a cada fotograma (sobretot al navegador) i es veu igual."""
-    n = max(0, min(255, int(alpha + pas / 2) // pas * pas))
-    if n <= 0:
-        return None
-    clau = (id(base), n)
-    s = _CACHE_NIVELLS.get(clau)
-    if s is None:
-        s = base.copy()
-        s.set_alpha(255)
-        if n < 255:
-            s.fill((255, 255, 255, n), special_flags=pygame.BLEND_RGBA_MULT)
-        _CACHE_NIVELLS[clau] = s
-    return s
-
-
-def aclarir_pantalla(surf, alpha, color=(255, 255, 255)):
-    """Flaix: el mateix que barrejar-hi una capa de `color` amb aquesta transparència (píxel·(1-a) + color·a),
-    però fet amb dos `fill` de tota la pantalla, que són molt més ràpids que crear i barrejar una capa."""
-    a = max(0.0, min(1.0, alpha / 255))
-    m = int(round(255 * (1 - a)))
-    surf.fill((m, m, m), special_flags=pygame.BLEND_RGB_MULT)
-    surf.fill(tuple(int(round(c * a)) for c in color), special_flags=pygame.BLEND_RGB_ADD)
-
-
 def crear_vinyeta():
     petit = pygame.Surface((80, 60), pygame.SRCALPHA)
     for x in range(80):
@@ -1698,21 +1669,14 @@ class Ambient:
         t = self.t
         if "reflectors" in self.tipus:
             capa = CAPA_TRANSPARENT
-            feixos = []
+            capa.fill((0, 0, 0, 0))
             for base_x, fase in ((140, 0.0), (WIDTH - 140, 2.1)):
                 a = -math.pi / 2 + math.sin(t * 0.012 + fase) * 0.55
                 for obertura, alfa in ((0.13, 34), (0.07, 46)):
                     p1 = (base_x + math.cos(a - obertura) * 700, TERRA_Y + math.sin(a - obertura) * 700)
                     p2 = (base_x + math.cos(a + obertura) * 700, TERRA_Y + math.sin(a + obertura) * 700)
-                    feixos.append(((base_x, TERRA_Y), p1, p2, alfa))
-            xs = [p[0] for f in feixos for p in f[:3]]
-            ys = [p[1] for f in feixos for p in f[:3]]
-            zona = pygame.Rect(int(min(xs)), int(min(ys)), int(max(xs) - min(xs)) + 3, int(max(ys) - min(ys)) + 3)
-            zona = zona.clip(capa.get_rect())                   # només s'esborra i es pinta la zona dels feixos
-            capa.fill((0, 0, 0, 0), zona)
-            for p0, p1, p2, alfa in feixos:
-                pygame.draw.polygon(capa, (255, 250, 200, alfa), [p0, p1, p2])
-            surf.blit(capa, zona.topleft, area=zona)
+                    pygame.draw.polygon(capa, (255, 250, 200, alfa), [(base_x, TERRA_Y), p1, p2])
+            surf.blit(capa, (0, 0))
         if "energia" in self.tipus:
             y = (t * 3) % (HEIGHT + 200) - 100
             surf.blit(BANDA_ENERGIA, (0, int(y)))
@@ -1756,9 +1720,8 @@ class Ambient:
         """Per sobre de tot (pluja, neu, guspires, llamps) abans de l'HUD."""
         t = self.t
         if "foc" in self.tipus:
-            img = capa_nivell(RESPLENDOR_FOC, 150 + int(60 * math.sin(t * 0.3)) + random.randint(-25, 25))
-            if img:
-                surf.blit(img, (0, HEIGHT - 220))
+            RESPLENDOR_FOC.set_alpha(150 + int(60 * math.sin(t * 0.3)) + random.randint(-25, 25))
+            surf.blit(RESPLENDOR_FOC, (0, HEIGHT - 220))
         for p in self.part:
             x, y, mida, color = int(p[0]), int(p[1]), p[5], p[7]
             if color[0] == 255:                       # guspira: amb llum
@@ -1783,9 +1746,8 @@ class Ambient:
         if "alarma" in self.tipus:
             k = max(0.0, math.sin(t * 0.07))
             if k > 0.05:
-                img = capa_nivell(ALARMA, 110 * k)
-                if img:
-                    surf.blit(img, (0, 0))
+                ALARMA.set_alpha(int(110 * k))
+                surf.blit(ALARMA, (0, 0))
             for bx in (24, WIDTH - 24):
                 a = t * 0.08 + (0 if bx < 100 else math.pi)
                 p1 = (bx + math.cos(a - 0.25) * 260, 20 + abs(math.sin(a - 0.25)) * 260)
@@ -1799,11 +1761,12 @@ class Ambient:
                 surf.blit(capa, (x0, y0))
                 pygame.draw.circle(surf, (255, 80, 80), (bx, 20), 5)
         if "pulsacio" in self.tipus:
-            img = capa_nivell(PULSACIO, 70 + 70 * math.sin(t * 0.05))
-            if img:
-                surf.blit(img, (0, 0))
+            PULSACIO.set_alpha(int(70 + 70 * math.sin(t * 0.05)))
+            surf.blit(PULSACIO, (0, 0))
         if self.flaix:
-            aclarir_pantalla(surf, 14 * self.flaix, (220, 230, 255))
+            vel = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            vel.fill((220, 230, 255, int(14 * self.flaix)))
+            surf.blit(vel, (0, 0))
         surf.blit(VINYETA, (0, 0))
 
 
@@ -6673,7 +6636,6 @@ class Game:
         self.reiniciar_hud()
 
     def iniciar_joc(self):
-        _CACHE_NIVELLS.clear()                       # els nivells de transparència es tornen a fer quan calen
         if self.mode == "desafiament":
             self.iniciar_desafiament(self.mode_desafiament)
             return
@@ -11177,13 +11139,14 @@ class Game:
         for t in self.textos:
             t.dibuixar(c)
         if self.flaix:
-            aclarir_pantalla(c, 16 * self.flaix)
+            vel = CAPA_TRANSPARENT
+            vel.fill((255, 255, 255, int(16 * self.flaix)))
+            c.blit(vel, (0, 0))
         if self.batec_t:                              # poca vida: la pantalla batega en vermell
             p = self.batec_t % 60
             k = max(0.0, 1 - p / 12, 0.75 * (1 - abs(p - 15) / 8))
-            img = capa_nivell(ALARMA, 35 + 90 * k)
-            if img:
-                c.blit(img, (0, 0))
+            ALARMA.set_alpha(int(35 + 90 * k))
+            c.blit(ALARMA, (0, 0))
 
         if self.tremolor > 0.5:
             ox = random.randint(-int(self.tremolor), int(self.tremolor))
