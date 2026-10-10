@@ -6170,8 +6170,63 @@ class ProvaRendiment:
                     "seccions": {k: round(v / n * 1000, 2) for k, v in self.seccions.items()}})
                 print("PROVA", json.dumps(self.resultats[-1], ensure_ascii=False))
 
+    @staticmethod
+    def proves_blit():
+        """Quant costa cada manera de pintar una capa de pantalla completa en aquest navegador (ms)."""
+        dest = pygame.Surface((WIDTH, HEIGHT))
+        dest.fill((90, 100, 120))
+        gris = pygame.Surface((WIDTH, HEIGHT))
+        gris.fill((200, 200, 200))
+        opac_alfa = pygame.Surface((WIDTH, HEIGHT))
+        opac_alfa.fill((255, 255, 255))
+        opac_alfa.set_alpha(100)
+        mitja = pygame.transform.smoothscale(VINYETA, (WIDTH // 2, HEIGHT // 2))
+        petita = pygame.transform.smoothscale(VINYETA, (WIDTH // 4, HEIGHT // 4))
+        clau = pygame.Surface((WIDTH, HEIGHT))
+        clau.fill((0, 0, 0))
+        pygame.draw.circle(clau, (200, 30, 30), (WIDTH // 2, HEIGHT // 2), 200)
+        clau.set_colorkey((0, 0, 0))
+        alarma_conv = ALARMA.convert_alpha()
+        tires = [pygame.Rect(0, 0, WIDTH, 120), pygame.Rect(0, HEIGHT - 120, WIDTH, 120),
+                 pygame.Rect(0, 120, 200, HEIGHT - 240), pygame.Rect(WIDTH - 200, 120, 200, HEIGHT - 240)]
+        proves = {
+            "opac": lambda: dest.blit(gris, (0, 0)),
+            "alfa_pixel (vinyeta)": lambda: dest.blit(VINYETA, (0, 0)),
+            "alfa_pixel convert_alpha": lambda: dest.blit(alarma_conv, (0, 0)),
+            "alfa_global+pixel (batec)": lambda: (ALARMA.set_alpha(100), dest.blit(ALARMA, (0, 0)), ALARMA.set_alpha(255)),
+            "opac+alfa_global": lambda: dest.blit(opac_alfa, (0, 0)),
+            "BLEND_RGB_MULT blit": lambda: dest.blit(gris, (0, 0), special_flags=pygame.BLEND_RGB_MULT),
+            "BLEND_RGBA_MULT blit": lambda: dest.blit(gris, (0, 0), special_flags=pygame.BLEND_RGBA_MULT),
+            "fill BLEND_RGB_ADD": lambda: dest.fill((20, 20, 20), special_flags=pygame.BLEND_RGB_ADD),
+            "fill BLEND_RGB_MULT": lambda: dest.fill((240, 240, 240), special_flags=pygame.BLEND_RGB_MULT),
+            "fill SRCALPHA capa": lambda: CAPA_TRANSPARENT.fill((255, 255, 255, 40)),
+            "alfa_pixel mitja (480x270)": lambda: dest.blit(mitja, (0, 0)),
+            "alfa_pixel 4 tires": lambda: [dest.blit(VINYETA, r.topleft, area=r) for r in tires],
+            "scale x4 + alfa": lambda: dest.blit(pygame.transform.scale(petita, (WIDTH, HEIGHT)), (0, 0)),
+            "colorkey": lambda: dest.blit(clau, (0, 0)),
+            "draw.polygon gran": lambda: pygame.draw.polygon(dest, (255, 250, 200), [(140, 490), (600, 0), (800, 0)]),
+        }
+        res = {}
+        for nom, f in proves.items():
+            f()
+            t0 = time.perf_counter()
+            for _ in range(40):
+                f()
+            res[nom] = round((time.perf_counter() - t0) / 40 * 1000, 3)
+        return res
+
     def acabar(self, g):
         self.acabada = True
+        try:
+            blits = self.proves_blit()
+        except Exception as err:
+            blits = {"error": str(err)}
+        print("PROVA_BLITS", json.dumps(blits))
+        if WEB:
+            try:
+                __import__("platform").window.prova_blits = json.dumps(blits)
+            except Exception:
+                pass
         globals()["ratoli"] = lambda: PANTALLA.a_virtual(pygame.mouse.get_pos())
         pygame.mouse.get_pressed = _PREMUT_ORIGINAL
         pygame.key.get_pressed = _TECLAT_ORIGINAL
