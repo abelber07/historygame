@@ -1548,6 +1548,48 @@ def llum(radi, color):
     return s
 
 
+class CapaRapida:
+    """Una capa de pantalla completa amb transparència per píxel (vinyeta, batec vermell, pulsació, foc)
+    pintada sense mescla per píxel, que al navegador costa ~5,5 ms cada vegada: el mateix resultat
+    (píxel·(1-a·k) + color·a·k) es fa amb una multiplicació i una suma de superfícies opaques (~1 ms
+    cadascuna). La transparència global k es redueix a uns quants nivells, que es preparen una sola vegada."""
+
+    def __init__(self, base, alfes, suma=True):
+        self.base, self.alfes, self.suma = base, sorted(alfes), suma
+        self.nivells = None
+
+    def preparar(self):
+        if self.nivells is not None:
+            return
+        w, h = self.base.get_size()
+        negre = self.base.copy()
+        negre.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MULT)      # negre amb la mateixa alfa
+        self.nivells = []
+        for g in self.alfes:
+            mult = pygame.Surface((w, h)).convert()
+            mult.fill((255, 255, 255))
+            negre.set_alpha(g)
+            mult.blit(negre, (0, 0))                                         # 255·(1 - a·k)
+            suma = None
+            if self.suma:
+                suma = pygame.Surface((w, h)).convert()
+                suma.fill((0, 0, 0))
+                self.base.set_alpha(g)
+                suma.blit(self.base, (0, 0))                                 # color·a·k
+                self.base.set_alpha(255)
+            self.nivells.append((mult, suma))
+
+    def dibuixar(self, surf, alfa, pos=(0, 0)):
+        if alfa < self.alfes[0] / 2:
+            return
+        self.preparar()
+        i = min(range(len(self.alfes)), key=lambda k: abs(self.alfes[k] - alfa))
+        mult, suma = self.nivells[i]
+        surf.blit(mult, pos, special_flags=pygame.BLEND_RGB_MULT)
+        if suma is not None:
+            surf.blit(suma, pos, special_flags=pygame.BLEND_RGB_ADD)
+
+
 def crear_vinyeta():
     petit = pygame.Surface((80, 60), pygame.SRCALPHA)
     for x in range(80):
@@ -1705,15 +1747,21 @@ class Ambient:
         """Darrere de les plataformes i els personatges."""
         t = self.t
         if "reflectors" in self.tipus:
-            capa = CAPA_TRANSPARENT
-            capa.fill((0, 0, 0, 0))
+            # feixos de llum: cada alfa en una capa opaca amb colorkey (el darrer feix tapa els anteriors,
+            # com abans quan tots anaven a una sola capa transparent), molt més ràpid que la mescla per píxel
+            for capa in FOCUS_CAPES:
+                capa.fill((0, 0, 0))
             for base_x, fase in ((140, 0.0), (WIDTH - 140, 2.1)):
                 a = -math.pi / 2 + math.sin(t * 0.012 + fase) * 0.55
-                for obertura, alfa in ((0.13, 34), (0.07, 46)):
+                for k, obertura in enumerate((0.13, 0.07)):
                     p1 = (base_x + math.cos(a - obertura) * 700, TERRA_Y + math.sin(a - obertura) * 700)
                     p2 = (base_x + math.cos(a + obertura) * 700, TERRA_Y + math.sin(a + obertura) * 700)
-                    pygame.draw.polygon(capa, (255, 250, 200, alfa), [(base_x, TERRA_Y), p1, p2])
-            surf.blit(capa, (0, 0))
+                    punts = [(base_x, TERRA_Y), p1, p2]
+                    pygame.draw.polygon(FOCUS_CAPES[k], (255, 250, 200), punts)
+                    pygame.draw.polygon(FOCUS_CAPES[1 - k], (0, 0, 0), punts)
+            for capa, alfa in zip(FOCUS_CAPES, (34, 46)):
+                capa.set_alpha(alfa)
+                surf.blit(capa, (0, 0))
         if "energia" in self.tipus:
             y = (t * 3) % (HEIGHT + 200) - 100
             surf.blit(BANDA_ENERGIA, (0, int(y)))
@@ -1757,8 +1805,7 @@ class Ambient:
         """Per sobre de tot (pluja, neu, guspires, llamps) abans de l'HUD."""
         t = self.t
         if "foc" in self.tipus:
-            RESPLENDOR_FOC.set_alpha(150 + int(60 * math.sin(t * 0.3)) + random.randint(-25, 25))
-            surf.blit(RESPLENDOR_FOC, (0, HEIGHT - 220))
+            FOC_RAPID.dibuixar(surf, 150 + int(60 * math.sin(t * 0.3)) + random.randint(-25, 25), (0, HEIGHT - 220))
         for p in self.part:
             x, y, mida, color = int(p[0]), int(p[1]), p[5], p[7]
             if color[0] == 255:                       # guspira: amb llum
@@ -1783,8 +1830,7 @@ class Ambient:
         if "alarma" in self.tipus:
             k = max(0.0, math.sin(t * 0.07))
             if k > 0.05:
-                ALARMA.set_alpha(int(110 * k))
-                surf.blit(ALARMA, (0, 0))
+                ALARMA_RAPIDA.dibuixar(surf, 110 * k)
             for bx in (24, WIDTH - 24):
                 a = t * 0.08 + (0 if bx < 100 else math.pi)
                 p1 = (bx + math.cos(a - 0.25) * 260, 20 + abs(math.sin(a - 0.25)) * 260)
@@ -1798,13 +1844,11 @@ class Ambient:
                 surf.blit(capa, (x0, y0))
                 pygame.draw.circle(surf, (255, 80, 80), (bx, 20), 5)
         if "pulsacio" in self.tipus:
-            PULSACIO.set_alpha(int(70 + 70 * math.sin(t * 0.05)))
-            surf.blit(PULSACIO, (0, 0))
+            PULSACIO_RAPIDA.dibuixar(surf, 70 + 70 * math.sin(t * 0.05))
         if self.flaix:
-            vel = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            vel.fill((220, 230, 255, int(14 * self.flaix)))
-            surf.blit(vel, (0, 0))
-        surf.blit(VINYETA, (0, 0))
+            FLAIX_BLAU.set_alpha(int(14 * self.flaix))
+            surf.blit(FLAIX_BLAU, (0, 0))
+        VINYETA_RAPIDA.dibuixar(surf, 255)
 
 
 # ---------------------------------------------------------------------------
@@ -6206,7 +6250,8 @@ class ProvaRendiment:
             "alfa_global+pixel (batec)": lambda: (ALARMA.set_alpha(100), dest.blit(ALARMA, (0, 0)), ALARMA.set_alpha(255)),
             "opac+alfa_global": lambda: dest.blit(opac_alfa, (0, 0)),
             "BLEND_RGB_MULT blit": lambda: dest.blit(gris, (0, 0), special_flags=pygame.BLEND_RGB_MULT),
-            "BLEND_RGBA_MULT blit": lambda: dest.blit(gris, (0, 0), special_flags=pygame.BLEND_RGBA_MULT),
+            "BLEND_RGB_ADD blit": lambda: dest.blit(gris, (0, 0), special_flags=pygame.BLEND_RGB_ADD),
+            "batec ràpid (mult+suma)": lambda: ALARMA_RAPIDA.dibuixar(dest, 90),
             "fill BLEND_RGB_ADD": lambda: dest.fill((20, 20, 20), special_flags=pygame.BLEND_RGB_ADD),
             "fill BLEND_RGB_MULT": lambda: dest.fill((240, 240, 240), special_flags=pygame.BLEND_RGB_MULT),
             "fill SRCALPHA capa": lambda: CAPA_TRANSPARENT.fill((255, 255, 255, 40)),
@@ -6277,6 +6322,8 @@ class Game:
     def __init__(self):
         self.prova = ProvaRendiment() if PROVA_RENDIMENT else None
         self.clock = pygame.time.Clock()
+        VINYETA_RAPIDA.preparar()                     # la vinyeta i el batec vermell, ja a la pantalla de càrrega
+        ALARMA_RAPIDA.preparar()
         self.estat = "loading"
         self.temps_estat = 0
         self.t_global = 0
@@ -6971,6 +7018,9 @@ class Game:
         self.ull_destruit = False
         self.fons_off = (-20, -10)
         self.ambient = Ambient(*clau)
+        for tipus, capa in (("pulsacio", PULSACIO_RAPIDA), ("alarma", ALARMA_RAPIDA), ("foc", FOC_RAPID)):
+            if tipus in self.ambient.tipus:
+                capa.preparar()                       # els nivells es fan en començar, no enmig del combat
         self.fase = "jugant"
         self.temps_fase = 0
         self.cooldown = 0
@@ -11413,14 +11463,12 @@ class Game:
             t.dibuixar(c)
         self.marca("efectes")
         if self.flaix:
-            vel = CAPA_TRANSPARENT
-            vel.fill((255, 255, 255, int(16 * self.flaix)))
-            c.blit(vel, (0, 0))
+            FLAIX_BLANC.set_alpha(int(16 * self.flaix))
+            c.blit(FLAIX_BLANC, (0, 0))
         if self.batec_t:                              # poca vida: la pantalla batega en vermell
             p = self.batec_t % 60
             k = max(0.0, 1 - p / 12, 0.75 * (1 - abs(p - 15) / 8))
-            ALARMA.set_alpha(int(35 + 90 * k))
-            c.blit(ALARMA, (0, 0))
+            ALARMA_RAPIDA.dibuixar(c, 35 + 90 * k)
         self.marca("capes")
         if self.tremolor > 0.5:
             ox = random.randint(-int(self.tremolor), int(self.tremolor))
@@ -12251,10 +12299,24 @@ DEGRADAT_BAIX = crear_degradat(90, False)
 ALARMA = crear_vinyeta_color((255, 20, 20))
 PULSACIO = crear_vinyeta_color((190, 40, 255))
 CAPA_TRANSPARENT = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+VINYETA_RAPIDA = CapaRapida(VINYETA, [255], suma=False)          # (0, 0, 10): la suma no es veuria
+ALARMA_RAPIDA = CapaRapida(ALARMA, range(18, 130, 18))
+PULSACIO_RAPIDA = CapaRapida(PULSACIO, range(20, 150, 20))
+FLAIX_BLANC = pygame.Surface((WIDTH, HEIGHT)).convert()           # opaca + transparència global: ràpid
+FLAIX_BLANC.fill((255, 255, 255))
+FLAIX_BLAU = pygame.Surface((WIDTH, HEIGHT)).convert()
+FLAIX_BLAU.fill((220, 230, 255))
+FOCUS_CAPES = []                                                  # una capa opaca amb colorkey per a cada alfa
+for _ in range(2):
+    _c = pygame.Surface((WIDTH, HEIGHT)).convert()
+    _c.fill((0, 0, 0))
+    _c.set_colorkey((0, 0, 0))
+    FOCUS_CAPES.append(_c)
 BANDA_ENERGIA = pygame.Surface((WIDTH, 40), pygame.SRCALPHA)
 for _i in range(40):
     pygame.draw.line(BANDA_ENERGIA, (90, 230, 255, int(50 * math.sin(math.pi * _i / 40))), (0, _i), (WIDTH, _i))
 RESPLENDOR_FOC = crear_resplendor_foc()
+FOC_RAPID = CapaRapida(RESPLENDOR_FOC, range(70, 240, 20))
 OVNI_LLUNYA = crear_ovni_llunya()
 FRANJA_HUD = pygame.Surface((WIDTH, 72), pygame.SRCALPHA)
 for _y in range(72):
