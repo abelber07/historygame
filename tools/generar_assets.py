@@ -8,6 +8,7 @@ Totes les imatges es dibuixen a baixa resolució i s'escalen sense suavitzar.
 import math
 import os
 import random
+import sys
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame  # noqa: E402
@@ -274,6 +275,163 @@ def fons_nucli():
         pygame.draw.line(s, (170, 250, 255), (x + 4, 270), (x + 5, 275 - h - 10))
     for r in (70, 96, 124):
         pygame.draw.circle(s, (120, 50, 150), (cx, cy), r, 1)
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Sector 6 (DLC «Ecos de Xylos»): el món rusc després del silenci
+# ---------------------------------------------------------------------------
+def halo(s, cx, cy, r, color, n=8, pas=4, alfa=16):
+    capa = pygame.Surface((W, H), pygame.SRCALPHA)
+    for i in range(n, 0, -1):
+        pygame.draw.circle(capa, (*color, alfa), (cx, cy), r + i * pas)
+    s.blit(capa, (0, 0))
+
+
+def agulla_trencada(s, rnd, x, base, w, h, color, inclina=0.0):
+    """Agulla del rusc morta: partida per dalt, inclinada, amb esquerdes."""
+    tall = h * rnd.uniform(0.55, 0.85)
+    dx = inclina * tall
+    punts = [(x, base), (x + w, base), (x + w * 0.62 + dx, base - tall), (x + w * 0.5 + dx, base - tall - 6),
+             (x + w * 0.42 + dx, base - tall + 3), (x + w * 0.3 + dx, base - tall - 2)]
+    pygame.draw.polygon(s, color, punts)
+    fosc = [max(0, c - 14) for c in color]
+    for _ in range(2):
+        y = base - rnd.uniform(0.2, 0.8) * tall
+        pygame.draw.line(s, fosc, (x + w * 0.3, y), (x + w * 0.7, y + rnd.randint(-3, 3)))
+    if rnd.random() < 0.5:                                         # el tros que va caure
+        px = x + w + rnd.randint(4, 16)
+        pygame.draw.polygon(s, color, [(px, base), (px + w * 0.9, base), (px + w * 0.5, base - w * 0.6)])
+
+
+def fons_eco_rusc():
+    """6-1 Colmena en silencio: el capvespre gris de Xylos, agulles mortes, cel·les buides i ulls a la boira."""
+    rnd = random.Random(61)
+    s = pygame.Surface((W, H))
+    degradat(s, (22, 20, 40), (92, 84, 118), 0, 200)
+    degradat(s, (92, 84, 118), (58, 70, 86), 200, H)
+    estrelles(s, rnd, 40, y_max=80, colors=((200, 210, 230),))
+    halo(s, 150, 118, 40, (190, 200, 220), n=7, pas=5, alfa=12)       # el sol, apagat i gris
+    pygame.draw.circle(s, (176, 178, 196), (150, 118), 40)
+    pygame.draw.circle(s, (150, 152, 174), (162, 128), 30)
+    pygame.draw.circle(s, (196, 198, 214), (150, 118), 40, 1)
+    for _ in range(4):                                             # l'anell del Nucli, trencat al cel
+        a0 = rnd.uniform(0, math.tau)
+        pygame.draw.arc(s, (120, 110, 150), (300, 30, 180, 60), a0, a0 + rnd.uniform(0.4, 1.0), 1)
+    nuvols(s, rnd, 7, (78, 72, 104), 60, 150, (30, 70))
+    for x in range(-20, W, 34):                                    # agulles llunyanes
+        agulla_trencada(s, rnd, x + rnd.randint(-8, 8), 236, rnd.randint(12, 20), rnd.randint(70, 140),
+                        (86, 82, 110), rnd.uniform(-0.12, 0.12))
+    boira(s, 170, 70, (120, 130, 150), 70)
+    r = 11                                                         # cel·les del rusc, buides i grises
+    for col in range(-1, 26):
+        for fila in range(4):
+            cx = col * r * 1.75 + (r * 0.87 if fila % 2 else 0)
+            cy = 196 + fila * r * 1.5
+            if rnd.random() < 0.35 + fila * 0.15:
+                punts = [(cx + r * math.cos(math.pi / 6 + i * math.pi / 3), cy + r * math.sin(math.pi / 6 + i * math.pi / 3))
+                         for i in range(6)]
+                pygame.draw.polygon(s, (52, 54, 70), punts)
+                pygame.draw.polygon(s, (74, 76, 94), punts, 2)
+                if rnd.random() < 0.06:                            # un ull que mira des d'una cel·la
+                    s.set_at((int(cx) - 2, int(cy)), (120, 255, 220))
+                    s.set_at((int(cx) + 2, int(cy)), (120, 255, 220))
+    for x in range(-10, W, 46):                                    # agulles properes
+        agulla_trencada(s, rnd, x + rnd.randint(-10, 10), 262, rnd.randint(16, 26), rnd.randint(90, 170),
+                        (40, 38, 56), rnd.uniform(-0.2, 0.2))
+    for _ in range(5):                                             # cristalls morts
+        x = rnd.randint(10, W - 20)
+        pygame.draw.polygon(s, (70, 90, 110), [(x, 270), (x + 4, 250), (x + 8, 270)])
+        pygame.draw.line(s, (130, 160, 180), (x + 3, 266), (x + 4, 254))
+    runa(s, rnd, 280, 26, ((30, 30, 44), (44, 42, 60)))
+    return s
+
+
+def fons_eco_cor():
+    """6-2 El Coro: caverna de cristalls que ressonen; els orfes s'hi apleguen."""
+    rnd = random.Random(62)
+    s = pygame.Surface((W, H))
+    degradat(s, (6, 10, 22), (12, 30, 44))
+    halo(s, 250, 150, 60, (60, 200, 210), n=10, pas=8, alfa=10)
+    for r in range(40, 260, 26):                                   # ones del cant
+        pygame.draw.circle(s, (24, 64, 80), (250, 150), r, 1)
+
+    def cristall(x, base, w, h, c, cap_avall=False):
+        sgn = 1 if cap_avall else -1
+        punta = (x + w / 2 + rnd.uniform(-3, 3), base + sgn * h)
+        pygame.draw.polygon(s, c[0], [(x, base), (x + w, base), punta])
+        pygame.draw.polygon(s, c[1], [(x + w * 0.45, base), (x + w, base), punta])
+        pygame.draw.line(s, c[2], (x + w * 0.45, base), punta)
+
+    LLUNY = ((20, 56, 72), (16, 44, 58), (60, 140, 160))
+    PROP = ((30, 110, 130), (20, 76, 96), (150, 240, 250))
+    FOSC = ((10, 26, 36), (8, 20, 28), (40, 90, 110))
+    for x in range(-20, W, 38):                                    # estalactites i estalagmites llunyanes
+        cristall(x + rnd.randint(-6, 6), 0, rnd.randint(14, 26), rnd.randint(20, 60), LLUNY, True)
+        cristall(x + 14 + rnd.randint(-6, 6), 250, rnd.randint(14, 26), rnd.randint(30, 80), LLUNY)
+    for x, w, h in ((40, 34, 150), (120, 22, 90), (330, 26, 110), (410, 38, 170)):     # pilars que canten
+        cristall(x, 262, w, h, PROP)
+        halo(s, x + w // 2, 262 - h // 2, 10, (120, 240, 255), n=4, pas=5, alfa=10)
+    for x in range(-10, W, 64):
+        cristall(x + rnd.randint(-10, 10), 0, rnd.randint(22, 36), rnd.randint(36, 80), FOSC, True)
+    for _ in range(4):                                             # cornises amb orfes que miren
+        x, y = rnd.randint(60, W - 90), rnd.randint(150, 215)
+        pygame.draw.polygon(s, (14, 30, 40), [(x, y), (x + 60, y), (x + 50, y + 8), (x + 8, y + 8)])
+        for k in range(rnd.randint(1, 3)):
+            ex = x + 10 + k * 16
+            pygame.draw.ellipse(s, (8, 16, 22), (ex - 4, y - 9, 9, 10))
+            s.set_at((ex - 1, y - 5), (140, 255, 230))
+            s.set_at((ex + 2, y - 5), (140, 255, 230))
+    for _ in range(60):                                            # pols de cristall
+        x, y = rnd.randrange(W), rnd.randrange(30, 250)
+        s.set_at((x, y), rnd.choice(((90, 220, 230), (60, 160, 180), (200, 255, 255))))
+    pygame.draw.rect(s, (8, 18, 26), (0, 262, W, H - 262))
+    for x in range(-10, W, 26):
+        cristall(x + rnd.randint(-4, 4), 280, rnd.randint(10, 18), rnd.randint(8, 20), FOSC)
+    return s
+
+
+def fons_eco_bressol():
+    """6-3 La cuna: catedral de cristall daurat on la Hereva creix, amb arrels que hi convergeixen."""
+    rnd = random.Random(63)
+    s = pygame.Surface((W, H))
+    degradat(s, (8, 14, 12), (20, 36, 26))
+    cx, cy = 250, 132
+    for k in range(9):                                             # arcs de la catedral
+        x = 10 + k * 60
+        pygame.draw.polygon(s, (14, 26, 20), [(x - 18, H), (x - 8, 40), (x, 10), (x + 8, 40), (x + 18, H)])
+        pygame.draw.line(s, (40, 80, 50), (x - 1, 14), (x - 7, 200))
+    llum_b = pygame.Surface((W, H))                                # resplendor verda i daurada del bressol
+    for i in range(40, 0, -1):
+        k = 1 - i / 40
+        pygame.draw.circle(llum_b, (int(70 * k ** 2), int(64 * k ** 1.6), int(16 * k)), (cx, cy), 20 + i * 4)
+    s.blit(llum_b, (0, 0), special_flags=pygame.BLEND_ADD)
+    for k in range(7):                                             # pètals de cristall al voltant del bressol
+        a = math.pi + math.pi * (k + 0.5) / 7
+        p0 = (cx + math.cos(a) * 70, cy + math.sin(a) * 50)
+        p1 = (cx + math.cos(a - 0.18) * 132, cy + math.sin(a - 0.18) * 110)
+        p2 = (cx + math.cos(a) * 160, cy + math.sin(a) * 136)
+        p3 = (cx + math.cos(a + 0.18) * 132, cy + math.sin(a + 0.18) * 110)
+        pygame.draw.polygon(s, (40, 70, 36), [p0, p1, p2, p3])
+        pygame.draw.line(s, (110, 170, 70), p0, p2)
+    for _ in range(12):                                            # arrels que pugen cap al bressol
+        x, y = rnd.randint(0, W), H
+        punts = [(x, y)]
+        for k in range(14):
+            x += (cx - x) * 0.09 + rnd.uniform(-6, 6)
+            y += (cy + 60 - y) * 0.1 + rnd.uniform(-3, 3)
+            punts.append((x, y))
+        pygame.draw.lines(s, (30, 54, 30), False, punts, 5)
+        pygame.draw.lines(s, (70, 120, 56), False, punts, 1)
+    for r in (64, 90):
+        pygame.draw.circle(s, (150, 160, 80), (cx, cy), r, 1)
+    for x, h in ((26, 150), (58, 100), (84, 70), (412, 80), (440, 120), (468, 170)):    # cristalls daurats
+        pygame.draw.polygon(s, (170, 130, 40), [(x, 275), (x + 16, 275), (x + 12, 275 - h), (x + 4, 275 - h - 14)])
+        pygame.draw.polygon(s, (120, 86, 24), [(x + 9, 275), (x + 16, 275), (x + 12, 275 - h)])
+        pygame.draw.line(s, (255, 230, 140), (x + 4, 270), (x + 5, 275 - h - 10))
+    for _ in range(40):                                            # espores daurades
+        x, y = rnd.randrange(W), rnd.randrange(20, 260)
+        s.set_at((x, y), rnd.choice(((255, 220, 120), (200, 255, 150))))
     return s
 
 
@@ -795,7 +953,13 @@ def fons_fortalesa_cim():
     return s
 
 
-if __name__ == "__main__":
+DLC = (("fons_nivell_5_0.png", fons_eco_rusc), ("fons_nivell_5_1.png", fons_eco_cor),
+       ("fons_nivell_5_2.png", fons_eco_bressol))
+
+if __name__ == "__main__" and sys.argv[1:] == ["dlc"]:          # només els fons del sector 6
+    for nom, f in DLC:
+        desar(f(), nom, 2, RETALL)
+elif __name__ == "__main__":
     print("Generant fons:")
     for nom, f in (("fons_nivell_0_0.png", fons_ciutat_dia), ("fons_nivell_0_1.png", fons_ciutat_pluja),
                    ("fons_nivell_0_2.png", fons_ciutat_nit), ("fons_nivell_1_0.png", fons_selva_dia),
@@ -804,7 +968,7 @@ if __name__ == "__main__":
                    ("fons_nivell_2_2.png", fons_fortalesa_cim),
                    ("fons_nivell_3_0.png", fons_orbita), ("fons_nivell_3_1.png", fons_hangar),
                    ("fons_nivell_3_2.png", fons_pont), ("fons_nivell_4_0.png", fons_xylos),
-                   ("fons_nivell_4_1.png", fons_rusc), ("fons_nivell_4_2.png", fons_nucli)):
+                   ("fons_nivell_4_1.png", fons_rusc), ("fons_nivell_4_2.png", fons_nucli)) + DLC:
         desar(f(), nom, 2, RETALL)
     print("Generant personatges:")
     desar(nau_mare(), "boss_nau_mare.png")

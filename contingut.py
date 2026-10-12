@@ -100,6 +100,7 @@ MAESTRIA = [0, 10, 25, 45, 70, 100, 140, 190, 250, 320]
 UNIFORMES_NOUS = {
     "selva": {"nom": "Camuflaje selva", "colors": ((60, 100, 40), (96, 140, 60), (44, 70, 34))},
     "xylos": {"nom": "Xylothian", "colors": ((110, 50, 140), (170, 90, 210), (80, 34, 100))},
+    "eco": {"nom": "Eco de Xylos", "colors": ((70, 84, 96), (110, 200, 190), (48, 58, 70))},     # DLC: acabar el 6-3
 }
 APARENCES_NOVES = {
     "neo": {"nom": "Neón", "tint": (255, 90, 210), "bala": (255, 120, 220)},
@@ -112,7 +113,10 @@ TITOLS_NOUS = {
     "general": "General de Galaxia",
     "mestre": "Maestro de armas",
     "infiltrat": "Infiltrado",
+    "hereu": "El que calló al Coro",                                                     # DLC: acabar el 6-3
 }
+# Premis del DLC en derrotar la Hereva per primer cop
+PREMIS_DLC = [("uniforme", "eco"), ("titol", "hereu"), ("monedes", 2000)]
 
 # ---------------------------------------------------------------------------
 # Battle Pass: 50 nivells per temporada. Els 20 primers són els de sempre.
@@ -215,6 +219,14 @@ BESTIARI = [
     {"clau": "final_nucli", "nom": "Núcleo de Xylos", "perill": 5, "cal": 2,
      "desc": "El corazón de la colmena. Sus anillos de balas tienen un hueco: búscalo.",
      "lore": "El origen de todo. Mientras el Núcleo late, cada xylothian del universo oye su voz."},
+    {"clau": "salvatge", "nom": "Huérfano", "perill": 3, "cal": 15,
+     "desc": "Un soldado sin la Mente. Corre hacia ti, se agacha y salta con las garras: rueda en cuanto se agache.",
+     "lore": "Cuando el Núcleo se apagó, millones de Xylothians oyeron el silencio por primera vez. Algunos aún no "
+             "saben qué hacer con él."},
+    {"clau": "final_hereva", "nom": "La Heredera", "perill": 5, "cal": 2,
+     "desc": "Jefa del DLC. Protegida por su capullo y por el Coro; al nacer usa los ataques de los otros jefes.",
+     "lore": "Una semilla del Núcleo que solo quería volver a oír la colmena. No sabía que la colmena nunca había "
+             "tenido voz propia."},
 ]
 
 # ---------------------------------------------------------------------------

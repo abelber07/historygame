@@ -37,6 +37,10 @@ MAT = {
     "bronze": [(60, 40, 14), (148, 108, 40), (204, 158, 60), (238, 202, 100), (255, 238, 178)],
     "rosa": [(70, 16, 50), (168, 50, 120), (224, 96, 170), (248, 150, 206), (255, 212, 236)],
     "brasa": [(92, 20, 10), (200, 60, 22), (255, 122, 42), (255, 192, 102), (255, 242, 202)],
+    # orfe (DLC): quitina descolorida i pell pàl·lida, sense la Ment que els tenyia
+    "quitina_o": [(30, 30, 40), (66, 70, 84), (98, 104, 120), (140, 148, 162), (196, 204, 214)],
+    "pell_o": [(24, 40, 40), (62, 96, 90), (96, 138, 122), (140, 178, 156), (198, 222, 204)],
+    "ull_o": [(10, 60, 54), (40, 170, 150), (110, 240, 210), (190, 255, 236), (240, 255, 250)],
 }
 BRILLANTS = ("quitina", "quitina_f", "negre", "metall", "ovni", "vidre", "banya", "bronze", "vermell", "taronja")
 comprovar_paleta(MAT)
@@ -82,16 +86,16 @@ def colze(espatlla, mà, braç=7.0, avantbraç=7.0):
 TERRA = 64          # fila on reposen les puntes dels peus
 
 
-def cama(f, maluc, punta, angle, darrere):
+def cama(f, maluc, punta, angle, darrere, armadura="quitina_f", pell="pell_f", genollera="quitina"):
     """Cama digitígrada: cuixa (armadura), tíbia cap enrere, garró enlaire i peu amb urpes."""
     garró = (punta[0] - 5 * math.cos(angle) + 1, punta[1] - 6 - 5 * math.sin(angle))
     gen = genoll(maluc, garró)
     mode = "fosc" if darrere else "volum"
     g = f"cama{darrere}"
-    f.membre("quitina_f", [maluc, gen], [3.8, 3.0], mode, grup=g)
-    f.membre("pell_f", [gen, garró], [2.6, 2.0], mode, grup=g)
-    f.membre("pell_f", [garró, punta], [2.0, 1.6], mode, grup=g)
-    f.el·lipse("quitina", gen[0] - 2.5, gen[1] - 2.5, gen[0] + 2.5, gen[1] + 2.5, mode)       # genollera
+    f.membre(armadura, [maluc, gen], [3.8, 3.0], mode, grup=g)
+    f.membre(pell, [gen, garró], [2.6, 2.0], mode, grup=g)
+    f.membre(pell, [garró, punta], [2.0, 1.6], mode, grup=g)
+    f.el·lipse(genollera, gen[0] - 2.5, gen[1] - 2.5, gen[0] + 2.5, gen[1] + 2.5, mode)       # genollera
     for k in (-1, 1):                                                                       # urpes
         dx = 3 * math.cos(angle) + k * 0.6
         f.membre("banya", [punta, (punta[0] + dx + 1, punta[1] + 1 + k * 0.4)], [1.0, 0.5], "pla")
@@ -206,6 +210,98 @@ def poses_soldat():
                           peu_f=((31, TERRA - 3), 0.5), gir=-1.0, eix=(15, TERRA - 1)),
                      dict(base, maluc=(20, 41), arma=(27, 33), angle_arma=1.2, inclina=-0.2, angle_cap=-0.2,
                           peu_f=((30, TERRA - 2), 0.4), gir=-1.5, eix=(13, TERRA - 5))]
+    return poses
+
+
+# ---------------------------------------------------------------------------------------------
+# Orfe (DLC «Ecos de Xylos»): soldat sense la Ment. Sense arma, ajupit, amb urpes; el visor esquerdat
+# deixa veure els ulls (que ara són seus) i l'antena de la motxilla està partida.
+# ---------------------------------------------------------------------------------------------
+def urpes(f, mà, angle):
+    for k in (-0.5, 0.0, 0.5):
+        a = angle + k
+        f.membre("banya", [mà, (mà[0] + 4 * math.cos(a), mà[1] + 4 * math.sin(a))], [0.9, 0.4], "pla")
+
+
+def orfe(p):
+    W, H = 104, 68
+    f = figura(W, H)
+    f.moure(OX, 0)
+    gir = p.get("gir", 0.0)
+    if gir:
+        f.girar_tot(gir, p.get("eix", (24, TERRA)))
+    mal = p["maluc"]
+    tx, ty = mal[0] - 6, mal[1] - 18
+    lean = p.get("inclina", 0.4)
+    f.poli("quitina_o", rot([(tx - 6, ty + 2), (tx + 1, ty + 1), (tx + 2, ty + 13), (tx - 5, ty + 14)], lean, mal))
+    ax, ay = rot([(tx - 4, ty + 1)], lean, mal)[0]
+    bx, by = rot([(tx - 6, ty - 3)], lean, mal)[0]
+    f.membre("negre", [(ax, ay), (bx, by)], [0.7, 0.6], "pla")                    # antena partida
+    esp_d = rot([(tx + 5, ty + 4)], lean, mal)[0]
+    esp_f = rot([(tx + 8, ty + 4)], lean, mal)[0]
+    mà_d, mà_f = p["mans"]
+    col_d = colze(esp_d, mà_d, 7.5, 8.0)
+    f.membre("quitina_o", [esp_d, col_d], [2.3, 1.9], "fosc", grup="braç_d")
+    f.membre("pell_o", [col_d, mà_d], [1.8, 1.4], "fosc", grup="braç_d")
+    urpes(f, mà_d, p.get("angle_urpes", 0.2))
+    cama(f, mal, *p["peu_d"], darrere=1, armadura="quitina_o", pell="pell_o", genollera="quitina_o")
+    cama(f, mal, *p["peu_f"], darrere=0, armadura="quitina_o", pell="pell_o", genollera="quitina_o")
+    f.poli("quitina_o", rot([(tx, ty), (tx + 11, ty + 1), (tx + 14, ty + 7), (tx + 12, ty + 16), (tx + 2, ty + 17),
+                                (tx - 1, ty + 8)], lean, mal))
+    for a, b, d in (((tx + 2, ty + 6), (tx + 11, ty + 7), -1), ((tx + 3, ty + 12), (tx + 11, ty + 12), -1)):
+        f.marca_linia(*rot([a, b], lean, mal), d)
+    f.membre("pell_o", rot([(tx + 9, ty + 1), (tx + 11, ty - 3)], lean, mal), [2.0, 1.8], grup="coll")
+    hx, hy = rot([(tx + 6, ty - 14)], lean, mal)[0]
+    hx += p.get("cap_dx", 0)
+    hy += p.get("cap_dy", 0)
+    angle_cap = p.get("angle_cap", 0.0)
+
+    def P(punts):
+        return rot([(hx + px, hy + py) for px, py in punts], angle_cap, (hx + 6, hy + 14))
+    f.poli("pell_o", P([(4, 9), (13, 9), (15, 12), (13, 17), (8, 18), (4, 15)]), grup="cara")
+    f.poli("quitina_o", P([(-6, 4), (-2, 0), (6, -2), (12, 0), (16, 4), (16, 7), (8, 9), (2, 12), (-4, 10)]))
+    f.poli("negre", P([(8, 5), (16, 5), (16, 8), (9, 8)]), "pla")                     # visor apagat
+    f.linia(*P([(10, 4), (13, 9)]), MAT["quitina_o"][4])                          # esquerda
+    for ex in (10.5, 14):                                                          # els ulls de dins
+        f.el·lipse("ull_o", *P([(ex - 0.8, 5.6)])[0], *P([(ex + 1.2, 7.6)])[0], "brilla")
+    f.marca_linia(*P([(-3, 3), (8, 0)]), 1)
+    a, b = P([(12, 14)])[0], P([(15, 17)])[0]
+    f.linia(a, b, MAT["pell_o"][0])                                               # boca oberta
+    f.linia(P([(10, 15)])[0], P([(11, 18)])[0], MAT["pell_o"][0])
+    col_f = colze(esp_f, mà_f, 7.0, 7.0)
+    f.membre("quitina_o", [esp_f, col_f], [2.5, 2.1], grup="braç_f")
+    f.membre("pell_o", [col_f, mà_f], [1.9, 1.5], grup="braç_f")
+    urpes(f, mà_f, p.get("angle_urpes", 0.2))
+    f.el·lipse("quitina_o", esp_f[0] - 3.5, esp_f[1] - 3, esp_f[0] + 3.5, esp_f[1] + 3)
+    s = f.superficie(fins_a_baix=not gir)
+    return s, None
+
+
+def poses_orfe():
+    poses = {"corre": []}
+    for i in range(6):
+        fase = math.tau * i / 6
+        peus = []
+        for base, ph in ((18, fase + math.pi), (29, fase)):
+            x = base + 8 * math.sin(ph)
+            enlaire = max(0.0, math.cos(ph))
+            peus.append(((x, TERRA - 6 * enlaire), 0.6 * enlaire))
+        bob = -2 if i % 3 == 1 else 0
+        bal = 3 * math.sin(fase)
+        poses["corre"].append({"maluc": (24, 43 + bob), "peu_d": peus[0], "peu_f": peus[1], "inclina": 0.5,
+                               "mans": ((36 - bal, 44 + bob), (38 + bal, 42 + bob)), "angle_urpes": 0.5})
+    base = {"maluc": (23, 47), "peu_d": ((14, TERRA), 0.0), "peu_f": ((32, TERRA), 0.0)}
+    poses["ajup"] = [dict(base, inclina=0.7, mans=((34, 54), (38, 52)), angle_urpes=0.9, cap_dy=2, angle_cap=-0.2)]
+    poses["salta"] = [dict(base, maluc=(24, 38), peu_d=((14, TERRA - 8), 0.9), peu_f=((22, TERRA - 4), 0.9),
+                           inclina=0.35, mans=((40, 28), (43, 32)), angle_urpes=-0.2, angle_cap=-0.15)]
+    poses["ferit"] = [dict(base, maluc=(21, 44), inclina=-0.2, mans=((26, 36), (30, 40)), angle_cap=-0.35,
+                           peu_f=((30, TERRA - 2), 0.3))]
+    poses["mort"] = [dict(base, maluc=(20, 44), inclina=-0.3, mans=((26, 38), (28, 42)), angle_cap=-0.4,
+                          gir=-0.4, eix=(16, TERRA)),
+                     dict(base, maluc=(20, 44), inclina=-0.25, mans=((24, 40), (27, 44)), angle_cap=-0.5,
+                          gir=-1.0, eix=(15, TERRA - 1)),
+                     dict(base, maluc=(20, 44), inclina=-0.2, mans=((24, 42), (27, 46)), angle_cap=-0.2,
+                          gir=-1.5, eix=(13, TERRA - 5))]
     return poses
 
 
@@ -455,6 +551,8 @@ def tots():
     t["lloctinent"] = {"llenç": (104, 78), "ancora": (52, 39),
                        "anims": {"vola": [(lloctinent(i), None) for i in range(4)]}}
     t["cacador"] = {"llenç": (62, 32), "ancora": (31, 16), "anims": {"vola": [(cacador(i), None) for i in range(2)]}}
+    t["salvatge"] = {"llenç": (104, 68), "ancora": (OX + 23, TERRA),
+                     "anims": {anim: [orfe(p) for p in poses] for anim, poses in poses_orfe().items()}}
     return t
 
 

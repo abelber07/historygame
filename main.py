@@ -18,12 +18,13 @@ import pygame
 
 from idiomes import IDIOMES, T, idioma, posar_idioma
 from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS, DRONS, EFECTES_BAIXA, ESTELES, MAESTRIA,
-                       MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
+                       MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, PREMIS_DLC, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
 from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, PASSOS_TUTORIAL_MANDO, PASSOS_TUTORIAL_TACTIL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
                    REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
-                   NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
+                   NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, SECTORS_HISTORIA, SECTOR_DLC, TOTAL_ESTRELLES,
+                   PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
                    XP_ESCENARI, XP_ESTRELLA, XP_PER_NIVELL, XP_PRIMERA_VEGADA, VERSIO, NOVETATS, nom_escenari, nom_recompensa)
 
@@ -614,6 +615,8 @@ for _t, _fr in FRAMES_TERRA.items():
     SPR_ENEMIC[_t] = _fr[0] if _fr else None
 # retrats de la ràdio (2 fotogrames: boca tancada / oberta)
 RETRATS = {q: tires(f"retrat_{q}.png", 32) for q in ("comandant", "doctora", "nexus", "ment")}
+if RETRATS.get("ment"):
+    RETRATS["hereva"] = [permutar_canals(f, (1, 2, 0)) for f in RETRATS["ment"]]
 
 
 def tenyir(img, color, alfa=110):
@@ -737,7 +740,7 @@ else:
 # girats per mirar a l'esquerra, amb el punt d'ancoratge (els peus o el centre) i les boques dels canons.
 # ---------------------------------------------------------------------------
 MIDES_ENEMIC = {"soldat": (36, 52), "escut": (44, 56), "kamikaze": (28, 20),     # caixes de sempre
-                "dron": (68, 58), "lloctinent": (102, 87), "cacador": (44, 24)}
+                "dron": (68, 58), "lloctinent": (102, 87), "cacador": (44, 24), "salvatge": (34, 44)}
 VOLADORS_HD = ("dron", "lloctinent", "cacador")
 
 
@@ -791,7 +794,7 @@ def punt_hd(tipus, clau, anim, k, sentit=1):
 
 
 for _t in ENEMICS_HD:                             # bestiari, menús i restes: el primer fotograma retallat
-    SPR_ENEMIC[_t] = frame_hd(_t, "vola" if _t in VOLADORS_HD else ("corre" if _t == "kamikaze" else "camina"), 0)[0]
+    SPR_ENEMIC[_t] = frame_hd(_t, "vola" if _t in VOLADORS_HD else ("corre" if _t in ("kamikaze", "salvatge") else "camina"), 0)[0]
 
 # ---------------------------------------------------------------------------
 # Caps de sector en alta definició (vegeu tools/generar_caps.py): fotogrames sencers per animació
@@ -860,6 +863,66 @@ if FINALS_HD:
     NUCLI_CINE = retallar(imatge_nucli(None))              # sense tentacles: la cinemàtica el fa gran
 else:
     NUCLI_CINE = None
+
+
+def _carregar_hereva_hd():
+    try:
+        with open(ruta("img", "hereva_hd.json"), encoding="utf-8") as fitxer:
+            info = json.load(fitxer)
+    except (OSError, ValueError) as err:
+        print(f"No s'ha pogut carregar hereva_hd.json: {err}")
+        return None
+    atles = carregar_imatge("hereva_hd.png")
+    if atles is None:
+        return None
+    info["peces"] = {n: (atles.subsurface((x, y, w, h)), (ox, oy)) for n, (x, y, w, h, ox, oy) in info["imatges"].items()}
+    return info
+
+
+HEREVA_HD = _carregar_hereva_hd()
+
+
+def peça_hereva(nom):
+    return HEREVA_HD["peces"][nom]
+
+
+def dibuixar_iris_hereva(surf, cx, cy, rs, mirada=(0.0, 0.0), ira=False):
+    """Iris daurat (vermell quan s'enfada) que segueix el jugador."""
+    ix, iy = cx + mirada[0] * rs * 0.3, cy + mirada[1] * rs * 0.3
+    color = (255, 96, 60) if ira else (240, 190, 60)
+    pygame.draw.circle(surf, tuple(c // 2 for c in color), (int(ix), int(iy)), int(rs * 0.52))
+    pygame.draw.circle(surf, color, (int(ix), int(iy)), int(rs * 0.44))
+    pygame.draw.circle(surf, (255, 240, 170), (int(ix), int(iy)), int(rs * 0.44), 2)
+    amp = rs * (0.11 if not ira else 0.05)
+    pygame.draw.ellipse(surf, (24, 12, 0), (ix - amp, iy - rs * 0.34, amp * 2, rs * 0.68))
+    pygame.draw.circle(surf, BLANC, (int(ix - rs * 0.15), int(iy - rs * 0.17)), max(2, int(rs * 0.08)))
+
+
+def imatge_hereva(nascuda=True, tent=0, dany=0):
+    """La Hereva composta (bestiari, retrat i cinemàtiques): dins del capoll o ja nascuda."""
+    W, H = HEREVA_HD["llenç"]
+    s = pygame.Surface((W, H), pygame.SRCALPHA)
+    noms = [f"hereva_tent_{tent}", f"hereva_cos_{dany}"] if nascuda else [f"hereva_capoll_{dany}"]
+    for nom in noms:
+        im, (ox, oy) = peça_hereva(nom)
+        s.blit(im, (ox, oy))
+    if nascuda:
+        dibuixar_iris_hereva(s, *HEREVA_HD["ull"], HEREVA_HD["radi_ull"])
+        im, (ox, oy) = peça_hereva("hereva_closca")
+        s.blit(im, (ox, oy))
+    return s
+
+
+if HEREVA_HD:
+    HEREVA_CAPOLL = retallar(imatge_hereva(False))
+    _s = imatge_hereva(True)
+    _r = _s.get_bounding_rect()
+    HEREVA_NASCUDA = _s.subsurface(_r).copy()
+    HEREVA_ULL_RETALL = (HEREVA_HD["ull"][0] - _r.x, HEREVA_HD["ull"][1] - _r.y)    # l'ull dins la imatge retallada
+    SPR_ENEMIC["final_hereva"] = HEREVA_NASCUDA
+else:
+    HEREVA_CAPOLL = HEREVA_NASCUDA = None
+    HEREVA_ULL_RETALL = (0, 0)
 
 ESPECIAL_CAP = {0: "escotilla", 1: "beines", 2: "punteria", 3: "escombrada", 4: "eixam"}
 PUNTS_CAP = {0: {"canons": ((12, 96), (148, 96)), "escotilla": (80, 14)},      # coordenades del llenç de cada cap
@@ -1040,7 +1103,8 @@ class DescarregaMusica:
     """Al navegador el paquet inicial només porta la música del menú (càrrega molt més ràpida).
     Les altres pistes es descarreguen d'una en una en segon pla, en l'ordre en què es necessiten."""
 
-    ORDRE = ["sector1", "jefe", "sector2", "sector3", "boss_final", "sector4", "sector5", "final", "supervivencia"]
+    ORDRE = ["sector1", "jefe", "sector2", "sector3", "boss_final", "sector4", "sector5", "final", "supervivencia",
+             "sector6"]
 
     def __init__(self):
         self.cua = [n for n in self.ORDRE if not os.path.exists(ruta("musica", n + ".ogg"))]
@@ -1619,8 +1683,12 @@ AMBIENTS = {
     (4, 0): ("espores", "estels"),
     (4, 1): ("espores", "pulsacio"),
     (4, 2): ("espores", "pulsacio", "llamps"),
+    (5, 0): ("cendra", "estels"),
+    (5, 1): ("espores",),
+    (5, 2): ("espores",),
 }
-COLOR_ESPORES = {(4, 0): (255, 150, 255), (4, 1): (255, 190, 90), (4, 2): (220, 120, 255)}
+COLOR_ESPORES = {(4, 0): (255, 150, 255), (4, 1): (255, 190, 90), (4, 2): (220, 120, 255),
+                 (5, 1): (140, 240, 255), (5, 2): (255, 220, 120)}
 
 _CACHE_LLUM = {}
 
@@ -2634,6 +2702,8 @@ class Bala:
         "boss": (6, MORAT),
         "final": (6, ROSA),
         "nucli": (6, (230, 90, 255)),
+        "hereva": (7, (255, 168, 56)),
+        "cristall": (5, (140, 240, 255)),
         # atacs propis dels caps de sector
         "beina": (7, (220, 236, 60)),
         "espora": (4, (190, 240, 70)),
@@ -2752,6 +2822,14 @@ class Bala:
                 pygame.draw.circle(surf, NEGRE, (ix, iy), r + 2)
                 pygame.draw.circle(surf, c, (ix, iy), r + 1, 3)
                 pygame.draw.circle(surf, BLANC if pols else aclarir(c, 60), (ix, iy), 2)
+            elif e in ("hereva", "cristall"):                  # esquirla de cristall orientada
+                px_, py_ = -uy, ux
+                llarg = r + 5
+                punts = [(x + ux * llarg, y + uy * llarg), (x + px_ * r * 0.6, y + py_ * r * 0.6),
+                         (x - ux * llarg * 0.8, y - uy * llarg * 0.8), (x - px_ * r * 0.6, y - py_ * r * 0.6)]
+                pygame.draw.polygon(surf, NEGRE, punts, 3)
+                pygame.draw.polygon(surf, c, punts)
+                pygame.draw.line(surf, BLANC, (x - ux * 2, y - uy * 2), (x + ux * (llarg - 2), y + uy * (llarg - 2)), 1)
             elif e == "nucli":                                 # estrella de quatre puntes
                 a = -self.t * 0.2
                 punts = []
@@ -2790,7 +2868,8 @@ def anell_bales(cx, cy, n, vel, dany, estil, gir=0.0, forat=None):
 FRAMES_TERRA_ESQ = {t: [pygame.transform.flip(f, True, False) for f in fr] for t, fr in FRAMES_TERRA.items()}
 COLOR_CARREGA = {"dron": VERMELL, "lloctinent": VERMELL, "cacador": TARONJA, "boss": MORAT, "soldat": CIAN,
                  "escut": CIAN, "kamikaze": VERMELL,
-                 "final_comandant": ROSA, "final_nau": ROSA, "final_nucli": (230, 90, 255)}
+                 "final_comandant": ROSA, "final_nau": ROSA, "final_nucli": (230, 90, 255),
+                 "salvatge": (120, 255, 220), "final_hereva": (255, 210, 90)}
 
 
 class Enemic:
@@ -2811,10 +2890,13 @@ class Enemic:
             self.w, self.h = MIDES_ENEMIC[tipus]
         self.hd_nau = tipus == "final_nau" and FINALS_HD is not None
         self.hd_nucli = tipus == "final_nucli" and FINALS_HD is not None
+        self.hd_hereva = tipus == "final_hereva" and HEREVA_HD is not None
         if self.hd_nau:
             self.w, self.h = 220, 108
         elif self.hd_nucli:
             self.w, self.h = 152, 152
+        elif self.hd_hereva:
+            self.w, self.h = 150, 160
         self.hd_cap = tipus == "boss" and nivell in CAPS_HD   # cap de sector en alta definició
         if self.hd_cap:
             self.w, self.h = 120, 118
@@ -2866,6 +2948,17 @@ class Enemic:
         self.esclatar = False
         self.temps_gir = 0
         self.cop_esquena = False
+        # orfe (DLC): salta amb les urpes
+        self.saltant = False
+        self.cop_fet = False
+        self.repos = 0
+        self.pausa = 0
+        # Hereva (DLC): dins del capoll fins a mitja vida; llavors neix
+        self.nascuda = False
+        self.naixent = 0
+        self.t_viu = 0
+        self.eclosio_nova = None
+        self.forat_x = WIDTH / 2
         if self.terrestre:
             self.vy = 0.0
         # dificultat
@@ -2916,10 +3009,18 @@ class Enemic:
             return 1 - self.apuntant / self.durada_apuntar if self.apuntant else 0.0
         if self.tipus == "final_nucli":
             return min(1.0, self.temps_fase / 50) if self.fase == 2 and self.temps_fase < 50 else 0.0
+        if self.tipus == "final_hereva":
+            return min(1.0, self.temps_fase / 50) if self.nascuda and self.fase == 2 and self.temps_fase < 50 else 0.0
         falta = self.cadencia - self.temps_atac
         return 1 - falta / 28 if 0 <= falta <= 28 and self.temps_atac > 0 else 0.0
 
     def ferir(self, dany, empenta=(0.0, 0.0)):
+        if self.tipus == "final_hereva":
+            if self.naixent:                                  # mentre neix no se la pot ferir
+                dany = 0
+            elif not self.nascuda and self.vida - dany <= self.vida_max / 2:
+                dany = self.vida - self.vida_max / 2          # el capoll aguanta fins a mitja vida i esclata
+                self.naixent = 1
         self.vida -= dany
         self.flash = 5
         # retrocés visual (només el dibuix: la caixa de col·lisió no es mou)
@@ -2958,6 +3059,10 @@ class Enemic:
         elif self.tipus == "final_nucli":
             self._moure_ruta(290, 140, 0.35, 45)
             return self._atacar_nucli(jugador)
+        elif self.tipus == "final_hereva":
+            if not self.naixent:
+                self._moure_ruta(250 if self.nascuda else 200, 120, 0.3 if self.nascuda else 0.22, 36)
+            return self._atacar_hereva(jugador, efectes)
         elif self.tipus == "cacador":
             bales = self._actualitzar_cacador(jugador, altres)
             if self.hd_e and self.mode == "envestida":            # estela del motor
@@ -3126,6 +3231,8 @@ class Enemic:
                 if math.hypot(jx - cx, jy - cy) < 70:
                     self.armat = 45
                     AUDIO.so("buit", 200)
+        elif self.tipus == "salvatge":
+            self._actualitzar_salvatge(jugador)
         else:
             if self.apuntant:
                 self.apuntant -= 1
@@ -3156,7 +3263,53 @@ class Enemic:
         self._fisica_terra(plataformes)
         return bales
 
+    def _actualitzar_salvatge(self, jugador):
+        """Orfe: corre cap al jugador (de tant en tant s'atura i mira al voltant, perdut), s'ajup per avisar i
+        salta amb les urpes. Només fa mal durant el salt i un sol cop per salt."""
+        jx = jugador.centre[0]
+        cx = self.centre[0]
+        peus_j, peus = jugador.y + jugador.H, self.y + self.h
+        if self.saltant:
+            self.temps_mode += 1
+            if self.temps_mode > 4 and self.suport is not None and self.vy == 0:     # ha tornat a tocar a terra
+                self.saltant = False
+                self.repos = 55
+                self.vx = 0.0
+            return
+        if self.apuntant:
+            self.apuntant -= 1
+            self.vx = 0.0
+            if self.apuntant == 0:
+                self.dir = 1 if jx > cx else -1
+                self.vx = self.dir * min(7.0, 2.5 + abs(jx - cx) / 30)
+                self.vy = -10.5 if peus_j < peus - 40 else -7.5
+                self.saltant, self.cop_fet, self.temps_mode = True, False, 0
+                self.suport = None
+                AUDIO.so("envestida", 70)
+            return
+        self.repos = max(0, self.repos - 1)
+        if self.pausa:                                   # sense la Ment, dubten: s'aturen i miren a banda i banda
+            self.pausa -= 1
+            self.vx = 0.0
+            if self.pausa % 20 == 0:
+                self.dir = -self.dir
+            return
+        self.temps_dir += 1
+        if self.temps_dir > random.randint(170, 280):
+            self.temps_dir = 0
+            self.pausa = 40
+            return
+        if abs(jx - cx) > 10:
+            self.dir = 1 if jx > cx else -1
+        if self._vora() and peus_j <= peus + 4:
+            self.dir = -self.dir
+        self.vx = self.dir * self.vmax
+        if not self.repos and abs(jx - cx) < 190 and abs(peus_j - peus) < 120 and self.suport is not None:
+            self.durada_apuntar = self.apuntant = 26
+
     def canó_terra(self):
+        if self.tipus == "salvatge":                         # l'orfe no té arma: l'avís li surt dels ulls
+            return self.x + self.w / 2 + self.dir * 12, self.y + 10
         if self.hd_e:
             p = punt_hd(self.tipus, "boques", "apunta", 0, 1 if self.dir > 0 else -1)
             if p:
@@ -3350,6 +3503,100 @@ class Enemic:
                 self.fase, self.temps_fase = 0, 0
         return bales
 
+    def _atacar_hereva(self, jugador, efectes):
+        """La Hereva. Dins del capoll: anells d'esquirles, el Coro (orfes i ones amb un buit) i pluja de cristalls.
+        Quan neix (mitja vida) fa servir els ecos dels altres caps: l'espiral del Nucli, els anells del Comandant,
+        la mirada i la cortina de la Nau Mare (amb un buit que es queda on eres)."""
+        self.t_viu += 1
+        cx, cy = self.centre
+        v, d = self.vel_bala, self.dany
+        jx, jy = jugador.centre
+        apunta = math.atan2(jy - cy, jx - cx)
+        if self.naixent:
+            self.naixent += 1
+            if self.naixent % 4 == 0:                            # esquirles que salten del capoll
+                a = random.uniform(0, math.tau)
+                efectes.append(Particula(cx + math.cos(a) * 40, cy + math.sin(a) * 46, math.cos(a) * 2, math.sin(a) * 2,
+                                         random.choice(((140, 240, 255), (255, 220, 120), BLANC)), vida=24, mida=3))
+            if self.naixent == 3:
+                AUDIO.so("boss")
+            if self.naixent == 50:
+                self.nascuda = True
+                self.fase, self.temps_fase = 0, 0
+                self.eclosio_nova = self.t_viu
+                esclat(efectes, cx, cy, 70, [(140, 240, 255), (255, 220, 120), BLANC, (90, 200, 220)], vel=(2, 9),
+                       mida=(3, 7), vida=(20, 50), gravetat=0.15)
+                efectes.append(Anell(cx, cy, (255, 220, 120), creix=7, vida=28))
+                efectes.append(Anell(cx, cy, BLANC, creix=10, vida=22))
+                self.tremolor_nou = 18
+                AUDIO.so("explosio")
+            if self.naixent >= 110:
+                self.naixent = 0
+            return []
+        self.temps_fase += 1
+        t = self.temps_fase
+        bales = []
+        if not self.nascuda:
+            if self.fase == 0:                                   # anells d'esquirles que giren
+                if t % 45 == 1:
+                    self.gir += 0.35
+                    bales = anell_bales(cx, cy, 12, v * 1.15, d, "cristall", gir=self.gir)
+                    AUDIO.so("boss", 120)
+                if t >= 180:
+                    self.fase, self.temps_fase = 1, 0
+            elif self.fase == 1:                                 # el Coro: crida orfes i canta ones amb un buit
+                if t == 1 and not self.invocacions:
+                    self.invocacions = [("salvatge", 90), ("salvatge", 90)]
+                if t in (30, 80):
+                    bales = anell_bales(cx, cy, 18, v, d, "hereva", gir=random.uniform(0, 1),
+                                        forat=(apunta + random.uniform(-0.5, 0.5), 0.6))
+                    AUDIO.so("boss")
+                if t >= 130:
+                    self.fase, self.temps_fase = 2, 0
+            else:                                                # pluja de cristalls
+                if t % 9 == 0 and t < 130:
+                    x = random.uniform(30, WIDTH - 30)
+                    bales.append(Bala(x, -12, random.uniform(-0.3, 0.3), v * 1.3, d, "cristall"))
+                if t >= 170:
+                    self.fase, self.temps_fase = 0, 0
+            return bales
+        if self.fase == 0:                                       # eco del Nucli: espiral
+            if t % 7 == 0:
+                braços = 4 if self.furia else 3
+                self.gir += 0.21
+                for b in range(braços):
+                    a = self.gir + b * math.tau / braços
+                    bales.append(Bala(cx, cy, math.cos(a) * v, math.sin(a) * v, d, "hereva"))
+                AUDIO.so("boss", 120)
+            if t >= 210:
+                self.fase, self.temps_fase = 1, 0
+        elif self.fase == 1:                                     # eco del Comandant: anells amb un buit
+            if t in (1, 45, 90):
+                bales = anell_bales(cx, cy, 26 if self.furia else 22, v * 1.1, d, "hereva", gir=random.uniform(0, 1),
+                                    forat=(apunta + random.uniform(-0.5, 0.5), 0.44 if self.furia else 0.55))
+                AUDIO.so("boss")
+            if t >= 140:
+                self.fase, self.temps_fase = 2, 0
+        elif self.fase == 2:                                     # la mirada (i el Coro, si s'enfada)
+            if t == 50:
+                bales = ventall(cx, cy, apunta, 9, math.radians(50), 6.5, d, "hereva")
+                self.flash_cano = 10
+                AUDIO.so("explosio")
+                if self.furia and not self.invocacions:
+                    self.invocacions = [("salvatge", 90), ("salvatge", 90)]
+            if t >= 120:
+                self.fase, self.temps_fase = 3, 0
+                self.forat_x = max(80, min(WIDTH - 80, jx))
+        else:                                                    # eco de la Nau Mare: cortina amb un buit
+            if t % 6 == 0 and t < 120:
+                for _ in range(2):
+                    x = random.uniform(20, WIDTH - 20)
+                    if abs(x - self.forat_x) > 70:
+                        bales.append(Bala(x, -12, 0, v * 1.45, d, "cristall"))
+            if t >= 165:
+                self.fase, self.temps_fase = 0, 0
+        return bales
+
     # ----- dibuix -----------------------------------------------------------
     def imatge(self):
         """Sprite d'aquest fotograma (amb animació) i clau per a la memòria cau."""
@@ -3359,6 +3606,8 @@ class Enemic:
             return SPR_ENEMIC["final_nau"], "nau_hd"
         if self.hd_nucli:
             return SPR_ENEMIC["final_nucli"], "nucli_hd"
+        if self.hd_hereva:
+            return (HEREVA_NASCUDA if self.nascuda else HEREVA_CAPOLL), "hereva_hd"
         if self.hd_cap:
             fr = CAPS_HD[self.nivell]
             anim, t = "repos", int(self.t * 20)
@@ -3401,6 +3650,9 @@ class Enemic:
             return
         if self.hd_nucli:
             self._dibuixar_nucli_hd(surf, desplaçament, forçar_flash)
+            return
+        if self.hd_hereva:
+            self._dibuixar_hereva_hd(surf, desplaçament, forçar_flash)
             return
         cx, cy = self.centre
         cx += desplaçament[0]
@@ -3885,6 +4137,14 @@ class Enemic:
             if self.armat and (self.armat // (3 if self.armat < 20 else 6)) % 2 == 0:
                 return "armat", 0
             return "corre", camina
+        if self.tipus == "salvatge":
+            if self.flash > 2:
+                return "ferit", 0
+            if self.saltant:
+                return "salta", 0
+            if self.apuntant:
+                return "ajup", 0
+            return "corre", camina
         if self.flash > 2:
             return "ferit", 0
         if self.tipus == "soldat" and self.flash_cano:
@@ -4138,6 +4398,62 @@ class Enemic:
             surf.blit(g, g.get_rect(center=punt))
             g.set_alpha(255)
             pygame.draw.circle(surf, (230, 90, 255), punt, int(r * (1.6 - carrega)) + 2, 1)
+
+
+    def _dibuixar_hereva_hd(self, surf, desp, forçar_flash):
+        """La Hereva: el capoll amb una llum que batega a dins (l'ull tancat) o, ja nascuda, tentacles, cos,
+        ull daurat que segueix el jugador, parpelles i la meitat de baix del capoll trencat al davant."""
+        info = HEREVA_HD
+        W, H = info["llenç"]
+        cx, cy = self.centre
+        if self.naixent and self.naixent < 50:                   # el capoll tremola abans d'esclatar
+            k = self.naixent / 50
+            desp = (desp[0] + random.uniform(-4, 4) * k, desp[1] + random.uniform(-3, 3) * k)
+        ox, oy = int(cx - W / 2 + desp[0]), int(cy - H / 2 + desp[1] + math.sin(self.t * 2) * 3)
+        anim = int(self.t * 20)
+        fr = self.vida / self.vida_max
+        compost = pygame.Surface((W, H), pygame.SRCALPHA) if self.flash or forçar_flash else None
+
+        def posar(nom):
+            im, (dx, dy) = peça_hereva(nom)
+            surf.blit(im, (ox + dx, oy + dy))
+            if compost:
+                compost.blit(im, (dx, dy))
+        if not self.nascuda:
+            posar(f"hereva_capoll_{0 if fr > 0.75 and not self.naixent else 1}")
+            ux, uy = info["ull_capoll"]
+            rapid = 4 + (10 if self.naixent else 0)
+            pols = 0.5 + 0.5 * math.sin(self.t * rapid)
+            l = llum(int(22 + 8 * pols), (255, 210, 90))
+            l.set_alpha(int(110 + 100 * pols))
+            surf.blit(l, l.get_rect(center=(ox + ux, oy + uy)))
+            l.set_alpha(255)
+            obert = 1 + int(2 * pols)                            # l'ull de dins, tancat, que respira
+            pygame.draw.ellipse(surf, (255, 236, 160), (ox + ux - 11, oy + uy - obert, 22, obert * 2))
+        else:
+            dany = 0 if fr > 0.33 else (1 if fr > 0.16 else 2)
+            posar(f"hereva_tent_{(anim // 5) % info['n_tent']}")
+            posar(f"hereva_cos_{dany}")
+            ux, uy = info["ull"]
+            ira = (self.fase == 2 and self.temps_fase < 60) or self.furia
+            dibuixar_iris_hereva(surf, ox + ux, oy + uy, info["radi_ull"], self.mirada, ira)
+            if self.parpelleig:
+                posar("hereva_parp_tancat" if 4 < self.parpelleig <= 10 else "hereva_parp_mig")
+            posar("hereva_closca")
+        if compost:
+            blanc = silueta_blanca(compost)
+            blanc.set_alpha(200 if forçar_flash else 18 * self.flash)
+            surf.blit(blanc, (ox, oy))
+        carrega = self.carregant
+        if carrega > 0:                                          # la mirada: l'avís surt de la pupil·la
+            ux, uy = info["ull"]
+            punt = (int(ox + ux + self.mirada[0] * 10), int(oy + uy + self.mirada[1] * 10))
+            r = int(10 + 36 * carrega)
+            g = llum(max(4, r), (255, 210, 90))
+            g.set_alpha(int(120 + 120 * carrega))
+            surf.blit(g, g.get_rect(center=punt))
+            g.set_alpha(255)
+            pygame.draw.circle(surf, (255, 210, 90), punt, int(r * (1.6 - carrega)) + 2, 1)
 
 
 class Resta:
@@ -4532,7 +4848,11 @@ class Caiguda:
             surf.blit(marca, marca.get_rect(center=(int(self.x), int(self.sup) + 1)))
         if self.t <= self.AVIS:
             return
-        if self.tipus == "runa":
+        if self.tipus == "cristall":                                  # estalactita de cristall
+            pygame.draw.polygon(surf, (20, 60, 76), [(self.x - 9, self.y - 30), (self.x + 9, self.y - 30), (self.x, self.y + 12)])
+            pygame.draw.polygon(surf, (90, 210, 230), [(self.x - 6, self.y - 28), (self.x + 6, self.y - 28), (self.x, self.y + 8)])
+            pygame.draw.line(surf, (220, 255, 255), (self.x - 2, self.y - 26), (self.x, self.y + 4))
+        elif self.tipus == "runa":
             punts = []
             for i in range(6):
                 a = math.radians(self.angle + i * 60)
@@ -4549,7 +4869,7 @@ class Caiguda:
 class Perills:
     """Peligros de cada escenario (vegeu "perills" a dades.py)."""
 
-    DANY_CAIGUDA = {"runa": 10, "morter": 14}
+    DANY_CAIGUDA = {"runa": 10, "morter": 14, "cristall": 12}
 
     def __init__(self, specs):
         self.zones = []
@@ -4558,7 +4878,7 @@ class Perills:
         self.t = 0
         for spec in specs or ():
             tipus = spec[0]
-            if tipus in ("runa", "morter"):
+            if tipus in ("runa", "morter", "cristall"):
                 self.generadors.append([tipus, spec[1], random.randint(80, spec[1])])
             elif tipus == "acid":
                 self.zones += [Zona("acid", x, w) for x, w in spec[1]]
@@ -4588,12 +4908,13 @@ class Perills:
                 impacte = True
             if impacte:
                 self.caigudes.remove(c)
-                radi = 40 if c.tipus == "runa" else 58
-                colors = [(150, 140, 130), (110, 100, 96), BLANC] if c.tipus == "runa" else [TARONJA, VERMELL, GROC, BLANC]
+                radi = 58 if c.tipus == "morter" else 40
+                colors = {"runa": [(150, 140, 130), (110, 100, 96), BLANC],
+                          "cristall": [(140, 240, 255), (60, 160, 190), BLANC]}.get(c.tipus, [TARONJA, VERMELL, GROC, BLANC])
                 esclat(joc.efectes, c.x, c.y, 18, colors, vel=(1.5, 5), mida=(3, 6), vida=(14, 30), gravetat=0.2)
                 joc.efectes.append(Anell(c.x, min(c.y, c.sup), colors[0], creix=3, vida=16))
                 joc.tremolor = max(joc.tremolor, 5)
-                AUDIO.so("impacte" if c.tipus == "runa" else "explosio", 80)
+                AUDIO.so("explosio" if c.tipus == "morter" else ("ting" if c.tipus == "cristall" else "impacte"), 80)
                 jx, jy = j.x + j.W / 2, j.y + j.H - 10
                 if joc.fase == "jugant" and not j.intocable and math.hypot(jx - c.x, jy - min(c.y, c.sup)) < radi:
                     joc.ferir_jugador(joc.dany_dificultat(self.DANY_CAIGUDA[c.tipus]))
@@ -4782,7 +5103,9 @@ class Intro:
     ETIQUETES = {"terra": "AÑO 2139", "invasio": "LA INVASIÓN", "ruines": "2139 - 2147",
                  "nexus": "PROYECTO NEXUS", "despertar": "AÑO 2147", "caiguda": "LA CIMA",
                  "senyal": "LA SEÑAL", "llancament": "DESPEGUE", "explosio_nau": "ÓRBITA", "portal": "EL PORTAL",
-                 "apagada": "XYLOS", "portals": "LA TIERRA", "retorn": "EL REGRESO"}
+                 "apagada": "XYLOS", "portals": "LA TIERRA", "retorn": "EL REGRESO",
+                 "eco_senyal": "SEIS MESES DESPUÉS", "eco_orfes": "XYLOS", "eco_capoll": "LA CUNA",
+                 "hereva_mort": "LA HEREDERA", "eco_lliures": "LOS HUÉRFANOS", "eco_fi": "LA TIERRA"}
 
     def __init__(self, en_acabar, escenes=None):
         self.en_acabar = en_acabar
@@ -5240,6 +5563,123 @@ class Intro:
                 if temps > 30 + k * 22:
                     pygame.draw.rect(surf, (30, 26, 30), (int(x), sol - 30, 10, 30))
                     pygame.draw.circle(surf, (30, 26, 30), (int(x) + 5, sol - 35), 6)
+
+    # ----- DLC «Ecos de Xylos» -----
+    def _orfe(self, surf, x, peus, anim="corre", k=0, sentit=1, alfa=255):
+        if "salvatge" not in ENEMICS_HD:
+            return
+        img, (dx, dy) = frame_hd("salvatge", anim, k, sentit)
+        if alfa < 255:
+            img = img.copy()
+            img.set_alpha(alfa)
+        surf.blit(img, (int(x + dx), int(peus + dy)))
+
+    def _terra_cine(self, surf, color, sol=HEIGHT - 190):
+        pygame.draw.rect(surf, color, (0, sol, WIDTH, HEIGHT - sol))
+        pygame.draw.line(surf, aclarir(color, 30), (0, sol), (WIDTH, sol), 2)
+        return sol
+
+    def _dibuixar_eco_senyal(self, surf):
+        surf.blit(self.cel_nit, (0, 0))
+        self._estrelles(surf)
+        cicle = self.t % 150                                        # el portal tancat, que torna a bategar
+        if cicle < 70:
+            r = 10 + cicle * 1.2
+            pygame.draw.circle(surf, (170, 90, 255), (700, 120), int(r), 1)
+            l = llum(int(18 + 10 * (1 - cicle / 70)), (190, 110, 255))
+            l.set_alpha(int(200 * (1 - cicle / 70)))
+            surf.blit(l, l.get_rect(center=(700, 120)))
+            l.set_alpha(255)
+        surf.blit(self.ciutat_lluny, (-20, HEIGHT - 300))
+        surf.blit(self.ciutat, (-20, HEIGHT - 230))
+        sol = self._terra_cine(surf, (22, 22, 32), HEIGHT - 200)
+        pygame.draw.rect(surf, (60, 64, 70), (110, sol - 44, 130, 48))                  # el búnker
+        pygame.draw.rect(surf, (20, 22, 26), (122, sol - 36, 106, 32))
+        if (self.t // 18) % 2:                                       # la llum del receptor
+            pygame.draw.circle(surf, (255, 70, 70), (226, sol - 40), 3)
+        for k in range(4):                                           # ones que surten de l'antena
+            r = (self.t * 1.5 + k * 24) % 96
+            pygame.draw.arc(surf, (120, 200, 255), (175 - r, sol - 70 - r, r * 2, r * 2), 0.6, 2.5, 1)
+        pygame.draw.line(surf, (90, 94, 110), (175, sol - 44), (175, sol - 70), 2)
+
+    def _dibuixar_eco_orfes(self, surf):
+        self._fons(surf, (5, 0))
+        sol = self._terra_cine(surf, (30, 30, 42))
+        for i, (x0, vel, pausa) in enumerate(((120, 0.5, 90), (380, 0.35, 60), (620, -0.45, 120), (840, -0.3, 40))):
+            cicle = (self.t + pausa) % 240
+            quiet = cicle > 170                                      # s'aturen i miren al voltant
+            x = x0 + vel * min(self.t, 400)
+            sentit = (1 if vel > 0 else -1) * (-1 if quiet and (cicle // 25) % 2 else 1)
+            self._orfe(surf, x, sol + 2, "ajup" if quiet else "corre", (self.t // 6) + i, sentit)
+            if quiet:
+                for dx in (-3, 3):
+                    surf.set_at((int(x + dx + sentit * 4), int(sol - 34)), (140, 255, 230))
+
+    def _dibuixar_eco_capoll(self, surf):
+        self._fons(surf, (5, 2))
+        if HEREVA_CAPOLL:
+            if not hasattr(self, "_capoll_gran"):
+                self._capoll_gran = pygame.transform.scale(HEREVA_CAPOLL, (int(HEREVA_CAPOLL.get_width() * 1.5),
+                                                                           int(HEREVA_CAPOLL.get_height() * 1.5)))
+            img = self._capoll_gran
+            centre = (WIDTH // 2, 210 + int(math.sin(self.t * 0.05) * 6))
+            surf.blit(img, img.get_rect(center=centre))
+            pols = 0.5 + 0.5 * math.sin(self.t * 0.12)
+            l = llum(int(40 + 14 * pols), (255, 210, 90))
+            l.set_alpha(int(110 + 110 * pols))
+            surf.blit(l, l.get_rect(center=(centre[0], centre[1] + 6)))
+            l.set_alpha(255)
+            for k in range(3):                                       # ones del Coro que hi arriben
+                r = (self.t * 1.2 + k * 50) % 150
+                pygame.draw.circle(surf, (140, 240, 255), centre, int(260 - r), 1)
+        sol = self._terra_cine(surf, (16, 30, 22))
+        for i, x in enumerate((150, 250, 690, 800)):                 # orfes ajupits que escolten
+            self._orfe(surf, x, sol + 2, "ajup", 0, 1 if x < WIDTH // 2 else -1)
+
+    def _dibuixar_hereva_mort(self, surf):
+        self._fons(surf, (5, 2))
+        k = min(1.0, self.t / 220)
+        if HEREVA_NASCUDA:
+            if not hasattr(self, "_hereva_gran"):
+                self._hereva_gran = pygame.transform.scale(HEREVA_NASCUDA, (int(HEREVA_NASCUDA.get_width() * 1.5),
+                                                                            int(HEREVA_NASCUDA.get_height() * 1.5)))
+            img = self._hereva_gran
+            centre = (WIDTH // 2, 220 + int(k * 30))
+            r = img.get_rect(center=centre)
+            surf.blit(img, r)
+            ux, uy = r.left + HEREVA_ULL_RETALL[0] * 1.5, r.top + HEREVA_ULL_RETALL[1] * 1.5
+            rs = HEREVA_HD["radi_ull"] * 1.5
+            alt = rs * 2 * k                                         # la parpella es tanca
+            pygame.draw.ellipse(surf, (40, 120, 70), (ux - rs - 2, uy - rs - 2, rs * 2 + 4, max(2, alt)))
+            pygame.draw.ellipse(surf, (40, 120, 70), (ux - rs - 2, uy + rs + 2 - max(2, alt), rs * 2 + 4, max(2, alt)))
+        vel = CAPA_TRANSPARENT
+        vel.fill((0, 0, 6, int(190 * k)))
+        surf.blit(vel, (0, 0))
+
+    def _dibuixar_eco_lliures(self, surf):
+        self._fons(surf, (5, 1))
+        sol = self._terra_cine(surf, (10, 24, 32))
+        self._soldat(surf, 250, sol + 2, "quiet", 1)
+        t = self.t
+        if t < 160:                                                  # s'acosta
+            x, anim, sentit = WIDTH - 120 - t * 2.4, "corre", -1
+        elif t < 300:                                                # s'atura, el mira i ladeja el cap
+            x, anim, sentit = WIDTH - 120 - 160 * 2.4, "ajup" if t < 200 else "corre", -1
+        else:                                                        # se'n va
+            x, anim, sentit = WIDTH - 120 - 160 * 2.4 + (t - 300) * 1.6, "corre", 1
+        k = (t // 6) if anim == "corre" and (t < 160 or t >= 300) else 0
+        self._orfe(surf, x, sol + 2, anim, k, sentit)
+        if 200 <= t < 300:                                           # un interrogant: dubta
+            text(surf, "?", F_HUD, (140, 255, 230), (int(x), int(sol - 60 - 4 * math.sin(t * 0.1))))
+
+    def _dibuixar_eco_fi(self, surf):
+        surf.blit(self.cel_nit, (0, 0))
+        self._estrelles(surf)
+        surf.blit(self.ciutat_lluny, (-20, HEIGHT - 300))
+        surf.blit(self.ciutat, (-20, HEIGHT - 230))
+        if self.t > 60:
+            text(surf, "ECOS DE XYLOS", F_SUBTITOL, (140, 255, 230), (WIDTH // 2, 120))
+            text(surf, "FIN", F_TITOL, GROC, (WIDTH // 2, 200))
 
     def _dibuixar_fi(self, surf):
         surf.blit(self.cel_nit, (0, 0))
@@ -5951,7 +6391,7 @@ def dibuixar_targeta(surf, rect, ident, titol, rang, temporada, nivell_passi, pr
         rm = text(surf, str(monedes), F_HUD, GROC, (r.right - 10, r.y + 16), ancora="midright")
         dibuixar_moneda(surf, rm.left - 12, r.y + 16)
     if estrelles is not None:
-        re = text(surf, f"{estrelles}/45", F_MINI, (255, 220, 120), (r.right - 10, r.bottom - 14), ancora="midright")
+        re = text(surf, f"{estrelles}/{TOTAL_ESTRELLES}", F_MINI, (255, 220, 120), (r.right - 10, r.bottom - 14), ancora="midright")
         dibuixar_estrella(surf, re.left - 10, re.centery, 6, True)
 
 
@@ -7123,6 +7563,9 @@ class Game:
         self.completats = graella("completats", [[False] * 3 for _ in range(NUM_SECTORS)])
         if self.completats[2][2]:                     # partides antigues que ja havien acabat el joc original
             self.nivells_desbloquejats[3][0] = True
+        if self.completats[SECTORS_HISTORIA - 1][2]:  # ja havien acabat la història: s'obre el DLC
+            self.nivells_desbloquejats[SECTOR_DLC][0] = True
+        self.eco_vist = bool(d.get("eco_vist", False))
         self.xp = d.get("xp", 0) if isinstance(d.get("xp"), int) else 0
         self.passi_reclamat = d.get("passi", 0) if isinstance(d.get("passi"), int) else 0
         mill = d.get("millores", {})
@@ -7188,6 +7631,7 @@ class Game:
             "equipat": self.equipament(),
             "intro_vista": self.intro_vista,
             "tutorial_vist": self.tutorial_vist,
+            "eco_vist": getattr(self, "eco_vist", False),
             "novetats_vistes": self.novetats_vistes,
             "estrelles": self.estrelles, "ordre_estrelles": 2,
             "records": self.records,
@@ -7371,7 +7815,7 @@ class Game:
                 obert = self.nivells_desbloquejats[n][e]
                 txt = f"{n + 1}-{e + 1}" if obert else "?"
                 color = VERD if self.completats[n][e] else BLAU
-                b.append(Boto((470 + e * 150, 94 + n * 76, 100, 44), txt,
+                b.append(Boto((470 + e * 150, 84 + n * 62, 100, 40), txt,
                               (lambda n=n, e=e: self.mostrar_narrativa(n, e)) if obert else None, color))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", self.entrar_jugar, GRIS_FOSC))
         b.append(Boto((WIDTH - 250, HEIGHT - 66, 226, 42), "Desafíos", self.entrar_desafiaments, TARONJA))
@@ -7488,12 +7932,12 @@ class Game:
         b = []
         for i, (titol, _) in enumerate(ARXIU):
             obert = self.completats[i][2]
-            b.append(Boto((40, 96 + i * 60, 250, 48), titol if obert else "? ? ?",
+            b.append(Boto((40, 92 + i * 52, 250, 44), titol if obert else "? ? ?",
                           (lambda i=i: self.triar_arxiu(i)) if obert else None,
                           VERD if i == self.entrada_arxiu and obert else BLAU, font=F_MINI))
-        b.append(Boto((40, 96 + len(ARXIU) * 60, 250, 48), "Ver introducción",
+        b.append(Boto((40, 92 + len(ARXIU) * 52, 250, 44), "Ver introducción",
                       lambda: self.entrar_intro(self.entrar_arxiu), VERD, font=F_MINI))
-        escena = {2: "comandant", 3: "nau", 4: "final"}.get(self.entrada_arxiu)
+        escena = {2: "comandant", 3: "nau", 4: "final", SECTOR_DLC: "hereva"}.get(self.entrada_arxiu)
         if escena and self.completats[self.entrada_arxiu][2]:
             b.append(Boto((730, 390, 176, 40), "Ver escena", lambda: self.veure_cinematica(escena, self.entrar_arxiu),
                           TARONJA, font=F_HUD))
@@ -7541,6 +7985,11 @@ class Game:
         self.canviar_estat("credits")
 
     def mostrar_narrativa(self, nivell, escenari):
+        if (nivell, escenari) == (SECTOR_DLC, 0) and not getattr(self, "eco_vist", False):
+            self.eco_vist = True                     # el DLC comença amb la seva cinemàtica (només el primer cop)
+            self.desar_progres()
+            self.veure_cinematica("eco", lambda: self.mostrar_narrativa(nivell, escenari))
+            return
         self.mode = "historia"
         self.nivell_actual = nivell
         self.escenari_actual = escenari
@@ -8059,7 +8508,7 @@ class Game:
         AUDIO.so("moneda")
         if e.es_boss:
             self.restes.append(MortCap(e))
-            if e.hd:                                           # sense la seva veu, els seus soldats cauen
+            if e.hd or e.tipus == "final_hereva":              # sense la seva veu, els seus soldats cauen
                 for o in self.enemics:
                     if not o.es_boss:
                         o.vida = 0
@@ -8073,7 +8522,7 @@ class Game:
         if self.efecte != "normal" and e.tipus != "kamikaze":     # cosmètic d'eliminació
             self.restes.append(EfecteBaixa(e, self.efecte, self.efectes))
         else:
-            if e.hd_e and e.tipus in ("soldat", "escut"):
+            if e.hd_e and e.tipus in ("soldat", "escut", "salvatge"):
                 self.restes.append(MortTerra(e))
             elif not (e.hd_e and e.tipus == "kamikaze"):
                 self.restes.append(Resta(e))
@@ -8186,6 +8635,19 @@ class Game:
                 if e.tipus == "cacador" and not e.entrant and not j.intocable and e.hitbox.colliderect(rj):
                     self.ferir_jugador(e.dany)
                     e.rebotar()
+                if e.tipus == "salvatge" and e.saltant and not e.cop_fet and not j.intocable and e.hitbox.colliderect(rj):
+                    self.ferir_jugador(e.dany)                     # urpes: un cop per salt
+                    e.cop_fet = True
+                    e.vx *= -0.4
+                if e.tipus == "final_hereva":
+                    if e.tremolor_nou:
+                        self.tremolor = max(self.tremolor, e.tremolor_nou)
+                        self.flaix = max(self.flaix, 12)
+                        e.tremolor_nou = 0
+                    if e.eclosio_nova is not None:
+                        if e.eclosio_nova < 40 * FPS and self.mode == "historia":
+                            self.desbloquejar("capoll")
+                        e.eclosio_nova = None
                 if e.hd:
                     self.atacs_comandant(e, j, rj)
                 if e.esclatar:
@@ -8376,7 +8838,7 @@ class Game:
             self.entrar_desafiaments()
         elif self.fase == "net" and self.temps_fase > 220:
             n, e = clau
-            if (n, e) == (NUM_SECTORS - 1, 2):
+            if (n, e) in ((SECTORS_HISTORIA - 1, 2), (SECTOR_DLC, 2)):
                 seguent = self.entrar_credits_finals
             elif e < 2:
                 seguent = lambda: self.mostrar_narrativa(n, e + 1)  # noqa: E731
@@ -8419,6 +8881,13 @@ class Game:
         self.afegir_xp(xp)
         if primera and e == 2:
             self.avis(T("Historia desbloqueada: {h}").format(h=T(ARXIU[n][0])), CIAN, 260)
+        if primera and (n, e) == (SECTORS_HISTORIA - 1, 2):
+            self.avis(T("¡Nuevo sector desbloqueado: {s}!").format(s=T(NOMS_SECTORS[SECTOR_DLC])), (140, 255, 230), 400)
+        if primera and (n, e) == (SECTOR_DLC, 2):
+            for tipus, valor in PREMIS_DLC:
+                self.atorgar(tipus, valor)
+            self.avis(T("¡Ecos de Xylos completado! +{m} monedas").format(
+                m=next((v for t, v in PREMIS_DLC if t == "monedes"), 0)), (140, 255, 230), 400)
         self.desar_progres()
 
     # ----- Dibuix -----------------------------------------------------------
@@ -8577,7 +9046,8 @@ class Game:
             self.presentacio = None
 
     def veure_cinematica(self, clau, despres):
-        AUDIO.musica({"comandant": "sector4", "nau": "sector5", "final": "final"}.get(clau, "menu"))
+        AUDIO.musica({"comandant": "sector4", "nau": "sector5", "final": "final", "eco": "sector6",
+                      "hereva": "final"}.get(clau, "menu"))
 
         def fi():
             if clau == "final" and not self.intro.saltada:
@@ -8597,7 +9067,7 @@ class Game:
         b = []
         for i, (n, e) in enumerate(ARENES):
             oberta = any(self.nivells_desbloquejats[n])
-            b.append(Boto((60, 150 + i * 50, 300, 42), NOMS_ARENES[i] if oberta else "? ? ?",
+            b.append(Boto((60, 140 + i * 44, 300, 38), NOMS_ARENES[i] if oberta else "? ? ?",
                           (lambda i=i: self.triar_arena(i)) if oberta else None,
                           VERD if i == self.arena else BLAU, font=F_HUD))
         b.append(Boto((60, 412, 300, 48), "¡A luchar!", self.iniciar_supervivencia, TARONJA))
@@ -8712,13 +9182,17 @@ class Game:
         """Logros que depenen de l'estat (també serveix per a partides antigues)."""
         c = self.completats
         for (n, e), ident in (((0, 0), "primer"), ((0, 2), "sector1"), ((1, 2), "sector2"), ((2, 2), "comandant"),
-                              ((3, 2), "nau"), ((4, 2), "final")):
+                              ((3, 2), "nau"), ((4, 2), "final"), ((SECTOR_DLC, 2), "eco")):
             if c[n][e]:
                 self.desbloquejar(ident)
         if sum(e[2] for fila in self.estrelles for e in fila) >= 5:
             self.desbloquejar("rellotge")
-        if all(all(e) for fila in self.estrelles for e in fila):
+        if all(all(e) for fila in self.estrelles[:SECTORS_HISTORIA] for e in fila):
             self.desbloquejar("estrelles")
+        if all(all(e) for e in self.estrelles[SECTOR_DLC]):
+            self.desbloquejar("estrelles_dlc")
+        if self.baixes_bestiari("salvatge") >= 40:
+            self.desbloquejar("orfes")
         if all(a["id"] in self.armes_propies for a in ARMES):
             self.desbloquejar("arsenal")
         if all(self.nivell_millora(m["id"]) >= len(m["costos"]) for m in MILLORES):
@@ -9761,7 +10235,8 @@ class Game:
     RETRATS_CAP = {}
 
     def retrat_cap(self, cap):
-        img = Game.RETRATS_CAP.get(cap.clau)
+        clau = (cap.clau, cap.nascuda)                  # la Hereva canvia de retrat quan neix
+        img = Game.RETRATS_CAP.get(clau)
         if img is None:
             base, _ = (RETRAT_COMANDANT, None) if cap.hd else cap.imatge()
             if base is None:
@@ -9771,7 +10246,7 @@ class Game:
                 bw, bh = base.get_size()
                 k = min(30 / bw, 30 / bh)
                 img = pygame.transform.smoothscale(base, (max(1, int(bw * k)), max(1, int(bh * k))))
-            Game.RETRATS_CAP[cap.clau] = img
+            Game.RETRATS_CAP[clau] = img
         return img
 
     def _hud_cap(self, surf):
@@ -10039,7 +10514,7 @@ class Game:
                 surf.blit(l, l.get_rect(center=(cx, cy + 6)))
                 l.set_alpha(255)
                 surf.blit(img, img.get_rect(center=(cx, cy)))
-        elif clau in ("nau", "nucli"):
+        elif clau in ("nau", "nucli", "hereva"):
             img = self.imatge_novetat(clau, SPR_ENEMIC.get("final_" + clau), 50)
             if img:
                 surf.blit(img, img.get_rect(center=(cx, cy)))
@@ -10303,6 +10778,8 @@ class Game:
             tipus_enemics.append("escut")
         if self.nivells_desbloquejats[3][0]:
             tipus_enemics.append("cacador")
+        if self.nivells_desbloquejats[SECTOR_DLC][0]:
+            tipus_enemics.append("salvatge")
         pool = [r for r in REPTES_POOL if r[0] != "onada" or self.completats[0][2]]
         triats, vistos = [], set()
         while len(triats) < 3 and pool:
@@ -10720,8 +11197,8 @@ class Game:
     @staticmethod
 
     def rect_bestiari(k):
-        col, fila = k % 7, k // 7
-        return pygame.Rect(40 + col * 126, 120 + fila * 104, 118, 96)
+        col, fila = k % 9, k // 9                 # 9 per fila: hi caben les 18 fitxes (amb les del DLC)
+        return pygame.Rect(40 + col * 98, 120 + fila * 104, 92, 96)
 
     def triar_bestiari(self, k):
         self.sel_bestiari = k
@@ -10827,9 +11304,8 @@ class Game:
             if not n:
                 text(surf, "???", F_HUD, GRIS, (r.centerx, r.bottom - 14))
             else:
-                linies = ajustar_linies(T(entrada["nom"]), F_TEXT_PP, r.w - 8)[:2]
-                for j, linia in enumerate(linies):
-                    text(surf, linia, F_TEXT_PP, BLANC, (r.centerx, r.bottom - 12 - (len(linies) - 1 - j) * 16))
+                text_bloc(surf, entrada["nom"], F_TEXT_PP, BLANC, (r.x + 3, r.y + 58, r.w - 6, 36), vertical="bottom",
+                          max_linies=2)
         e = BESTIARI[self.sel_bestiari]
         n = self.baixes_bestiari(e["clau"])
         det = pygame.Rect(40, 334, 880, 128)
@@ -10882,7 +11358,7 @@ class Game:
         self.fons_menu.dibuixar(surf)
         text(surf, "DESAFÍOS", F_SUBTITOL, GROC, (WIDTH // 2, 40))
         estrelles = self.estrelles_totals()
-        r0 = text(surf, f"{estrelles}/45", F_UI, (255, 220, 120), (WIDTH - 24, 40), ancora="midright")
+        r0 = text(surf, f"{estrelles}/{TOTAL_ESTRELLES}", F_UI, (255, 220, 120), (WIDTH - 24, 40), ancora="midright")
         dibuixar_estrella(surf, r0.left - 18, r0.centery, 11, True)
         t = self.t_global
         for k, (ident, d) in enumerate(DESAFIAMENTS.items()):
@@ -11304,7 +11780,7 @@ class Game:
                         if not obert:
                             dibuixar_cadenat(surf, cx, vista.centery + 30)
                         text(surf, f"{d['estrelles']}★", F_MINI, VERD if obert else GRIS, (cx, vista.bottom - 14))
-                text(surf, f"{self.estrelles_totals()}/45 ★", F_HUD, GROC, (r.centerx, vista.bottom + 30))
+                text(surf, f"{self.estrelles_totals()}/{TOTAL_ESTRELLES} ★", F_HUD, GROC, (r.centerx, vista.bottom + 30))
                 text(surf, "Premios exclusivos", F_TEXT_P, BLANC, (r.centerx, vista.bottom + 56))
 
     # ----- Revelacions de premis ---------------------------------------------------------------------------
@@ -12383,12 +12859,17 @@ class Game:
         self.fons_menu.dibuixar(surf)
         text(surf, "SELECCIONA NIVEL", F_SUBTITOL, BLANC, (WIDTH // 2, 44))
         total = sum(sum(e) for fila in self.estrelles for e in fila)
-        r = text(surf, f"{total}/45", F_UI, (255, 220, 120), (WIDTH - 24, 44), ancora="midright")
+        r = text(surf, f"{total}/{TOTAL_ESTRELLES}", F_UI, (255, 220, 120), (WIDTH - 24, 44), ancora="midright")
         dibuixar_estrella(surf, r.left - 18, r.centery, 11, True)
         for n in range(NUM_SECTORS):
-            y = 116 + n * 76
+            y = 104 + n * 62
             obert = any(self.nivells_desbloquejats[n])
-            text(surf, f"{T('SECTOR')} {n + 1}", F_HUD, CIAN if obert else GRIS, (90, y - 14), ancora="midleft")
+            rs = text(surf, f"{T('SECTOR')} {n + 1}", F_HUD, CIAN if obert else GRIS, (90, y - 14), ancora="midleft")
+            if n == SECTOR_DLC:                                   # etiqueta del DLC
+                et = pygame.Rect(rs.right + 10, rs.centery - 8, 40, 16)
+                pygame.draw.rect(surf, (20, 60, 60) if obert else GRIS_FOSC, et, border_radius=3)
+                pygame.draw.rect(surf, (140, 255, 230) if obert else GRIS, et, 1, border_radius=3)
+                text(surf, "DLC", F_MINI, (140, 255, 230) if obert else GRIS, et.center)
             text(surf, NOMS_SECTORS[n], F_TEXT_P, BLANC if obert else GRIS, (90, y + 10), ancora="midleft")
             for e in range(3):
                 if self.nivells_desbloquejats[n][e]:

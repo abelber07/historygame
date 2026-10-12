@@ -2039,3 +2039,126 @@ _NOVETATS_43 = {
 for _es, (_ca, _en) in _NOVETATS_43.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)
+
+# ---------------------------------------------------------------------------
+# DLC «Ecos de Xylos» (v4.4)
+# ---------------------------------------------------------------------------
+_DLC_44 = {
+    "Ecos de Xylos": ("Ecos de Xylos", "Echoes of Xylos"),
+    "ECOS DE XYLOS": ("ECOS DE XYLOS", "ECHOES OF XYLOS"),
+    "DLC": ("DLC", "DLC"),
+    "DLC: Ecos de Xylos": ("DLC: Ecos de Xylos", "DLC: Echoes of Xylos"),
+    "LA HEREDERA": ("L'HEREVA", "THE HEIRESS"),
+    "La Heredera": ("L'Hereva", "The Heiress"),
+    "La voz que quiere volver a unirlos": ("La veu que els vol tornar a unir", "The voice that wants to unite them again"),
+    "Huérfano": ("Orfe", "Orphan"),
+    "El Coro": ("El Cor", "The Choir"),
+    "El Coro: el plasma haría vibrar los cristales y se vendría abajo el techo.":
+        ("El Cor: el plasma faria vibrar els cristalls i el sostre s'enfonsaria.",
+         "The Choir: plasma would make the crystals ring and bring the ceiling down."),
+    "SEIS MESES DESPUÉS": ("SIS MESOS DESPRÉS", "SIX MONTHS LATER"),
+    "LA CUNA": ("EL BRESSOL", "THE CRADLE"),
+    "LOS HUÉRFANOS": ("ELS ORFES", "THE ORPHANS"),
+    "Xylos ya no es violeta. Sin el Núcleo, la colmena se ha quedado gris y callada. Los Xylothians que sobrevivieron vagan sin rumbo: huérfanos que atacan a todo lo que se mueve. Busca el origen del eco.":
+        ("Xylos ja no és violeta. Sense el Nucli, el rusc s'ha quedat gris i callat. Els Xylothians que van sobreviure vaguen sense rumb: orfes que ataquen tot el que es mou. Busca l'origen de l'eco.",
+         "Xylos is no longer violet. Without the Core, the hive has turned grey and silent. The surviving Xylothians wander aimlessly: orphans who attack anything that moves. Find the source of the echo."),
+    "El eco sale de una caverna de cristal. Allí los huérfanos se reúnen y cantan, todos a la vez, la misma nota. Es el Coro: alguien les está enseñando a pensar como uno solo otra vez.":
+        ("L'eco surt d'una caverna de cristall. Allà els orfes s'apleguen i canten, tots alhora, la mateixa nota. És el Cor: algú els està ensenyant a pensar com un de sol una altra vegada.",
+         "The echo comes from a crystal cavern. There the orphans gather and sing the same note, all at once. It's the Choir: someone is teaching them to think as one again."),
+    "En el fondo de la caverna late un capullo de cristal y oro. Dentro crece una semilla del Núcleo: la Heredera. Se alimenta del Coro y, si nace, volverá a abrir los portales. No dejes que despierte del todo.":
+        ("Al fons de la caverna batega un capoll de cristall i or. A dins creix una llavor del Nucli: l'Hereva. S'alimenta del Cor i, si neix, tornarà a obrir els portals. No deixis que es desperti del tot.",
+         "Deep in the cavern beats a cocoon of crystal and gold. Inside grows a seed of the Core: the Heiress. She feeds on the Choir and, if she is born, she will open the portals again. Don't let her fully awaken."),
+    "Seis meses después. La Tierra se reconstruye. Una noche, en el búnker, el receptor de la doctora Vega capta un eco: una señal débil que llega del otro lado del portal cerrado.":
+        ("Sis mesos després. La Terra es reconstrueix. Una nit, al búnquer, el receptor de la doctora Vega capta un eco: un senyal feble que arriba de l'altra banda del portal tancat.",
+         "Six months later. Earth is rebuilding. One night, in the bunker, Dr. Vega's receiver picks up an echo: a faint signal coming from the other side of the closed portal."),
+    "En Xylos, los Xylothians que sobrevivieron al silencio vagan sin rumbo. Sin la mente que los guiaba están perdidos, asustados... y son peligrosos.":
+        ("A Xylos, els Xylothians que van sobreviure al silenci vaguen sense rumb. Sense la ment que els guiava estan perduts, espantats... i són perillosos.",
+         "On Xylos, the Xylothians who survived the silence wander aimlessly. Without the mind that guided them they are lost, frightened... and dangerous."),
+    "Pero algo los está llamando. En lo más hondo de la colmena late una semilla del Núcleo: la Heredera. Si nace, los unirá otra vez y la invasión volverá a empezar.":
+        ("Però alguna cosa els crida. Al més profund del rusc batega una llavor del Nucli: l'Hereva. Si neix, els tornarà a unir i la invasió tornarà a començar.",
+         "But something is calling them. Deep in the hive beats a seed of the Core: the Heiress. If she is born, she will unite them again and the invasion will start all over."),
+    "La doctora Vega reabre el portal con los restos de la Nave Nodriza. Nexus lo cruza de nuevo: esta vez no va a ganar una guerra, va a impedir que empiece otra.":
+        ("La doctora Vega reobre el portal amb les restes de la Nau Mare. Nexus el torna a creuar: aquesta vegada no va a guanyar una guerra, va a impedir que en comenci una altra.",
+         "Dr. Vega reopens the portal with the wreckage of the Mothership. Nexus crosses it once more: this time he isn't going to win a war, he's going to stop another one from starting."),
+    "La Heredera se apaga sin un grito. Por un instante, todos los huérfanos de Xylos sienten lo mismo... y después, nada. El Coro se calla.":
+        ("L'Hereva s'apaga sense un crit. Per un instant, tots els orfes de Xylos senten el mateix... i després, res. El Cor calla.",
+         "The Heiress fades without a scream. For a moment, every orphan on Xylos feels the same thing... and then, nothing. The Choir falls silent."),
+    "Un huérfano se acerca a Nexus. No ataca. Lo mira, ladea la cabeza y se marcha. Por primera vez en mil años, un Xylothian ha decidido algo él solo.":
+        ("Un orfe s'acosta a Nexus. No ataca. El mira, inclina el cap i se'n va. Per primera vegada en mil anys, un Xylothian ha decidit alguna cosa tot sol.",
+         "An orphan approaches Nexus. It doesn't attack. It looks at him, tilts its head and walks away. For the first time in a thousand years, a Xylothian has decided something on its own."),
+    "En la Tierra, la doctora Vega apaga el receptor. El eco ya no está. Xylos tiene, por fin, la oportunidad de ser algo más que una colmena.":
+        ("A la Terra, la doctora Vega apaga el receptor. L'eco ja no hi és. Xylos té, per fi, l'oportunitat de ser alguna cosa més que un rusc.",
+         "On Earth, Dr. Vega switches off the receiver. The echo is gone. Xylos finally has the chance to be something more than a hive."),
+    "Te recibo, Nexus. El eco viene de las profundidades de la colmena.":
+        ("Et rebo, Nexus. L'eco ve de les profunditats del rusc.", "I read you, Nexus. The echo is coming from deep inside the hive."),
+    "Esto está muerto, doctora. Solo hay... ojos. Mirándome desde las celdas.":
+        ("Això està mort, doctora. Només hi ha... ulls. Mirant-me des de les cel·les.",
+         "This place is dead, Doctor. There's only... eyes. Watching me from the cells."),
+    "¡Huérfanos! Ya no obedecen a nadie: corren hacia ti y saltan. ¡Rueda!":
+        ("Orfes! Ja no obeeixen ningú: corren cap a tu i salten. Rodola!",
+         "Orphans! They don't obey anyone anymore: they run at you and leap. Roll!"),
+    "¿Lo oyes? Cantan todos la misma nota. Los cristales vibran: cuidado con el techo.":
+        ("Ho sents? Canten tots la mateixa nota. Els cristalls vibren: compte amb el sostre.",
+         "Do you hear that? They're all singing the same note. The crystals are shaking: watch the ceiling."),
+    "...ma...dre...": ("...ma...re...", "...mo...ther..."),
+    "No tengáis miedo. Pronto volveremos a ser uno.": ("No tingueu por. Aviat tornarem a ser un.", "Don't be afraid. Soon we will be one again."),
+    "Esa voz... es una niña.": ("Aquesta veu... és una nena.", "That voice... it's a child."),
+    "Madre se calló. Ahora cantaré yo.": ("La mare va callar. Ara cantaré jo.", "Mother fell silent. Now I will sing."),
+    "Nexus, el capullo se está abriendo. Tiene que ser ahora.":
+        ("Nexus, el capoll s'està obrint. Ha de ser ara.", "Nexus, the cocoon is opening. It has to be now."),
+    "¿Por qué? ¡Solo quiero que no estén solos!": ("Per què? Només vull que no estiguin sols!", "Why? I just don't want them to be alone!"),
+    "Ya no lo están. Ahora se tienen a sí mismos.": ("Ja no ho estan. Ara es tenen a si mateixos.", "They aren't anymore. Now they have themselves."),
+    "Antes de morir, el Núcleo dejó una semilla de sí mismo dentro de un capullo de cristal. Sin voces, no era nada; con el canto de los huérfanos empezó a crecer. No era cruel: solo quería que la colmena volviera a sonar. Ahora los Xylothians tendrán que aprender a vivir sin una voz que los mande.":
+        ("Abans de morir, el Nucli va deixar una llavor de si mateix dins d'un capoll de cristall. Sense veus no era res; amb el cant dels orfes va començar a créixer. No era cruel: només volia que el rusc tornés a sonar. Ara els Xylothians hauran d'aprendre a viure sense una veu que els mani.",
+         "Before dying, the Core left a seed of itself inside a crystal cocoon. Without voices it was nothing; with the orphans' song it began to grow. It wasn't cruel: it only wanted the hive to sing again. Now the Xylothians will have to learn to live without a voice giving them orders."),
+    "Un soldado sin la Mente. Corre hacia ti, se agacha y salta con las garras: rueda en cuanto se agache.":
+        ("Un soldat sense la Ment. Corre cap a tu, s'ajup i salta amb les urpes: rodola tan bon punt s'ajupi.",
+         "A soldier without the Mind. It runs at you, crouches and leaps with its claws: roll as soon as it crouches."),
+    "Cuando el Núcleo se apagó, millones de Xylothians oyeron el silencio por primera vez. Algunos aún no saben qué hacer con él.":
+        ("Quan el Nucli es va apagar, milions de Xylothians van sentir el silenci per primera vegada. Alguns encara no saben què fer-ne.",
+         "When the Core went dark, millions of Xylothians heard silence for the first time. Some still don't know what to do with it."),
+    "Jefa del DLC. Protegida por su capullo y por el Coro; al nacer usa los ataques de los otros jefes.":
+        ("Cap del DLC. Protegida pel seu capoll i pel Cor; quan neix fa servir els atacs dels altres caps.",
+         "The DLC boss. Protected by her cocoon and the Choir; once born, she uses the other bosses' attacks."),
+    "Una semilla del Núcleo que solo quería volver a oír la colmena. No sabía que la colmena nunca había tenido voz propia.":
+        ("Una llavor del Nucli que només volia tornar a sentir el rusc. No sabia que el rusc mai no havia tingut veu pròpia.",
+         "A seed of the Core that only wanted to hear the hive again. She didn't know the hive had never had a voice of its own."),
+    "Eco apagado": ("Eco apagat", "Echo silenced"),
+    "Derrota a la Heredera y termina el DLC Ecos de Xylos.": ("Derrota l'Hereva i acaba el DLC Ecos de Xylos.", "Defeat the Heiress and finish the Echoes of Xylos DLC."),
+    "Consigue las 45 estrellas de la historia.": ("Aconsegueix les 45 estrelles de la història.", "Get the story's 45 stars."),
+    "El eco de las estrellas": ("L'eco de les estrelles", "Echo of the stars"),
+    "Consigue las 9 estrellas del sector 6.": ("Aconsegueix les 9 estrelles del sector 6.", "Get all 9 stars in sector 6."),
+    "Sin manada": ("Sense ramat", "No pack"),
+    "Elimina a 40 huérfanos.": ("Elimina 40 orfes.", "Eliminate 40 orphans."),
+    "Parto prematuro": ("Part prematur", "Premature birth"),
+    "Rompe el capullo de la Heredera en menos de 40 segundos.": ("Trenca el capoll de l'Hereva en menys de 40 segons.", "Break the Heiress's cocoon in under 40 seconds."),
+    "Hay cosas que es mejor no dejar madurar.": ("Hi ha coses que és millor no deixar madurar.", "Some things are better not left to ripen."),
+    "Eco de Xylos": ("Eco de Xylos", "Echo of Xylos"),
+    "El que calló al Coro": ("Qui va fer callar el Cor", "The one who silenced the Choir"),
+    "¡Nuevo sector desbloqueado: {s}!": ("Nou sector desbloquejat: {s}!", "New sector unlocked: {s}!"),
+    "¡Nuevo sector desbloqueado: Ecos de Xylos!": ("Nou sector desbloquejat: Ecos de Xylos!", "New sector unlocked: Echoes of Xylos!"),
+    "¡Ecos de Xylos completado! +{m} monedas": ("Ecos de Xylos completat! +{m} monedes", "Echoes of Xylos complete! +{m} coins"),
+    "¡Ecos de Xylos completado! +2000 monedas": ("Ecos de Xylos completat! +2000 monedes", "Echoes of Xylos complete! +2000 coins"),
+    "Historia desbloqueada: La Heredera": ("Història desbloquejada: L'Hereva", "Story unlocked: The Heiress"),
+    "Bestiario: nueva ficha · Huérfano": ("Bestiari: fitxa nova · Orfe", "Bestiary: new entry · Orphan"),
+    "Bestiario: nueva ficha · La Heredera": ("Bestiari: fitxa nova · L'Hereva", "Bestiary: new entry · The Heiress"),
+    "Bestiario: historia desbloqueada · Huérfano": ("Bestiari: història desbloquejada · Orfe", "Bestiary: story unlocked · Orphan"),
+    "Bestiario: historia desbloqueada · La Heredera": ("Bestiari: història desbloquejada · L'Hereva", "Bestiary: story unlocked · The Heiress"),
+    "Nuevo sector 6, Ecos de Xylos: se abre al terminar la historia. Seis meses después de apagar el Núcleo, un eco llega desde el otro lado del portal...":
+        ("Nou sector 6, Ecos de Xylos: s'obre en acabar la història. Sis mesos després d'apagar el Nucli, un eco arriba de l'altra banda del portal...",
+         "New sector 6, Echoes of Xylos: it unlocks when you finish the story. Six months after shutting down the Core, an echo arrives from the other side of the portal..."),
+    "Nuevo enemigo, el Huérfano: un Xylothian sin la Mente que corre hacia ti, se agacha y salta con las garras. Cuando se agache, rueda.":
+        ("Enemic nou, l'Orfe: un Xylothian sense la Ment que corre cap a tu, s'ajup i salta amb les urpes. Quan s'ajupi, rodola.",
+         "New enemy, the Orphan: a Xylothian without the Mind that runs at you, crouches and leaps with its claws. When it crouches, roll."),
+    "Nueva jefa, La Heredera: lucha dentro de su capullo de cristal y, a media vida, nace y usa los ataques de los otros jefes finales.":
+        ("Cap nova, l'Hereva: lluita dins del seu capoll de cristall i, a mitja vida, neix i fa servir els atacs dels altres caps finals.",
+         "New boss, the Heiress: she fights inside her crystal cocoon and, at half health, is born and uses the other final bosses' attacks."),
+    "Dos cinemáticas, música nueva, la arena El Coro en Supervivencia, 5 logros nuevos y un uniforme y un título de premio por terminar el DLC.":
+        ("Dues cinemàtiques, música nova, l'arena El Cor a Supervivència, 5 assoliments nous i un uniforme i un títol de premi per acabar el DLC.",
+         "Two cutscenes, new music, the Choir arena in Survival, 5 new achievements, and a uniform and title as rewards for finishing the DLC."),
+    "Uniforme Eco de Xylos": ("Uniforme Eco de Xylos", "Echo of Xylos uniform"),
+    "Título: El que calló al Coro": ("Títol: Qui va fer callar el Cor", "Title: The one who silenced the Choir"),
+}
+for _es, (_ca, _en) in _DLC_44.items():
+    CA.setdefault(_es, _ca)
+    EN.setdefault(_es, _en)

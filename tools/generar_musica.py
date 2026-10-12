@@ -7,6 +7,7 @@ Sintetiza desde cero, sólo con numpy, seis pistas y las guarda como Ogg Vorbis 
     sector1.ogg        "Ruinas urbanas"          marcha militar tensa, La menor, 120 BPM
     sector4.ogg        "Órbita"                  arpegios flotantes con eco, Re dórico, 126 BPM
     sector5.ogg        "Xylos, el mundo colmena" frigio + tonos enteros, bajo pulsante, 112 BPM
+    sector6.ogg        "Ecos de Xylos" (DLC)     lamento con eco, Si menor, 100 BPM
     jefe.ogg           combate contra jefe       rápido e intenso, Do menor, 150 BPM
     supervivencia.ogg  modo supervivencia        acción enérgica, Mi menor, 140 BPM
     final.ogg          final / créditos          esperanzador y heroico, Re mayor, 98 BPM
@@ -903,6 +904,63 @@ def sector5():
     return p
 
 
+def sector6():
+    """Ecos de Xylos (DLC): Si menor, lamento con eco. La llamada de la colmena (el semitono del sector 5)
+    vuelve lenta y sola: la mente ha callado y los huérfanos cantan. Intro(4) A(16) B(8) A'(16) = 44 compases."""
+    p = Pista("sector6", "Ecos de Xylos", 100, 44, 66, eco_tiempos=0.75, eco_fb=0.46, rev_rt60=2.2,
+              instrumentos={"lead": dict(glide=0.03, vib=(4.6, 24, 0.2), duty=0.25, eco=0.34),
+                            "campana": dict(gain=0.12)})
+    A = ["Bm", "G", "D", "A", "Bm", "G", "Em", "F#", "Bm", "G", "D", "A", "G", "Em", "F#", "Bm"]
+    p.acordes(0, ["Bm", "Bm", "Bm", "G"])
+    p.acordes(4, A)
+    p.acordes(20, ["Em", "C", "G", "D", "Em", "C", "F#sus4", "F#"])
+    p.acordes(28, A)
+
+    tema1 = ("F#5.6 E5.2 D5.4 B4.4 | D5.6 E5.2 B4.8 | A4.4 D5.4 F#5.4 A5.4 | G5.6 F#5.2 E5.8 |"
+             " F#5.6 E5.2 D5.4 B4.4 | G5.6 F#5.2 E5.4 D5.4 | E5.4 G5.4 B5.8 | A#5.6 G5.2 F#5.8")
+    tema2 = ("B5.6 C#6.2 D6.4 B5.4 | G5.6 A5.2 B5.4 D5.4 | F#5.4 A5.4 D6.8 | C#6.6 B5.2 A5.8 |"
+             " B5.6 A5.2 G5.4 D5.4 | E5.4 G5.4 B5.4 E5.4 | F#5.6 A#5.2 C#6.4 A#5.4 | B5.12 r.4")
+    LAMENTO = "R.4 5.4 8.4 5.4"
+    PAS = {"k": "X.......x.......", "s": "........X.......", "h": "..x...x...x...x."}
+    PAS2 = {"k": "X.......x..x....", "s": "........X.....o.", "h": "x.x.x.x.x.x.x.x."}
+    RELL = {"t": "........3.2.1.1.", "s": "............X..."}
+    ARP = "0 1 2 1 3 1 2 1 0 1 2 1 3 2 1 2"
+
+    # Intro: la llamada de la colmena, sola y con eco
+    p.melodia("campana", 0, "B5.6 C6.2 B5.8 | r.16 | B5.6 C6.2 B5.8 | A5.4 F#5.4 D5.8")
+    p.pad(0, 4, lo=50, hi=66, vel=0.7)
+    p.bajo(0, 4, "R.16", lo=35, vel=0.8)
+
+    # A
+    m1 = p.melodia("lead", 4, tema1 + " | " + tema2)
+    p.bajo(4, 16, LAMENTO, lo=35)
+    p.arpegio("arp", 4, 16, ARP, lo=62, vel=0.75)
+    p.contra_guia("contra", 12, 8, [(0, 8), (8, 8)], 50, 62, m1[len(m1) // 2:], vel=0.7)
+    p.bateria(4, 8, PAS, RELL, vol=0.85)
+    p.bateria(12, 8, PAS, RELL, platillo=False, vol=0.85)
+
+    # B: el Coro (colchón, campanas y la melodía a dos voces)
+    mb = p.melodia("lead2", 20, "E5.8 G5.4 B5.4 | C6.8 B5.4 G5.4 | D5.4 G5.4 B5.8 | A5.12 r.4 |"
+                                " B5.6 A5.2 G5.4 E5.4 | E5.4 G5.4 C6.8 | B5.8 C#6.4 B5.4 | A#5.12 r.4", vel=0.9)
+    p.contra_tercera("contra", mb, vel=0.6)
+    p.pad(20, 8, lo=52, hi=68)
+    p.melodia("campana", 20, "B6.6 C7.2 B6.8 | r.16 | r.16 | r.16 | B6.6 C7.2 B6.8 | r.16 | r.16 | r.16", vel=0.6)
+    p.bajo(20, 8, "R.8 5.8", lo=33)
+    p.bateria(20, 8, {"k": "X...............", "t": "......3.....2...", "h": "..x.......x....."}, RELL, vol=0.8)
+
+    # A': el tema con armonía y más pulso
+    m2 = p.melodia("lead", 28, tema1)
+    p.contra_tercera("contra", m2, vel=0.7)
+    m3 = p.melodia("lead", 36, tema2, vel=0.95)
+    p.contra_guia("contra", 36, 8, [(0, 8), (8, 8)], 54, 66, m3)
+    p.arpegio("arp", 28, 16, ARP, lo=62, vel=0.8)
+    p.pad(36, 8, lo=50, hi=66, vel=0.7)
+    p.bajo(28, 16, LAMENTO, lo=35)
+    p.bateria(28, 8, PAS2, RELL)
+    p.bateria(36, 8, PAS2, RELL, platillo=False)
+    return p
+
+
 def jefe():
     """Combate contra jefe: Do menor armónico. Intro(2) A(16) B(8) C(8) A'(16) = 50 compases."""
     p = Pista("jefe", "Jefe", 150, 50, 77, eco_tiempos=0.75, eco_fb=0.22, rev_rt60=1.0,
@@ -1113,7 +1171,7 @@ def final():
     return p
 
 
-PISTAS = {"sector1": sector1, "sector4": sector4, "sector5": sector5, "jefe": jefe,
+PISTAS = {"sector1": sector1, "sector4": sector4, "sector5": sector5, "sector6": sector6, "jefe": jefe,
           "supervivencia": supervivencia, "final": final}
 
 

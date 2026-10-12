@@ -14,6 +14,8 @@ El ejército crea su última arma, el **Proyecto NEXUS**: un soldado con implant
 
 Nexus cruza las ruinas, la selva tecnológica y la fortaleza alienígena hasta derrotar al Comandante Supremo. Pero antes de caer, el Comandante llama a la **Nave Nodriza** que orbita la Tierra, y sus restos revelan la verdad: todos los Xylothians obedecen al **Núcleo de Xylos**, en su mundo de origen. Nexus tendrá que subir a la órbita y cruzar el último portal para acabar la guerra para siempre.
 
+**DLC «Ecos de Xylos»** (sector 6, se abre al terminar la historia): seis meses después de apagar el Núcleo, la doctora Vega capta un eco que llega del otro lado del portal. En Xylos, los Xylothians que sobrevivieron vagan sin la mente que los guiaba: son **huérfanos**. Algo los está reuniendo en un coro: **la Heredera**, una semilla del Núcleo que crece dentro de un capullo de cristal y que, si nace, volverá a abrir los portales.
+
 La primera vez que se abre el juego se ve una **animación inicial** que cuenta todo esto (se puede saltar con ESC y volver a ver desde *Historia*).
 
 ## Sectores
@@ -25,8 +27,9 @@ La primera vez que se abre el juego se ve una **animación inicial** que cuenta 
 | 3. Fortaleza Xylothian | 3-1 a 3-3 | Comandante de Élite y **Comandante Supremo** (jefe final) |
 | 4. Órbita: la Nave Nodriza | 4-1 a 4-3 | **Nave Nodriza Xylothian** (jefe final) |
 | 5. Xylos, el Mundo Colmena | 5-1 a 5-3 | Guardián de la Colmena y **Núcleo de Xylos** (jefe final) |
+| 6. Ecos de Xylos (DLC) | 6-1 a 6-3 | **La Heredera** (jefa final) |
 
-Cada jefe final tiene su propio patrón: el Comandante Supremo lanza anillos que giran, la Nave Nodriza deja caer cortinas de balas y llama refuerzos, y el Núcleo de Xylos dispara espirales, anillos con un hueco para esquivar y una mirada que te apunta.
+Cada jefe final tiene su propio patrón: el Comandante Supremo lanza anillos que giran, la Nave Nodriza deja caer cortinas de balas y llama refuerzos, y el Núcleo de Xylos dispara espirales, anillos con un hueco para esquivar y una mirada que te apunta. La Heredera empieza protegida por su capullo (anillos de esquirlas, lluvia de cristales y el Coro, que llama a los huérfanos); a media vida el capullo estalla y usa los ataques de los otros jefes finales.
 
 Al completar un sector se desbloquea un expediente en **Historia**, con el trasfondo de los Xylothians. Al derrotar a cada jefe final se ve una **cinemática** (la señal del Comandante Supremo, la explosión de la Nave Nodriza y el final), que también se puede volver a ver desde Historia.
 
@@ -35,6 +38,7 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 ## Enemigos, peligros y oleadas
 
 - **Voladores**: drones, lugartenientes y cazadores que embisten.
+- **Huérfanos** (DLC): Xylothians sin la mente que corren hacia ti, se agachan y saltan con las garras. Cuando se agachen, rueda.
 - **De suelo** (nuevos): el **soldado** camina por las plataformas y dispara en línea recta; el **escudero** lleva un escudo de energía que para todo lo que le llega de frente (hay que rodearlo; el plasma lo atraviesa); el **kamikaze** corre hacia ti y explota (si lo abates, la explosión daña a los demás aliens).
 - **Peligros** de cada escenario: escombros que caen en las ruinas, morteros en las murallas (primero sale una marca en el suelo), charcos de ácido en la selva y la colmena, gas tóxico en el laboratorio, suelo electrificado en el patio y el hangar, plataformas que flotan y se mueven en órbita y plataformas que se rompen si te quedas encima.
 - Casi todos los escenarios tienen **dos oleadas**: cuando acabas con la primera llegan refuerzos.
@@ -48,7 +52,7 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 
 ## Logros
 
-28 logros de bronce, plata, oro y platino (el icono del trofeo, arriba a la izquierda del menú). Cada uno da monedas (50, 150, 400 o 1000). Además de los de la historia y los de habilidad, hay **logros secretos** que no dicen qué hay que hacer hasta conseguirlos (solo dan una pista): encontrar las placas de identificación escondidas en cada sector, reventar algo que te vigila desde el fondo del primer escenario, derribar uno de los ovnis del cielo, acabar el juego de cierta manera o introducir un código muy famoso en el menú. Al conseguir todos, el platino.
+33 logros de bronce, plata, oro y platino (el icono del trofeo, arriba a la izquierda del menú). Cada uno da monedas (50, 150, 400 o 1000). Además de los de la historia y los de habilidad, hay **logros secretos** que no dicen qué hay que hacer hasta conseguirlos (solo dan una pista): encontrar las placas de identificación escondidas en cada sector, reventar algo que te vigila desde el fondo del primer escenario, derribar uno de los ovnis del cielo, acabar el juego de cierta manera o introducir un código muy famoso en el menú. Al conseguir todos, el platino.
 
 ## Controles
 
@@ -109,6 +113,14 @@ El juego se dibuja a **960x540** (panorámico 16:9). En un monitor de **1920x108
 Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). Cada 200 XP subes un nivel del Battle Pass, hasta 20, y desbloqueas monedas y cosméticos exclusivos: uniformes Desierto, Ártico, Nocturno, Élite roja, Cibernético y Dorado; aspectos de arma Tóxico, Plasma azul, Infierno, Arcoíris y Dorado; y títulos como «Cazador de aliens» o «Leyenda de Xylos».
 
 ## Novedades
+
+**Versión 4.4: DLC «Ecos de Xylos»**
+- **Sector 6** con tres escenarios nuevos (Colmena en silencio, El Coro y La Cuna), con fondos nuevos, música nueva y estalactitas de cristal que caen del techo. Se abre al terminar la historia (las partidas que ya la habían terminado lo tienen abierto directamente).
+- **Nuevo enemigo**: el Huérfano. **Nueva jefa**: la Heredera, con dos fases (dentro del capullo y nacida).
+- Dos **cinemáticas** nuevas (el eco y el final del DLC), un expediente nuevo en Historia y dos fichas nuevas en el Bestiario.
+- **Supervivencia**: nueva arena, El Coro.
+- **5 logros** nuevos (uno secreto) y, al terminar el DLC, el uniforme Eco de Xylos, el título «El que calló al Coro» y 2000 monedas.
+- Ahora hay 54 estrellas en total; los desafíos se siguen abriendo con 15, 30 y 45.
 
 **Versión 4.3: mando y móvil**
 - **Mando**: Xbox, PlayStation y la mayoría de mandos USB o Bluetooth. Joystick izquierdo para moverte, derecho para apuntar (sin ayuda para apuntar; solo dispara el gatillo) y RT / R2 para disparar, A para saltar, B o LT para rodar y RB / LB para cambiar de arma. En los menús hay un cursor: la cruceta salta de botón en botón, A acepta y B vuelve atrás.
@@ -301,6 +313,6 @@ Cuando se sube un cambio a `main.py`, `dades.py` o `assets/`, el workflow `.gith
 - Python y Pygame (pygame-ce), con asyncio para el bucle principal.
 - pygbag para ejecutarlo en el navegador con WebAssembly.
 - Gráficos originales del soldado y los enemigos de Abel; efectos de sonido y parte de la música libres de derechos.
-- Los fondos de los cinco sectores, los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, las seis canciones nuevas con `tools/generar_musica.py` (síntesis chiptune con numpy) y los sonidos del latido, el «ting» del escudo y la marca de impacto con `tools/generar_sons.py`.
+- Los fondos de los seis sectores (`python tools/generar_assets.py dlc` regenera solo los del DLC), los jefes finales nuevos, el cazador y las armas nuevas se generan con `tools/generar_assets.py`; los enemigos de suelo y los retratos de la radio con `tools/generar_sprites.py`, las canciones con `tools/generar_musica.py` (también `sector6`, la del DLC), la Heredera con `tools/generar_hereva.py` (síntesis chiptune con numpy) y los sonidos del latido, el «ting» del escudo y la marca de impacto con `tools/generar_sons.py`.
 - Los textos están en español en el código; `idiomes.py` y `traduccions.py` tienen el catalán y el inglés.
 - Los datos del juego (armas, niveles, historia, mejoras, Battle Pass y la lista de novedades `NOVETATS`) están en `dades.py`, y el contenido desbloqueable (cosméticos, rangos, maestría, bestiario, desafíos y retos) en `contingut.py`, para equilibrarlo fácilmente. Los nombres de variables del código siguen en catalán.

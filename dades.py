@@ -9,8 +9,11 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.3"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
-NUM_SECTORS = 5
+VERSIO = "4.4"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
+SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
+SECTOR_DLC = 5            # índex del sector del DLC
+TOTAL_ESTRELLES = NUM_SECTORS * 9
 
 
 def nom_escenari(index):
@@ -59,6 +62,7 @@ POTENCIA_MAX = {
     (2, 0): 4, (2, 1): 3, (2, 2): 4,
     (3, 0): 4, (3, 1): 4, (3, 2): 5,
     (4, 0): 5, (4, 1): 3, (4, 2): 5,
+    (5, 0): 5, (5, 1): 4, (5, 2): 5,
 }
 MOTIUS_RESTRICCIO = {
     (0, 0): "Ruinas inestables: las armas pesadas derrumbarían los edificios.",
@@ -66,6 +70,7 @@ MOTIUS_RESTRICCIO = {
     (1, 1): "Gas inflamable en el laboratorio: nada más potente que la escopeta.",
     (2, 1): "Infiltración: hay que avanzar sin hacer ruido.",
     (4, 1): "Campo supresor de la colmena: las armas pesadas no funcionan.",
+    (5, 1): "El Coro: el plasma haría vibrar los cristales y se vendría abajo el techo.",
 }
 
 # ---------------------------------------------------------------------------
@@ -83,11 +88,14 @@ TIPUS_ENEMIC = {
     "final_comandant": {"cadencia": 90, "dany": 10, "dany_nivell": 0, "vel_bala": 5.5, "monedes": 500, "vel": 1.5, "xp": 150},
     "final_nau":       {"cadencia": 75, "dany": 12, "dany_nivell": 0, "vel_bala": 5.0, "monedes": 800, "vel": 1.2, "xp": 200},
     "final_nucli":     {"cadencia": 7, "dany": 14, "dany_nivell": 0, "vel_bala": 3.6, "monedes": 1200, "vel": 0, "xp": 300},
+    # DLC «Ecos de Xylos»: l'orfe (xylothian sense la Ment: corre cap a tu i salta amb les urpes) i la Hereva
+    "salvatge":        {"cadencia": 999, "dany": 10, "dany_nivell": 1, "vel_bala": 0, "monedes": 70, "vel": 2.2, "xp": 14},
+    "final_hereva":    {"cadencia": 7, "dany": 14, "dany_nivell": 0, "vel_bala": 3.5, "monedes": 1500, "vel": 0, "xp": 350},
 }
-ENEMICS_TERRA = {"soldat", "escut", "kamikaze"}
+ENEMICS_TERRA = {"soldat", "escut", "kamikaze", "salvatge"}
 
 NOMS_SECTORS = ["Ruinas Urbanas", "Selva Tecnológica", "Fortaleza Xylothian",
-                "Órbita: la Nave Nodriza", "Xylos, el Mundo Colmena"]
+                "Órbita: la Nave Nodriza", "Xylos, el Mundo Colmena", "Ecos de Xylos"]
 NOMS_CAPS = {
     (0, 2): "GENERAL XYLOTHIAN",
     (1, 2): "MAESTRO DE LA SELVA",
@@ -96,6 +104,7 @@ NOMS_CAPS = {
     (3, 2): "NAVE NODRIZA XYLOTHIAN",
     (4, 1): "GUARDIÁN DE LA COLMENA",
     (4, 2): "NÚCLEO DE XYLOS",
+    (5, 2): "LA HEREDERA",
 }
 
 # Cada escenario:
@@ -109,6 +118,7 @@ _P1 = [(120, 390, 180), (360, 290, 180), (600, 190, 180)]
 _P2 = [(180, 390, 180), (420, 290, 180), (660, 190, 180)]
 _P_ORBITA = [(84, 380, 168), (312, 300, 144), (528, 230, 168), (756, 360, 144)]
 _P_XYLOS = [(132, 400, 180), (384, 320, 180), (648, 240, 192)]
+_P_CUNA = [(120, 400, 170), (395, 330, 170), (670, 400, 170)]
 NIVELLS = {
     (0, 0): {"plataformes": _P1, "temps": 75,
              "onades": [[("dron", 30)] * 2, [("soldat", 30)] * 2]},
@@ -150,6 +160,19 @@ NIVELLS = {
              "perills": [("acid", [(200, 110), (650, 110)])]},     # lluny de l'inici (x = 60)
     (4, 2): {"plataformes": _P_XYLOS, "temps": 450, "fragils": [1],
              "onades": [[("final_nucli", 2400)]]},
+    # DLC «Ecos de Xylos»
+    (5, 0): {"plataformes": [(140, 400, 180), (400, 320, 190), (680, 250, 180)], "temps": 190, "fragils": [1],
+             "onades": [[("salvatge", 130)] * 3 + [("dron", 120)],
+                        [("soldat", 120), ("salvatge", 130), ("salvatge", 130), ("cacador", 90), ("cacador", 90)]],
+             "perills": [("acid", [(300, 80), (820, 90)])]},
+    (5, 1): {"plataformes": [(110, 390, 170), (340, 300, 170), (590, 380, 170), (770, 270, 150)], "temps": 240,
+             "mobils": {1: (60, 0, 280)},
+             "onades": [[("salvatge", 140)] * 4 + [("escut", 180)],
+                        [("lloctinent", 200), ("salvatge", 140), ("salvatge", 140), ("salvatge", 140), ("kamikaze", 55),
+                         ("kamikaze", 55)]],
+             "perills": [("cristall", 200)]},
+    (5, 2): {"plataformes": _P_CUNA, "temps": 480,
+             "onades": [[("final_hereva", 2600)]], "perills": [("cristall", 330)]},
 }
 TEMPS_ESTRELLA = {k: v["temps"] for k, v in NIVELLS.items()}
 XP_ESTRELLA = 30
@@ -157,7 +180,7 @@ XP_ESTRELLA = 30
 # Vida dels enemics sobre la que posa cada escenari (v4.1: el joc era massa fàcil amb les millores al màxim)
 VIDA_ENEMICS = 1.25         # enemics normals (i els que invoquen els caps)
 VIDA_CAPS = 1.5             # caps de sector
-VIDA_FINALS = 2.0           # Comandant Suprem, Nau Mare i Nucli de Xylos (v4.2)
+VIDA_FINALS = 2.0           # Comandant Suprem, Nau Mare, Nucli de Xylos i la Hereva (v4.2)
 DANY_ENEMICS = 1.3          # dany dels trets i cops dels enemics (v4.2; la cadència i la velocitat de bala no canvien)
 CURA_ITEM = 15              # vida que dona l'ítem de vida
 SPAWN_ITEMS = 480           # fotogrames entre ítem i ítem (vida o munició)
@@ -170,8 +193,8 @@ DIFICULTATS = {
 }
 
 # Música: una pista por sector, otra para los jefes normales, otra para los jefes finales
-MUSICA_SECTOR = ["sector1", "sector2", "sector3", "sector4", "sector5"]
-CAPS_FINALS = {(2, 2), (3, 2), (4, 2)}
+MUSICA_SECTOR = ["sector1", "sector2", "sector3", "sector4", "sector5", "sector6"]
+CAPS_FINALS = {(2, 2), (3, 2), (4, 2), (5, 2)}
 CAPS_NORMALS = {(0, 2), (1, 2), (2, 1), (4, 1)}
 
 # Presentación de los jefes al aparecer: (nombre, subtítulo)
@@ -183,11 +206,12 @@ PRESENTACIO_CAPS = {
     (3, 2): ("NAVE NODRIZA XYLOTHIAN", "Una mente fundida con el metal"),
     (4, 1): ("GUARDIÁN DE LA COLMENA", "Nadie pasa a la cámara del Núcleo"),
     (4, 2): ("NÚCLEO DE XYLOS", "La mente de un millón de mundos"),
+    (5, 2): ("LA HEREDERA", "La voz que quiere volver a unirlos"),
 }
 
 # Supervivencia: escenarios que se pueden usar como arena (uno por sector)
-ARENES = [(0, 1), (1, 0), (2, 1), (3, 0), (4, 0)]
-NOMS_ARENES = ["Ruinas", "Selva", "Fortaleza", "Órbita", "Xylos"]
+ARENES = [(0, 1), (1, 0), (2, 1), (3, 0), (4, 0), (5, 1)]
+NOMS_ARENES = ["Ruinas", "Selva", "Fortaleza", "Órbita", "Xylos", "El Coro"]
 
 # ---------------------------------------------------------------------------
 # Historia
@@ -237,6 +261,12 @@ TEXTOS_NARRATIVA = {
             "Colmena vigila la entrada a la cámara del Núcleo. Solo tus reflejos te llevarán más allá.",
     (4, 2): "El Núcleo de Xylos abre su ojo inmenso. Miles de años de conquistas, cientos de mundos "
             "absorbidos. Hoy, por primera vez, alguien ha llegado hasta aquí. Acaba con esto, Nexus.",
+    (5, 0): "Xylos ya no es violeta. Sin el Núcleo, la colmena se ha quedado gris y callada. Los Xylothians que "
+            "sobrevivieron vagan sin rumbo: huérfanos que atacan a todo lo que se mueve. Busca el origen del eco.",
+    (5, 1): "El eco sale de una caverna de cristal. Allí los huérfanos se reúnen y cantan, todos a la vez, la "
+            "misma nota. Es el Coro: alguien les está enseñando a pensar como uno solo otra vez.",
+    (5, 2): "En el fondo de la caverna late un capullo de cristal y oro. Dentro crece una semilla del Núcleo: la "
+            "Heredera. Se alimenta del Coro y, si nace, volverá a abrir los portales. No dejes que despierte del todo.",
 }
 
 # Cinemáticas al derrotar a cada jefe final: (escena, texto). Las escenas se dibujan en main.py.
@@ -259,12 +289,32 @@ CINEMATIQUES = {
         ("retorn", "Nexus vuelve a casa. Los supervivientes salen de los búnkeres para ver el amanecer."),
         ("fi", "La humanidad puede reconstruirse... y, esta vez, mirar las estrellas sin miedo."),
     ],
+    # DLC: «eco» abans de jugar el 6-1 per primer cop; «hereva» en derrotar-la
+    "eco": [
+        ("eco_senyal", "Seis meses después. La Tierra se reconstruye. Una noche, en el búnker, el receptor de la "
+                       "doctora Vega capta un eco: una señal débil que llega del otro lado del portal cerrado."),
+        ("eco_orfes", "En Xylos, los Xylothians que sobrevivieron al silencio vagan sin rumbo. Sin la mente que los "
+                      "guiaba están perdidos, asustados... y son peligrosos."),
+        ("eco_capoll", "Pero algo los está llamando. En lo más hondo de la colmena late una semilla del Núcleo: la "
+                       "Heredera. Si nace, los unirá otra vez y la invasión volverá a empezar."),
+        ("portal", "La doctora Vega reabre el portal con los restos de la Nave Nodriza. Nexus lo cruza de nuevo: esta "
+                   "vez no va a ganar una guerra, va a impedir que empiece otra."),
+    ],
+    "hereva": [
+        ("hereva_mort", "La Heredera se apaga sin un grito. Por un instante, todos los huérfanos de Xylos sienten lo "
+                        "mismo... y después, nada. El Coro se calla."),
+        ("eco_lliures", "Un huérfano se acerca a Nexus. No ataca. Lo mira, ladea la cabeza y se marcha. Por primera "
+                        "vez en mil años, un Xylothian ha decidido algo él solo."),
+        ("eco_fi", "En la Tierra, la doctora Vega apaga el receptor. El eco ya no está. Xylos tiene, por fin, la "
+                   "oportunidad de ser algo más que una colmena."),
+    ],
 }
-CINEMATICA_CAP = {(2, 2): "comandant", (3, 2): "nau", (4, 2): "final"}
+CINEMATICA_CAP = {(2, 2): "comandant", (3, 2): "nau", (4, 2): "final", (5, 2): "hereva"}
 
 # Radio durante los escenarios: quién habla (comandant, doctora, nexus, ment) y qué dice.
 # "inici" al empezar, "onada" cuando llegan los refuerzos, "cap" cuando el jefe está a media vida.
-NOMS_RADIO = {"comandant": "Cmdte. Reyes", "doctora": "Dra. Vega", "nexus": "Nexus", "ment": "???"}
+NOMS_RADIO = {"comandant": "Cmdte. Reyes", "doctora": "Dra. Vega", "nexus": "Nexus", "ment": "???",
+              "hereva": "La Heredera"}
 RADIO = {
     (0, 0): {"inici": [("comandant", "Nexus, aquí el comandante Reyes, desde el búnker. Si me oyes, estás vivo."),
                        ("doctora", "Implantes estables. Recuerda: MAYÚS o clic derecho para esquivar rodando.")],
@@ -304,6 +354,18 @@ RADIO = {
     (4, 2): {"inici": [("ment", "Mil años. Un millón de voces. Y tú quieres callarlas todas."),
                        ("doctora", "¡Nexus! Te oigo... la señal vuelve. ¡Acaba con él!")],
              "cap": [("comandant", "¡Toda la Tierra está contigo, soldado!")]},
+    # DLC «Ecos de Xylos»
+    (5, 0): {"inici": [("doctora", "Te recibo, Nexus. El eco viene de las profundidades de la colmena."),
+                       ("nexus", "Esto está muerto, doctora. Solo hay... ojos. Mirándome desde las celdas.")],
+             "onada": [("doctora", "¡Huérfanos! Ya no obedecen a nadie: corren hacia ti y saltan. ¡Rueda!")]},
+    (5, 1): {"inici": [("doctora", "¿Lo oyes? Cantan todos la misma nota. Los cristales vibran: cuidado con el techo."),
+                       ("hereva", "...ma...dre...")],
+             "onada": [("hereva", "No tengáis miedo. Pronto volveremos a ser uno."),
+                       ("nexus", "Esa voz... es una niña.")]},
+    (5, 2): {"inici": [("hereva", "Madre se calló. Ahora cantaré yo."),
+                       ("doctora", "Nexus, el capullo se está abriendo. Tiene que ser ahora.")],
+             "cap": [("hereva", "¿Por qué? ¡Solo quiero que no estén solos!"),
+                     ("nexus", "Ya no lo están. Ahora se tienen a sí mismos.")]},
 }
 TEXT_DERROTA = "Has caído en combate. Los Xylothians avanzan. ¿Qué harás, Nexus?"
 
@@ -328,6 +390,10 @@ ARXIU = [
     ("El Núcleo de Xylos",
      "Una conciencia nacida hace miles de años que ha absorbido cientos de civilizaciones. Cada mundo "
      "conquistado le añadía millones de voces. La Tierra iba a ser la siguiente. Ahora solo queda el silencio."),
+    ("La Heredera",
+     "Antes de morir, el Núcleo dejó una semilla de sí mismo dentro de un capullo de cristal. Sin voces, no era "
+     "nada; con el canto de los huérfanos empezó a crecer. No era cruel: solo quería que la colmena volviera "
+     "a sonar. Ahora los Xylothians tendrán que aprender a vivir sin una voz que los mande."),
 ]
 
 # ---------------------------------------------------------------------------
@@ -436,10 +502,12 @@ LOGROS = [
     {"id": "nau", "nom": "Fuera de órbita", "desc": "Destruye la Nave Nodriza.", "cat": "plata"},
     {"id": "final", "nom": "Silencio", "desc": "Apaga el Núcleo de Xylos y termina la historia.", "cat": "or"},
     {"id": "fins_final", "nom": "Hasta el final", "desc": "Mira la cinemática final entera sin saltarla.", "cat": "bronze"},
+    {"id": "eco", "nom": "Eco apagado", "desc": "Derrota a la Heredera y termina el DLC Ecos de Xylos.", "cat": "or"},
     # habilidad
     {"id": "intocable", "nom": "Intocable", "desc": "Derrota a un jefe sin recibir ni un golpe.", "cat": "or"},
     {"id": "rellotge", "nom": "Contrarreloj", "desc": "Consigue la estrella de rapidez en 5 escenarios.", "cat": "plata"},
-    {"id": "estrelles", "nom": "Constelación", "desc": "Consigue las 45 estrellas.", "cat": "or"},
+    {"id": "estrelles", "nom": "Constelación", "desc": "Consigue las 45 estrellas de la historia.", "cat": "or"},
+    {"id": "estrelles_dlc", "nom": "El eco de las estrellas", "desc": "Consigue las 9 estrellas del sector 6.", "cat": "plata"},
     {"id": "dificil", "nom": "Veterano de verdad", "desc": "Derrota al Núcleo de Xylos en Difícil.", "cat": "or"},
     {"id": "onada10", "nom": "Superviviente", "desc": "Llega a la oleada 10 en Supervivencia.", "cat": "plata"},
     {"id": "onada20", "nom": "Leyenda de la arena", "desc": "Llega a la oleada 20 en Supervivencia.", "cat": "or"},
@@ -447,6 +515,7 @@ LOGROS = [
     {"id": "voltes", "nom": "Acróbata", "desc": "Haz 100 volteretas.", "cat": "bronze"},
     {"id": "esquena", "nom": "Por la espalda", "desc": "Elimina a un escudero disparándole por detrás.", "cat": "bronze"},
     {"id": "carambola", "nom": "Carambola", "desc": "Haz que la explosión de un kamikaze elimine a otro alienígena.", "cat": "bronze"},
+    {"id": "orfes", "nom": "Sin manada", "desc": "Elimina a 40 huérfanos.", "cat": "bronze"},
     # tienda y aspecto
     {"id": "arsenal", "nom": "Arsenal completo", "desc": "Consigue las cinco armas.", "cat": "plata"},
     {"id": "millores", "nom": "Al máximo", "desc": "Sube todas las mejoras al máximo.", "cat": "or"},
@@ -466,6 +535,8 @@ LOGROS = [
      "cat": "plata", "secret": True, "pista": "Arriba, arriba..."},
     {"id": "suicida", "nom": "Mal cálculo", "desc": "Muere por la explosión de un kamikaze.", "cat": "bronze",
      "secret": True, "pista": "No los abraces."},
+    {"id": "capoll", "nom": "Parto prematuro", "desc": "Rompe el capullo de la Heredera en menos de 40 segundos.",
+     "cat": "plata", "secret": True, "pista": "Hay cosas que es mejor no dejar madurar."},
     # platino
     {"id": "plati", "nom": "Héroe de la galaxia", "desc": "Consigue todos los demás logros.", "cat": "plati"},
 ]
@@ -543,6 +614,16 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.4", "titol": "DLC: Ecos de Xylos", "punts": [
+        ("estrella", "Nuevo sector 6, Ecos de Xylos: se abre al terminar la historia. Seis meses después de apagar el "
+                    "Núcleo, un eco llega desde el otro lado del portal..."),
+        ("enemic", "Nuevo enemigo, el Huérfano: un Xylothian sin la Mente que corre hacia ti, se agacha y salta con las "
+                   "garras. Cuando se agache, rueda."),
+        ("hereva", "Nueva jefa, La Heredera: lucha dentro de su capullo de cristal y, a media vida, nace y usa los "
+                   "ataques de los otros jefes finales."),
+        ("cine", "Dos cinemáticas, música nueva, la arena El Coro en Supervivencia, 5 logros nuevos y un uniforme y un "
+                 "título de premio por terminar el DLC."),
+    ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "
                  "izquierdo para moverte, derecho para apuntar y RT / R2 para disparar. En los menús, A acepta y B vuelve."),
