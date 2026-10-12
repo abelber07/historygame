@@ -7953,6 +7953,9 @@ class Game:
         b.append(Boto((40, 92 + len(ARXIU) * 52, 250, 44), "Ver introducción",
                       lambda: self.entrar_intro(self.entrar_arxiu), VERD, font=F_MINI))
         escena = {2: "comandant", 3: "nau", 4: "final", SECTOR_DLC: "hereva"}.get(self.entrada_arxiu)
+        if self.entrada_arxiu == SECTOR_DLC and self.nivells_desbloquejats[SECTOR_DLC][0]:
+            b.append(Boto((540, 390, 176, 40), "Ver el eco", lambda: self.veure_cinematica("eco", self.entrar_arxiu),
+                          (40, 120, 120), font=F_HUD))
         if escena and self.completats[self.entrada_arxiu][2]:
             b.append(Boto((730, 390, 176, 40), "Ver escena", lambda: self.veure_cinematica(escena, self.entrar_arxiu),
                           TARONJA, font=F_HUD))
@@ -7999,11 +8002,11 @@ class Game:
         self.botons = [self.boto_tornar()]
         self.canviar_estat("credits")
 
-    def mostrar_narrativa(self, nivell, escenari):
-        if (nivell, escenari) == (SECTOR_DLC, 0) and not getattr(self, "eco_vist", False):
-            self.eco_vist = True                     # el DLC comença amb la seva cinemàtica (només el primer cop)
+    def mostrar_narrativa(self, nivell, escenari, cinematica=True):
+        if (nivell, escenari) == (SECTOR_DLC, 0) and cinematica:
+            self.eco_vist = True                     # el DLC sempre comença amb la seva cinemàtica (es pot saltar)
             self.desar_progres()
-            self.veure_cinematica("eco", lambda: self.mostrar_narrativa(nivell, escenari))
+            self.veure_cinematica("eco", lambda: self.mostrar_narrativa(nivell, escenari, cinematica=False))
             return
         self.mode = "historia"
         self.nivell_actual = nivell

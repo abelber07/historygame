@@ -117,7 +117,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 **Versión 4.4: DLC «Ecos de Xylos»**
 - **Sector 6** con tres escenarios nuevos (Colmena en silencio, El Coro y La Cuna), con fondos nuevos, música nueva y estalactitas de cristal que caen del techo. Se abre al terminar la historia (las partidas que ya la habían terminado lo tienen abierto directamente).
 - **Nuevo enemigo**: el Huérfano. **Nueva jefa**: la Heredera, con dos fases (dentro del capullo y nacida).
-- Dos **cinemáticas** nuevas (el eco y el final del DLC), un expediente nuevo en Historia y dos fichas nuevas en el Bestiario.
+- Dos **cinemáticas** nuevas (el eco, que sale siempre al empezar el 6-1 y se puede saltar, y el final del DLC; las dos se pueden volver a ver desde Historia), un expediente nuevo en Historia y dos fichas nuevas en el Bestiario.
 - **Supervivencia**: nueva arena, El Coro.
 - **5 logros** nuevos (uno secreto) y, al terminar el DLC, el uniforme Eco de Xylos, el título «El que calló al Coro» y 2000 monedas.
 - La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.

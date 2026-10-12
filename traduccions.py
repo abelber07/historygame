@@ -2158,6 +2158,7 @@ _DLC_44 = {
          "Two cutscenes, new music, the Choir arena in Survival, 5 new achievements, and a uniform and title as rewards for finishing the DLC."),
     "Uniforme Eco de Xylos": ("Uniforme Eco de Xylos", "Echo of Xylos uniform"),
     "Con media vida o más": ("Amb mitja vida o més", "Half health or more"),
+    "Ver el eco": ("Veure l'eco", "Watch the echo"),
     "Verde = completado · Cuadros = potencia · Estrellas: completar, rápido, con media vida":
         ("Verd = completat · Quadres = potència · Estrelles: completar, ràpid, amb mitja vida",
          "Green = completed · Squares = power · Stars: complete, fast, with half health"),
