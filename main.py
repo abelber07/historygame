@@ -22,7 +22,7 @@ from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
 from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, PASSOS_TUTORIAL_MANDO, PASSOS_TUTORIAL_TACTIL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
                    REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
-                   CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR,
+                   CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR, MUSICA_ESCENARIS,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, SECTORS_HISTORIA, SECTOR_DLC, TOTAL_ESTRELLES,
                    PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
                    RADIO, TEMPS_ESTRELLA, TEXT_DERROTA, TEXTOS_NARRATIVA, TIPUS_ENEMIC, TITOLS, UNIFORMES,
@@ -1103,7 +1103,11 @@ class DescarregaMusica:
     """Al navegador el paquet inicial només porta la música del menú (càrrega molt més ràpida).
     Les altres pistes es descarreguen d'una en una en segon pla, en l'ordre en què es necessiten."""
 
-    ORDRE = ["sector1", "derrota", "jefe", "sector2", "sector3", "boss_final", "sector4", "sector5", "final", "supervivencia",
+    ORDRE = ["sector1", "derrota", "ruines_pluja", "jefe_general", "jefe_general_furia", "selva", "laboratori",
+             "jefe_selva", "jefe_selva_furia", "muralles", "jefe_elit", "jefe_elit_furia", "final_comandant",
+             "final_comandant_furia", "sector4", "hangar", "final_nau", "final_nau_furia", "sector5", "jefe_guardia",
+             "jefe_guardia_furia", "boss_final", "boss_final_furia", "final", "supervivencia", "jefe", "coro",
+             "final_hereva", "final_hereva_furia",
              "sector6"]
 
     def __init__(self):
@@ -1145,6 +1149,9 @@ DESCARREGUES = DescarregaMusica()
 
 
 def musica_escenari(nivell, escenari):
+    nom = MUSICA_ESCENARIS.get((nivell, escenari))
+    if nom:
+        return nom
     if (nivell, escenari) in CAPS_FINALS:
         return "boss_final"
     if (nivell, escenari) in CAPS_NORMALS:
@@ -8169,7 +8176,10 @@ class Game:
         if self.mode == "supervivencia":
             AUDIO.musica("supervivencia")
         else:
-            AUDIO.musica(musica_escenari(self.nivell_actual, self.escenari_actual))
+            nom = musica_escenari(self.nivell_actual, self.escenari_actual)
+            AUDIO.musica(nom)
+            DESCARREGUES.prioritzar(nom + "_furia")          # al navegador: la segona fase del cap, just després
+            DESCARREGUES.prioritzar(nom)
         self.preparar_nivell()
         self.botons = [self.boto_saltar_tutorial()] if self.mode == "tutorial" else []
         self.canviar_estat("joc")
@@ -8663,6 +8673,7 @@ class Game:
                         self.flaix = max(self.flaix, 12)
                         e.tremolor_nou = 0
                     if e.eclosio_nova is not None:
+                        self.musica_furia()                    # neix: canvia la música
                         if e.eclosio_nova < 40 * FPS and self.mode == "historia":
                             self.desbloquejar("capoll")
                         e.eclosio_nova = None
@@ -8674,6 +8685,7 @@ class Game:
             if (self.cap and self.cap in self.enemics and not self.radio_cap
                     and self.cap.vida < self.cap.vida_max / 2):
                 self.radio_cap = True                     # el cap s'enfurisma
+                self.musica_furia()
                 self.radio.afegir(RADIO.get(clau, {}).get("cap", []))
                 self.flaix = max(self.flaix, 8)                    # fúria: flaix i sacseig, sense congelar
                 self.tremolor = max(self.tremolor, 10)
@@ -8866,6 +8878,14 @@ class Game:
                 self.veure_cinematica(CINEMATICA_CAP[clau], seguent)
             else:
                 seguent()
+
+    def musica_furia(self):
+        """Segona fase del cap: la seva música passa a la versió de fúria (només a la història)."""
+        if self.mode != "historia":
+            return
+        nom = musica_escenari(self.nivell_actual, self.escenari_actual) + "_furia"
+        if nom in DescarregaMusica.ORDRE or os.path.exists(ruta("musica", nom + ".ogg")):
+            AUDIO.musica(nom)
 
     def completar_escenari(self):
         n, e = self.nivell_actual, self.escenari_actual

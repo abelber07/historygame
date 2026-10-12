@@ -323,6 +323,7 @@ class Pista:
             self.mezcla_bat[k] = v
         self.notas = {}
         self.golpes = []
+        self.transp = 0            # transposició de tota la pista (variants de fúria dels caps)
         self._ac_beats, self._ac = [], []
 
     # --- armonía -----------------------------------------------------------
@@ -345,7 +346,7 @@ class Pista:
 
     # --- notas -------------------------------------------------------------
     def add(self, voz, b, dur, midi, vel=1.0):
-        self.notas.setdefault(voz, []).append((b, dur, midi, vel))
+        self.notas.setdefault(voz, []).append((b, dur, midi + self.transp, vel))
 
     def melodia(self, voz, c0, texto, transp=0, vel=1.0):
         evs, tot = fichas(texto)
@@ -1039,19 +1040,23 @@ def jefe():
     return p
 
 
-def boss_final():
+def boss_final(furia=False):
     """Jefes finales: Re menor armónico, 147 BPM. Latido, el tema heroico en Re menor, un puente coral
     y un riff con el semitono de la colmena (Re-Mib). Intro(4) A(16) B(8) C(8) A'(16) = 52 compases."""
-    p = Pista("boss_final", "Duelo final", 147, 52, 147, eco_tiempos=0.75, eco_fb=0.24, rev_rt60=1.4,
+    o = 0 if furia else 4                      # la fúria comença directament pel tema
+    p = Pista("boss_final_furia" if furia else "boss_final", "Duelo final", 150 if furia else 147, o + 48,
+              147 + (1000 if furia else 0), eco_tiempos=0.75, eco_fb=0.24, rev_rt60=1.4,
               instrumentos={"lead": dict(eco=0.14, vib=(6.0, 16, 0.18)), "arp": dict(eco=0.18),
                             "campana": dict(gain=0.11)},
               bateria={"k": (0.28, 0.0, 0.0, 0.02)})
+    p.transp = 1 if furia else 0
     A = ["Dm", "Bb", "C", "A", "Dm", "Bb", "Gm", "A", "Dm", "F", "C", "Bb", "Gm", "Bb", "A", "A"]
-    p.acordes(0, ["Dm", "Dm", "Bb", "A"])
-    p.acordes(4, A)
-    p.acordes(20, ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "A", "A"])
-    p.acordes(28, ["Dm", "Dm", "Eb", "Eb", "Dm", "Dm", "Bb", "A"])
-    p.acordes(36, A)
+    if not furia:
+        p.acordes(0, ["Dm", "Dm", "Bb", "A"])
+    p.acordes(o, A)
+    p.acordes(o + 16, ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "A", "A"])
+    p.acordes(o + 24, ["Dm", "Dm", "Eb", "Eb", "Dm", "Dm", "Bb", "A"])
+    p.acordes(o + 32, A)
 
     tema = ("D5.2 F5.2 A5.4 D6.4 A5.4 | Bb5.6 A5.2 F5.4 D5.4 | C5.2 E5.2 G5.4 C6.4 G5.4 | C#6.6 D6.2 E6.4 A5.4 |"
             " D6.2 C6.2 A5.4 F5.4 A5.4 | Bb5.6 C6.2 D6.4 F6.4 | G5.2 Bb5.2 D6.4 G6.4 F6.2 D6.2 | E6.8 C#6.4 A5.4 |"
@@ -1059,55 +1064,58 @@ def boss_final():
             " G5.4 Bb5.4 D6.4 G6.4 | F6.6 D6.2 Bb5.8 | A5.2 C#6.2 E6.4 G6.4 E6.4 | A6.12 r.4")
     GALOP = "R.1 R.1 R.2 R.1 R.1 R.2 R.1 R.1 R.2 8.2 b.2"
     FINAL = {"k": "X.x.X.x.X.x.X.x.", "s": "....X.......X...", "h": "x.x.x.x.x.x.x.x."}
+    if furia:
+        FINAL = {"k": "X.x.X.x.X.x.X.x.", "s": "....X.......X...", "h": "xxxxxxxxxxxxxxxx"}
     FINAL_B = {"k": "X.......X.......", "s": "....X.......X...", "o": "..x...x...x...x."}
     FINAL_C = {"k": "XXx.XXx.XXx.X.x.", "s": "....X.......X..o", "h": "x.x.x.x.x.x.x.x."}
     RELL = {"s": "....X...XoXoXXXX"}
     RELL_TOM = {"s": "....X...........", "t": "........11223333"}
     ARP = "0 1 2 1 3 1 2 1 0 1 2 1 4 3 2 1"
 
-    # Intro: un latido, la llamada en campana y un redoble que crece
-    p.melodia("campana", 0, "D6.4 r.4 A5.4 r.4 | D6.4 r.4 F6.4 E6.4 | D6.6 C6.2 Bb5.8 | A5.4 C#6.4 E6.4 A6.4")
-    p.pad(0, 4, lo=50, hi=66, vel=0.9)
-    p.bajo(0, 4, "R.4 r.4 R.4 r.4", lo=38)
-    p.bateria(0, 2, {"k": "X..x........X..x"}, platillo=False, vol=0.9)
-    p.bateria(2, 2, {"k": "X..x....X..x....", "t": "........1.2.3.33"}, platillo=False)
-    p.redoble(3 * 4, 4, 0.15, 1.0)
+    if not furia:
+        # Intro: un latido, la llamada en campana y un redoble que crece
+        p.melodia("campana", 0, "D6.4 r.4 A5.4 r.4 | D6.4 r.4 F6.4 E6.4 | D6.6 C6.2 Bb5.8 | A5.4 C#6.4 E6.4 A6.4")
+        p.pad(0, 4, lo=50, hi=66, vel=0.9)
+        p.bajo(0, 4, "R.4 r.4 R.4 r.4", lo=38)
+        p.bateria(0, 2, {"k": "X..x........X..x"}, platillo=False, vol=0.9)
+        p.bateria(2, 2, {"k": "X..x....X..x....", "t": "........1.2.3.33"}, platillo=False)
+        p.redoble(3 * 4, 4, 0.15, 1.0)
 
     # A
-    m1 = p.melodia("lead", 4, tema)
-    p.bajo(4, 16, GALOP, lo=38)
-    p.arpegio("arp", 12, 8, ARP, lo=62, vel=0.85)
-    p.contra_guia("contra", 12, 8, [(0, 4), (4, 4), (8, 4), (12, 4)], 55, 67, m1[len(m1) // 2:], vel=0.7)
-    p.bateria(4, 8, FINAL, RELL)
-    p.bateria(12, 8, FINAL, RELL_TOM, platillo=False)
+    m1 = p.melodia("lead", o, tema)
+    p.bajo(o, 16, GALOP, lo=38)
+    p.arpegio("arp", o + 8, 8, ARP, lo=62, vel=0.85)
+    p.contra_guia("contra", o + 8, 8, [(0, 4), (4, 4), (8, 4), (12, 4)], 55, 67, m1[len(m1) // 2:], vel=0.7)
+    p.bateria(o, 8, FINAL, RELL)
+    p.bateria(o + 8, 8, FINAL, RELL_TOM, platillo=False)
 
     # B: puente coral, notas largas y bombo a blancas
-    mb = p.melodia("lead2", 20, "G5.8 D6.8 | Eb6.8 G5.8 | F5.8 D6.8 | C6.12 A5.4 | Bb5.8 G5.8 | G5.4 Bb5.4 Eb6.8 |"
+    mb = p.melodia("lead2", o + 16, "G5.8 D6.8 | Eb6.8 G5.8 | F5.8 D6.8 | C6.12 A5.4 | Bb5.8 G5.8 | G5.4 Bb5.4 Eb6.8 |"
                                 " E5.4 G5.4 A5.4 C#6.4 | E6.12 r.4")
     p.contra_tercera("contra", mb, vel=0.75)
-    p.pad(20, 8, lo=53, hi=69)
-    p.arpegio("arp", 20, 8, ARP, lo=62, vel=0.8)
-    p.bajo(20, 8, "R.4 8.4 R.4 8.4", lo=36)
-    p.bateria(20, 8, FINAL_B, RELL)
+    p.pad(o + 16, 8, lo=53, hi=69)
+    p.arpegio("arp", o + 16, 8, ARP, lo=62, vel=0.8)
+    p.bajo(o + 16, 8, "R.4 8.4 R.4 8.4", lo=36)
+    p.bateria(o + 16, 8, FINAL_B, RELL)
 
     # C: riff con el semitono de la colmena y doble bombo
     r1 = "D5.1 r.1 D5.1 r.1 F5.2 D5.1 r.1 A5.2 G#5.2 G5.2 F5.2 | D5.1 r.1 D5.1 r.1 F5.2 D5.1 r.1 C5.2 C#5.2 D5.4"
     r2 = "Eb5.1 r.1 Eb5.1 r.1 G5.2 Eb5.1 r.1 Bb5.2 A5.2 G5.2 F5.2 | Eb5.1 r.1 Eb5.1 r.1 G5.2 Eb5.1 r.1 D5.2 Eb5.2 F5.4"
-    mc = p.melodia("lead", 28, r1 + " | " + r2 + " | " + r1 + " | Bb4.2 D5.2 F5.2 Bb5.2 D6.2 F6.2 D6.2 Bb5.2 |"
+    mc = p.melodia("lead", o + 24, r1 + " | " + r2 + " | " + r1 + " | Bb4.2 D5.2 F5.2 Bb5.2 D6.2 F6.2 D6.2 Bb5.2 |"
                                                          " A4.2 C#5.2 E5.2 A5.2 G6.2 E6.2 C#6.2 A5.2")
-    p.contra_tercera("contra", [n for n in mc if n[0] >= 32 * 4], vel=0.7)
-    p.bajo(28, 6, "R.1 r.1 R.1 r.1 R.2 R.1 r.1 R.2 R.2 R.2 R.2", lo=38, vel=1.05)
-    p.bajo(34, 2, "R.2 R.2 R.2 R.2 R.2 R.2 R.2 R.2", lo=38)
-    p.bateria(28, 8, FINAL_C, RELL_TOM)
+    p.contra_tercera("contra", [n for n in mc if n[0] >= (o + 28) * 4], vel=0.7)
+    p.bajo(o + 24, 6, "R.1 r.1 R.1 r.1 R.2 R.1 r.1 R.2 R.2 R.2 R.2", lo=38, vel=1.05)
+    p.bajo(o + 30, 2, "R.2 R.2 R.2 R.2 R.2 R.2 R.2 R.2", lo=38)
+    p.bateria(o + 24, 8, FINAL_C, RELL_TOM)
 
     # A': el tema con armonía y colchón
-    m2 = p.melodia("lead", 36, tema)
+    m2 = p.melodia("lead", o + 32, tema)
     p.contra_tercera("contra", m2)
-    p.bajo(36, 16, GALOP, lo=38)
-    p.arpegio("arp", 36, 16, ARP, lo=62)
-    p.pad(44, 8, lo=53, hi=69, vel=0.7)
-    p.bateria(36, 8, FINAL, RELL_TOM)
-    p.bateria(44, 8, FINAL, {"s": "....X...rrrrXXXX", "t": "........1.2.3..."}, platillo=False)
+    p.bajo(o + 32, 16, GALOP, lo=38)
+    p.arpegio("arp", o + 32, 16, ARP, lo=62)
+    p.pad(o + 40, 8, lo=53, hi=69, vel=0.7)
+    p.bateria(o + 32, 8, FINAL, RELL_TOM)
+    p.bateria(o + 40, 8, FINAL, {"s": "....X...rrrrXXXX", "t": "........1.2.3..."}, platillo=False)
     return p
 
 
@@ -1259,8 +1267,309 @@ def final():
     return p
 
 
+# ---------------------------------------------------------------------------
+# Banda sonora per escenari (v4.4): una pista per escenari normal i, per a cada cap, dues fases
+# (la segona, «_furia», sona quan el cap s'enfada: més ràpida, un semitò més amunt i amb el riff).
+# Totes segueixen la mateixa forma: Intro(2) A(8) A'(8, amb segona veu) B(8) [Riff(8)] A''(8).
+# ---------------------------------------------------------------------------
+_NOTES_SOST = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
+
+
+def transposar_acord(nom, k):
+    m = re.match(r"^([A-G][#b]?)(.*)$", nom)
+    pc = (nota(m.group(1) + "4") + k) % 12
+    return _NOTES_SOST[pc] + m.group(2)
+
+
+BAT = {
+    "marxa": {"k": "X.......X.......", "s": "....X..x....X.xx", "h": "x.x.x.x.x.x.x.x."},
+    "suau": {"k": "X.......X.......", "s": "....X.......X...", "h": "x.x.x.x.x.x.x.x."},
+    "pluja": {"k": "X.....x...X.....", "s": "....X.......X...", "h": "xxxxxxxxxxxxxxxx"},
+    "tribal": {"k": "X..x..x...X..x..", "t": "..1...2...3...2.", "h": "x.x.x.x.x.x.x.x."},
+    "tribal_fort": {"k": "X..X..X.X..X..X.", "s": "....X.......X...", "t": "..1...2...3...33"},
+    "lab": {"k": "X.......X.......", "s": "........X.......", "h": "..x...x...x...x."},
+    "electro": {"k": "X...X...X...X...", "s": "....X.......X...", "h": "xxXxxxXxxxXxxxXx"},
+    "lent": {"k": "X...............", "t": "........3.......", "h": "....x.......x..."},
+    "cap": {"k": "X...x...X...x.x.", "s": "....X.......X...", "h": "xxXxxxXxxxXxxxXx"},
+    "furia": {"k": "X.x.X.x.X.x.X.x.", "s": "....X.......X...", "h": "xxxxxxxxxxxxxxxx"},
+    "b": {"k": "X.......X.......", "s": "....X.......X...", "o": "..x...x...x...x."},
+    "b_suau": {"k": "X...............", "h": "..x...x...x...x."},
+}
+RELL = {"s": "....X...XoXoXXXX"}
+RELL_TOM = {"s": "....X...........", "t": "........11223333"}
+# riff de la colmena en La menor (cada cap el transporta a la seva tonalitat)
+RIFF_AC = ["Am", "Am", "Bb", "Bb", "Am", "Am", "F", "E"]
+_R1 = "A4.1 r.1 A4.1 r.1 C5.2 A4.1 r.1 E5.2 D#5.2 D5.2 C5.2 | A4.1 r.1 A4.1 r.1 C5.2 A4.1 r.1 G4.2 G#4.2 A4.4"
+_R2 = "Bb4.1 r.1 Bb4.1 r.1 D5.2 Bb4.1 r.1 F5.2 E5.2 D5.2 C5.2 | Bb4.1 r.1 Bb4.1 r.1 D5.2 Bb4.1 r.1 A4.2 Bb4.2 C5.4"
+RIFF = (_R1 + " | " + _R2 + " | " + _R1 + " | F4.2 A4.2 C5.2 F5.2 A5.2 C6.2 A5.2 F5.2 |"
+        " E4.2 G#4.2 B4.2 E5.2 G#5.2 B5.2 D6.2 E6.2")
+
+
+def pieza(nom, titol, bpm, sem, A, tema, B, tema_b, intro=None, intro_ac=None, baix="R.2 R.2 8.2 R.2 R.2 R.2 8.2 R.2",
+          bat="suau", bat_b="b", lo=36, arp="0 1 2 1 3 1 2 1 0 1 2 1 3 2 1 2", eco=0.5, fb=0.3, rt=1.3, ins=None,
+          mix=None, furia=False, riff_k=None, bpm_furia=None):
+    if furia:
+        bpm = bpm_furia or bpm
+    n_intro = 0 if furia or not intro else 2
+    n = n_intro + 32 + (8 if furia and riff_k is not None else 0)
+    p = Pista(nom, titol, bpm, n, sem + (1000 if furia else 0), eco_tiempos=eco, eco_fb=fb, rev_rt60=rt,
+              instrumentos=ins, bateria=mix)
+    p.transp = 1 if furia else 0
+    bat_a = "furia" if furia else bat
+    c = 0
+    if n_intro:
+        p.acordes(0, intro_ac)
+        p.melodia("campana", 0, intro)
+        p.pad(0, 2, lo=50, hi=66, vel=0.8)
+        p.bajo(0, 2, "R.8 R.8", lo=lo, vel=0.8)
+        p.bateria(0, 2, {"k": "X.......X......."}, platillo=False, vol=0.8)
+        p.redoble(1 * 4 + 2, 2, 0.15, 0.9)
+        c = 2
+    # A
+    p.acordes(c, A)
+    p.melodia("lead", c, tema)
+    p.bajo(c, 8, baix, lo=lo)
+    if furia:
+        p.arpegio("arp", c, 8, arp, lo=60, vel=0.8)
+    p.bateria(c, 8, BAT[bat_a], RELL)
+    c += 8
+    # A' amb segona veu i arpegi
+    p.acordes(c, A)
+    m2 = p.melodia("lead", c, tema)
+    p.contra_tercera("contra", m2, vel=0.7)
+    p.arpegio("arp", c, 8, arp, lo=60, vel=0.85)
+    p.bajo(c, 8, baix, lo=lo)
+    p.bateria(c, 8, BAT[bat_a], RELL_TOM, platillo=False)
+    c += 8
+    # B
+    p.acordes(c, B)
+    mb = p.melodia("lead2", c, tema_b, vel=0.9)
+    p.contra_guia("contra", c, 8, [(0, 8), (8, 8)], 55, 67, mb, vel=0.7)
+    p.pad(c, 8, lo=53, hi=69)
+    p.bajo(c, 8, "R.4 8.4 R.4 8.4", lo=lo)
+    if furia:
+        p.arpegio("arp2", c, 8, arp, lo=60, vel=0.7)
+    p.bateria(c, 8, BAT["cap" if furia else bat_b], RELL)
+    c += 8
+    # Riff de la colmena (només a la fúria)
+    if furia and riff_k is not None:
+        p.acordes(c, [transposar_acord(a, riff_k) for a in RIFF_AC])
+        mr = p.melodia("lead", c, RIFF, transp=riff_k)
+        p.contra_tercera("contra", [x for x in mr if x[0] >= (c + 4) * 4], vel=0.6)
+        p.bajo(c, 6, "R.1 r.1 R.1 r.1 R.2 R.1 r.1 R.2 R.2 R.2 R.2", lo=lo, vel=1.05)
+        p.bajo(c + 6, 2, "R.2 R.2 R.2 R.2 R.2 R.2 R.2 R.2", lo=lo)
+        p.bateria(c, 8, {"k": "XXx.XXx.XXx.X.x.", "s": "....X.......X..o", "h": "x.x.x.x.x.x.x.x."}, RELL_TOM)
+        c += 8
+    # A'' amb colchón
+    p.acordes(c, A)
+    m3 = p.melodia("lead", c, tema)
+    p.contra_tercera("contra", m3, vel=0.75)
+    p.arpegio("arp", c, 8, arp, lo=60)
+    p.pad(c, 8, lo=53, hi=69, vel=0.7)
+    p.bajo(c, 8, baix, lo=lo)
+    p.bateria(c, 8, BAT[bat_a], {"s": "....X...rrrrXXXX", "t": "........1.2.3..."}, platillo=False)
+    return p
+
+
+def menu():
+    """Menú: Mi menor, 112 BPM. El tema principal del joc, misteriós i heroic."""
+    return pieza("menu", "Invasión Alienígena", 112, 11,
+                 ["Em", "C", "G", "D", "Em", "C", "Am", "B"],
+                 "E5.4 G5.4 B5.6 A5.2 | G5.4 E5.4 C5.8 | D5.4 G5.4 B5.4 D6.4 | C6.6 B5.2 A5.8 |"
+                 " B5.4 E6.4 D6.6 B5.2 | C6.4 G5.4 E5.8 | A5.4 C6.4 E6.4 C6.4 | D#6.8 B5.4 F#5.4",
+                 ["C", "D", "Bm", "Em", "Am", "D", "G", "B"],
+                 "E5.8 G5.8 | F#5.8 A5.8 | B5.8 D6.4 B5.4 | G5.12 r.4 | C6.8 A5.4 E5.4 | F#5.8 D5.8 |"
+                 " G5.4 B5.4 D6.8 | D#6.12 r.4",
+                 intro="E6.6 B5.2 E6.8 | G6.6 F#6.2 E6.4 B5.4", intro_ac=["Em", "Em"],
+                 baix="R.4 5.4 8.4 5.4", bat="suau", bat_b="b_suau", eco=0.75, fb=0.4, rt=1.8,
+                 ins={"lead": dict(eco=0.3, vib=(4.8, 20, 0.22)), "campana": dict(gain=0.11)})
+
+
+def ruines_pluja():
+    """1-2 Ruinas bajo la lluvia: Sol menor, 105 BPM; els arpegis fan de pluja."""
+    return pieza("ruines_pluja", "Lluvia sobre las ruinas", 105, 12,
+                 ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "Cm", "D"],
+                 "G5.6 F5.2 D5.4 Bb4.4 | Eb5.6 D5.2 Bb4.8 | D5.4 F5.4 Bb5.6 A5.2 | A5.8 F5.4 C5.4 |"
+                 " D6.6 C6.2 Bb5.4 G5.4 | G5.6 F5.2 Eb5.8 | C5.4 Eb5.4 G5.4 C6.4 | F#5.8 D5.4 A4.4",
+                 ["Cm", "Gm", "Ab", "Eb", "Cm", "Gm", "Ab", "D"],
+                 "Eb5.8 G5.8 | D5.8 Bb4.8 | C5.4 Eb5.4 Ab5.8 | G5.12 r.4 | G5.8 Eb5.8 | Bb5.8 G5.8 |"
+                 " Ab5.4 C6.4 Eb6.8 | D6.12 r.4",
+                 intro="G5.4 r.4 D6.4 r.4 | Bb5.4 r.4 A5.4 F#5.4", intro_ac=["Gm", "Gm"],
+                 bat="pluja", arp="0 1 2 3 2 1 0 1 2 3 4 3 2 1 2 3", eco=0.75, fb=0.38, rt=1.6)
+
+
+def selva():
+    """2-1 Selva Tecnológica: Re dòric, 126 BPM, tambors tribals."""
+    return pieza("selva", "Selva Tecnológica", 126, 13,
+                 ["Dm", "G", "Dm", "C", "Bb", "C", "Dm", "Dm"],
+                 "D5.2 F5.2 A5.2 F5.2 G5.4 A5.4 | B5.4 A5.2 G5.2 D5.8 | F5.2 A5.2 D6.4 C6.4 A5.4 | G5.6 E5.2 C5.8 |"
+                 " D5.2 F5.2 Bb5.4 A5.4 F5.4 | E5.2 G5.2 C6.4 Bb5.4 G5.4 | A5.6 G5.2 F5.4 E5.4 | D5.12 r.4",
+                 ["G", "C", "G", "C", "Bb", "C", "A", "A"],
+                 "B5.8 D6.8 | C6.8 G5.8 | B5.4 A5.4 G5.8 | E5.12 r.4 | F5.8 Bb5.8 | G5.8 C6.8 | C#6.8 A5.8 | E5.12 r.4",
+                 intro="D6.2 r.2 A5.2 r.2 D6.2 r.6 | F6.2 r.2 E6.2 r.2 D6.2 r.2 A5.4", intro_ac=["Dm", "Dm"],
+                 baix="R.2 r.1 R.1 8.2 R.2 r.1 R.1 5.2 R.2 R.2", bat="tribal", lo=38, eco=0.5, fb=0.3)
+
+
+def laboratori():
+    """2-2 Laboratorio: Do menor, 100 BPM, staccato inquietant i cromatismes."""
+    return pieza("laboratori", "Laboratorio", 100, 14,
+                 ["Cm", "Ab", "Fm", "G", "Cm", "Ab", "Db", "G"],
+                 "C5.2 r.2 Eb5.2 r.2 G5.2 r.2 F#5.2 G5.2 | Ab5.4 G5.2 F5.2 Eb5.8 | F5.2 r.2 Ab5.2 r.2 C6.2 r.2 B5.2 C6.2 |"
+                 " B5.8 G5.4 D5.4 | Eb6.2 r.2 D6.2 r.2 C6.4 G5.4 | Ab5.4 C6.4 Eb6.8 | Db6.6 C6.2 Ab5.8 | G5.4 B5.4 D6.4 F6.4",
+                 ["Fm", "Fm", "Cm", "Cm", "Db", "Db", "G", "G"],
+                 "Ab5.12 G5.4 | F5.16 | Eb5.12 D5.4 | C5.16 | Db5.8 F5.8 | Ab5.8 Db6.8 | B5.8 D6.8 | G5.16",
+                 intro="C6.2 r.6 C6.2 r.2 Db6.2 r.2 | C6.2 r.6 B5.2 r.2 G5.4", intro_ac=["Cm", "Cm"],
+                 baix="R.2 r.2 R.2 r.2 R.2 r.2 b.2 r.2", bat="lab", bat_b="b_suau", eco=0.75, fb=0.45, rt=2.0,
+                 ins={"lead": dict(eco=0.3, duty=0.125), "campana": dict(gain=0.1)})
+
+
+def muralles():
+    """3-1 Las murallas: Fa menor, 135 BPM, marxa militar."""
+    return pieza("muralles", "Las murallas", 135, 15,
+                 ["Fm", "Db", "Eb", "C", "Fm", "Db", "Bbm", "C"],
+                 "F5.3 F5.1 F5.4 Ab5.4 C6.4 | Db6.6 C6.2 Ab5.8 | Eb5.3 Eb5.1 G5.4 Bb5.4 Eb6.4 | E6.8 C6.4 G5.4 |"
+                 " F6.6 Eb6.2 C6.4 Ab5.4 | Db6.6 Ab5.2 F5.8 | Bb5.4 Db6.4 F6.4 Db6.4 | C6.12 r.4",
+                 ["Bbm", "Fm", "Gb", "Db", "Bbm", "Fm", "G", "C"],
+                 "Db6.8 Bb5.8 | C6.8 Ab5.8 | Bb5.8 Db6.8 | Ab5.12 r.4 | F5.8 Bb5.8 | Ab5.8 C6.8 | B5.8 D6.8 | E6.12 r.4",
+                 intro="F5.3 F5.1 F5.4 C6.8 | F5.3 F5.1 F5.4 E5.4 G5.4", intro_ac=["Fm", "C"],
+                 baix="R.2 R.2 8.2 R.2 R.2 R.2 5.2 R.2", bat="marxa", lo=36)
+
+
+def hangar():
+    """4-2 Hangares: Si menor, 140 BPM, electrònic i urgent."""
+    return pieza("hangar", "Hangares", 140, 16,
+                 ["Bm", "G", "D", "A", "Bm", "G", "Em", "F#"],
+                 "B4.2 D5.2 F#5.2 B5.2 A5.4 F#5.4 | G5.6 F#5.2 D5.8 | D5.2 F#5.2 A5.2 D6.2 C#6.4 A5.4 | E5.8 A5.8 |"
+                 " F#5.2 B5.2 D6.4 C#6.4 B5.4 | D6.6 B5.2 G5.8 | E5.2 G5.2 B5.4 E6.4 D6.4 | C#6.8 A#5.4 F#5.4",
+                 ["Em", "A", "D", "Bm", "G", "A", "F#", "F#"],
+                 "G5.8 B5.8 | A5.8 C#6.8 | F#5.8 D6.8 | B5.12 r.4 | G5.8 D6.8 | E6.8 C#6.8 | A#5.8 C#6.8 | F#6.12 r.4",
+                 intro="F#6.2 r.2 F#6.2 r.2 F#6.2 r.6 | E6.2 r.2 E6.2 r.2 C#6.4 A#5.4", intro_ac=["Bm", "F#"],
+                 baix="R.1 R.1 8.1 R.1 R.1 R.1 8.1 R.1 R.1 R.1 8.1 R.1 R.1 R.1 8.1 R.1", bat="electro", lo=35,
+                 arp="0 1 2 3 0 1 2 3 0 1 2 3 4 3 2 1")
+
+
+def coro():
+    """6-2 El Coro: Fa# menor, 90 BPM, cant estrany i campanes de cristall."""
+    return pieza("coro", "El Coro", 90, 17,
+                 ["F#m", "D", "A", "E", "F#m", "D", "Bm", "C#"],
+                 "C#6.8 A5.4 F#5.4 | F#5.8 D5.8 | E5.4 A5.4 C#6.8 | B5.12 G#5.4 |"
+                 " A5.8 C#6.4 F#6.4 | F#6.8 D6.8 | D6.6 C#6.2 B5.8 | E#5.12 r.4",
+                 ["Bm", "F#m", "D", "C#", "Bm", "F#m", "G", "C#"],
+                 "D6.16 | C#6.16 | A5.16 | G#5.16 | F#5.8 B5.8 | A5.8 C#6.8 | B5.8 D6.8 | E#6.12 r.4",
+                 intro="F#6.6 G6.2 F#6.8 | r.16", intro_ac=["F#m", "F#m"],
+                 baix="R.8 5.8", bat="lent", bat_b="b_suau", lo=33, eco=0.75, fb=0.5, rt=2.6,
+                 ins={"lead": dict(eco=0.36, vib=(4.4, 26, 0.2)), "campana": dict(gain=0.12)})
+
+
+# --- caps de sector i finals: (funció, fúria) -----------------------------------------------------
+def jefe_general(furia=False):
+    """1-3 General Xylothian: La menor, 140 / 150 BPM."""
+    return pieza("jefe_general_furia" if furia else "jefe_general", "General Xylothian", 140, 21,
+                 ["Am", "F", "G", "E", "Am", "F", "Dm", "E"],
+                 "A5.2 C6.2 E6.4 A5.2 C6.2 E6.4 | F6.6 E6.2 C6.4 A5.4 | G5.2 B5.2 D6.4 G5.2 B5.2 D6.4 | G#5.6 B5.2 E6.8 |"
+                 " A5.2 E6.2 A6.4 G6.2 E6.2 C6.4 | F6.6 E6.2 D6.4 C6.4 | D6.2 F6.2 A6.4 F6.4 D6.4 | E6.8 B5.4 G#5.4",
+                 ["Dm", "Am", "F", "E", "Dm", "Am", "Bb", "E"],
+                 "F5.8 A5.8 | E5.8 C6.8 | A5.8 F5.8 | G#5.12 r.4 | D6.8 F6.8 | E6.8 C6.8 | D6.8 Bb5.8 | B5.12 r.4",
+                 intro="A5.2 r.1 A5.2 r.1 A5.2 r.2 A5.2 r.4 | E5.2 F5.2 G#5.2 A5.2 B5.2 C6.2 D6.2 E6.2",
+                 intro_ac=["Am", "E"], baix="R.2 R.1 R.1 R.2 R.1 R.1 R.2 R.1 R.1 8.2 R.1 R.1", bat="cap",
+                 furia=furia, riff_k=0, bpm_furia=150, lo=36)
+
+
+def jefe_selva(furia=False):
+    """2-3 Maestro de la Selva: Re menor, 135 / 147 BPM, tribal."""
+    return pieza("jefe_selva_furia" if furia else "jefe_selva", "Maestro de la Selva", 135, 22,
+                 ["Dm", "Bb", "Gm", "A", "Dm", "Bb", "C", "A"],
+                 "D5.4 A5.4 F5.2 E5.2 D5.4 | Bb5.6 A5.2 G5.4 F5.4 | G5.4 Bb5.4 D6.4 C6.4 | C#6.8 A5.8 |"
+                 " D6.4 F6.4 E6.2 D6.2 C#6.4 | D6.6 C6.2 Bb5.8 | C6.4 E6.4 G6.4 E6.4 | E6.12 r.4",
+                 ["Gm", "Dm", "Eb", "Bb", "Gm", "Dm", "Eb", "A"],
+                 "Bb5.8 D6.8 | A5.8 F5.8 | G5.8 Eb6.8 | D6.12 r.4 | G5.8 Bb5.8 | A5.8 D6.8 | Eb6.8 G6.8 | E6.12 r.4",
+                 intro="D6.2 r.2 D6.2 r.2 A5.2 r.2 D6.4 | F6.2 r.2 E6.2 r.2 C#6.2 r.2 A5.4", intro_ac=["Dm", "A"],
+                 baix="R.2 r.1 R.1 8.2 R.2 r.1 R.1 5.2 R.2 R.2", bat="tribal_fort", furia=furia, riff_k=-7,
+                 bpm_furia=147, lo=38)
+
+
+def jefe_elit(furia=False):
+    """3-2 Comandante de Élite: Fa menor, 144 / 150 BPM."""
+    return pieza("jefe_elit_furia" if furia else "jefe_elit", "Comandante de Élite", 144, 23,
+                 ["Fm", "Db", "Ab", "Eb", "Fm", "Db", "Bbm", "C"],
+                 "F5.2 Ab5.2 C6.4 F6.4 C6.4 | Db6.6 C6.2 Bb5.4 Ab5.4 | C6.2 Eb6.2 Ab6.4 G6.4 Eb6.4 | G6.8 Eb6.4 Bb5.4 |"
+                 " Ab6.6 G6.2 F6.4 C6.4 | Db6.4 F6.4 Ab6.8 | Bb5.4 Db6.4 F6.4 Db6.4 | E6.8 G6.4 C6.4",
+                 ["Bbm", "Fm", "Db", "C", "Bbm", "Fm", "Gb", "C"],
+                 "Db6.8 F6.8 | C6.8 Ab5.8 | Ab5.8 F5.8 | G5.12 r.4 | Bb5.8 Db6.8 | C6.8 F6.8 | Gb6.8 Db6.8 | E6.12 r.4",
+                 intro="F5.2 r.1 F5.2 r.1 F5.2 r.2 F5.2 r.4 | C5.2 Db5.2 E5.2 F5.2 G5.2 Ab5.2 Bb5.2 C6.2",
+                 intro_ac=["Fm", "C"], baix="R.2 R.2 8.2 R.2 R.2 R.2 8.2 R.2", bat="cap", furia=furia, riff_k=-4,
+                 bpm_furia=150, lo=36)
+
+
+def jefe_guardia(furia=False):
+    """5-2 Guardián de la Colmena: Mi frigi, 126 / 140 BPM, brunzit del rusc."""
+    return pieza("jefe_guardia_furia" if furia else "jefe_guardia", "Guardián de la Colmena", 126, 24,
+                 ["Em", "F", "Em", "Dm", "Em", "F", "G", "F"],
+                 "E5.4 F5.2 E5.2 B4.8 | C5.4 F5.4 A5.8 | G5.2 F5.2 E5.4 G5.4 B5.4 | A5.6 F5.2 D5.8 |"
+                 " E6.4 F6.2 E6.2 B5.8 | C6.4 A5.4 F5.8 | G5.2 B5.2 D6.4 G6.4 D6.4 | F6.8 C6.4 A5.4",
+                 ["Am", "Em", "F", "E", "Am", "Em", "Dm", "E"],
+                 "C6.8 E6.8 | B5.8 G5.8 | A5.8 F5.8 | G#5.12 r.4 | E6.8 C6.8 | B5.8 E6.8 | F6.8 D6.8 | G#5.12 r.4",
+                 intro="E6.6 F6.2 E6.8 | E6.6 F6.2 E6.4 B5.4", intro_ac=["Em", "F"],
+                 baix="R.2 R.2 R.2 8.2 R.2 R.2 b.2 R.2", bat="tribal_fort", furia=furia, riff_k=-5,
+                 bpm_furia=140, lo=40, ins={"lead": dict(glide=0.03)})
+
+
+def final_comandant(furia=False):
+    """3-3 Comandante Supremo: Do menor, 140 / 150 BPM."""
+    return pieza("final_comandant_furia" if furia else "final_comandant", "Comandante Supremo", 140, 31,
+                 ["Cm", "Ab", "Eb", "Bb", "Cm", "Ab", "Fm", "G"],
+                 "C5.4 G5.4 Eb5.2 D5.2 C5.4 | Ab5.6 G5.2 Eb5.4 C5.4 | Eb5.2 G5.2 Bb5.4 Eb6.4 D6.4 | D6.8 Bb5.8 |"
+                 " C6.4 Eb6.4 G6.6 F6.2 | Eb6.4 C6.4 Ab5.8 | F5.2 Ab5.2 C6.4 F6.4 C6.4 | B5.8 D6.4 G5.4",
+                 ["Fm", "Cm", "Db", "Ab", "Fm", "Cm", "Ab", "G"],
+                 "Ab5.8 C6.8 | G5.8 Eb5.8 | F5.8 Ab5.8 | Eb6.12 r.4 | C6.8 F6.8 | Eb6.8 G6.8 | Ab6.8 Eb6.8 | D6.12 r.4",
+                 intro="C6.4 r.4 G5.4 r.4 | C6.4 r.4 B5.4 D6.4", intro_ac=["Cm", "G"],
+                 baix="R.1 R.1 R.2 R.1 R.1 R.2 R.1 R.1 R.2 8.2 b.2", bat="cap", furia=furia, riff_k=3,
+                 bpm_furia=150, lo=36)
+
+
+def final_nau(furia=False):
+    """4-3 Nave Nodriza: Si menor, 135 / 147 BPM, espai i arpegis."""
+    return pieza("final_nau_furia" if furia else "final_nau", "Nave Nodriza", 135, 32,
+                 ["Bm", "F#m", "G", "D", "Bm", "Em", "A", "F#"],
+                 "F#5.6 E5.2 D5.4 B4.4 | C#5.6 E5.2 A5.8 | B5.4 G5.4 D6.6 C#6.2 | A5.8 F#5.8 |"
+                 " B5.6 D6.2 F#6.4 E6.4 | G6.6 F#6.2 E6.4 B5.4 | C#6.4 E6.4 A6.4 G6.4 | F#6.8 C#6.4 A#5.4",
+                 ["G", "D", "A", "Bm", "G", "D", "Em", "F#"],
+                 "B5.8 D6.8 | A5.8 F#5.8 | E5.8 C#6.8 | D6.12 r.4 | G5.8 B5.8 | F#5.8 A5.8 | G5.8 E6.8 | F#6.12 r.4",
+                 intro="B5.2 F#6.2 D6.2 B5.2 F#6.2 D6.2 B5.4 | A#5.2 F#6.2 C#6.2 A#5.2 F#6.2 C#6.2 A#5.4",
+                 intro_ac=["Bm", "F#"], baix="R.2 R.2 8.2 R.2 R.2 R.2 8.2 R.2", bat="electro", furia=furia,
+                 riff_k=2, bpm_furia=147, lo=35, arp="0 1 2 3 4 3 2 1 0 1 2 3 4 3 2 1", eco=0.75, fb=0.32)
+
+
+def final_hereva(furia=False):
+    """6-3 La Heredera: Si menor. Dins del capoll, 126 BPM; quan neix, 147 BPM i el riff."""
+    return pieza("final_hereva_furia" if furia else "final_hereva", "La Heredera", 126, 33,
+                 ["Bm", "G", "D", "A", "Bm", "G", "Em", "F#"],
+                 "F#5.6 E5.2 D5.4 B4.4 | D5.6 E5.2 B4.8 | A4.4 D5.4 F#5.4 A5.4 | G5.6 F#5.2 E5.8 |"
+                 " B5.6 C#6.2 D6.4 B5.4 | G5.6 A5.2 B5.4 D6.4 | E6.4 G6.4 B6.8 | A#5.6 C#6.2 F#6.8",
+                 ["Em", "C", "G", "D", "Em", "C", "F#sus4", "F#"],
+                 "E5.8 G5.4 B5.4 | C6.8 B5.4 G5.4 | D5.4 G5.4 B5.8 | A5.12 r.4 | B5.6 A5.2 G5.4 E5.4 | E5.4 G5.4 C6.8 |"
+                 " B5.8 C#6.4 B5.4 | A#5.12 r.4",
+                 intro="B5.6 C6.2 B5.8 | B5.6 C6.2 B5.4 F#5.4", intro_ac=["Bm", "Bm"],
+                 baix="R.4 5.4 8.4 5.4", bat="suau" if not furia else "furia", furia=furia, riff_k=2,
+                 bpm_furia=147, lo=35, eco=0.75, fb=0.42, rt=1.8,
+                 ins={"lead": dict(eco=0.26), "campana": dict(gain=0.12)})
+
+
+def boss_final_furia():
+    return boss_final(furia=True)
+
+
 PISTAS = {"sector1": sector1, "sector4": sector4, "sector5": sector5, "sector6": sector6, "jefe": jefe,
-          "boss_final": boss_final, "derrota": derrota,
+          "boss_final": boss_final, "boss_final_furia": boss_final_furia, "derrota": derrota,
+          "menu": menu, "ruines_pluja": ruines_pluja, "selva": selva, "laboratori": laboratori, "muralles": muralles,
+          "hangar": hangar, "coro": coro,
+          "jefe_general": jefe_general, "jefe_general_furia": lambda: jefe_general(True),
+          "jefe_selva": jefe_selva, "jefe_selva_furia": lambda: jefe_selva(True),
+          "jefe_elit": jefe_elit, "jefe_elit_furia": lambda: jefe_elit(True),
+          "jefe_guardia": jefe_guardia, "jefe_guardia_furia": lambda: jefe_guardia(True),
+          "final_comandant": final_comandant, "final_comandant_furia": lambda: final_comandant(True),
+          "final_nau": final_nau, "final_nau_furia": lambda: final_nau(True),
+          "final_hereva": final_hereva, "final_hereva_furia": lambda: final_hereva(True),
           "supervivencia": supervivencia, "final": final}
 
 

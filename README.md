@@ -123,7 +123,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.
 - Ahora hay 54 estrellas en total; los desafíos se siguen abriendo con 15, 30 y 45.
 - Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **30% menos de vida** que en la 4.2 y los **jefes de sector** un 10% menos: con todas las mejoras los combates se hacían demasiado largos.
-- **Música nueva** para los jefes finales («Duelo final») y para la pantalla de derrota, generadas con `tools/generar_musica.py` como las demás.
+- **Banda sonora nueva y 100% original**, generada con `tools/generar_musica.py` (síntesis chiptune con numpy, sin samples): un tema nuevo para el menú, una canción para cada escenario, música para la pantalla de derrota y, para cada jefe, dos versiones: la normal y la de **furia**, más rápida, un semitono más aguda y con el riff de la colmena, que empieza cuando el jefe llega a media vida (la Heredera, cuando nace).
 - **HUD**: la vida, la voltereta y las mejoras se ven abajo a la izquierda, encima del arma (se vuelven transparentes si pasas por detrás); la vida de los jefes, arriba en el centro. En el móvil la vida sigue arriba para no tapar el joystick.
 - En **Normal**, los enemigos hacen un **20% menos de daño** (Fácil y Difícil no cambian).
 - Las **curas y la munición** aparecen más a menudo: una cada 5,5 s en lugar de cada 8 s, y los enemigos las sueltan un poco más.

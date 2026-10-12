@@ -193,7 +193,17 @@ DIFICULTATS = {
 }
 
 # Música: una pista por sector, otra para los jefes normales, otra para los jefes finales
-MUSICA_SECTOR = ["sector1", "sector2", "sector3", "sector4", "sector5", "sector6"]
+MUSICA_SECTOR = ["sector1", "selva", "muralles", "sector4", "sector5", "sector6"]
+# Música de cada escenari (v4.4: una per escenari). Els caps tenen una segona pista «<nom>_furia» que sona
+# quan s'enfaden (a mitja vida; la Hereva, quan neix).
+MUSICA_ESCENARIS = {
+    (0, 0): "sector1", (0, 1): "ruines_pluja", (0, 2): "jefe_general",
+    (1, 0): "selva", (1, 1): "laboratori", (1, 2): "jefe_selva",
+    (2, 0): "muralles", (2, 1): "jefe_elit", (2, 2): "final_comandant",
+    (3, 0): "sector4", (3, 1): "hangar", (3, 2): "final_nau",
+    (4, 0): "sector5", (4, 1): "jefe_guardia", (4, 2): "boss_final",
+    (5, 0): "sector6", (5, 1): "coro", (5, 2): "final_hereva",
+}
 CAPS_FINALS = {(2, 2), (3, 2), (4, 2), (5, 2)}
 CAPS_NORMALS = {(0, 2), (1, 2), (2, 1), (4, 1)}
 
@@ -627,8 +637,10 @@ NOVETATS = [
                  "Normal, los enemigos hacen un 20% menos de daño y las curas y la munición aparecen más a menudo."),
         ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
                  "(y con hueco para esquivar) y sus cristales quitan menos."),
-        ("musica", "Música nueva para los jefes finales y para la pantalla de derrota. La vida y las habilidades se ven "
-                   "abajo a la izquierda, encima del arma, y la vida de los jefes arriba en el centro."),
+        ("musica", "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú, música de derrota y "
+                   "cada jefe con dos fases: cuando se enfada (o la Heredera nace), su música cambia."),
+        ("hud", "La vida y las habilidades se ven abajo a la izquierda, encima del arma, y la vida de los jefes arriba "
+                "en el centro."),
         ("estrella", "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al "
                      "menos la mitad de la vida. Las estrellas que ya tenías se quedan."),
     ]},
