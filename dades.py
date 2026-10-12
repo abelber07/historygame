@@ -172,7 +172,7 @@ NIVELLS = {
                          ("kamikaze", 55)]],
              "perills": [("cristall", 200)]},
     (5, 2): {"plataformes": _P_CUNA, "temps": 480,
-             "onades": [[("final_hereva", 2600)]], "perills": [("cristall", 330)]},
+             "onades": [[("final_hereva", 2200)]], "perills": [("cristall", 450)]},
 }
 TEMPS_ESTRELLA = {k: v["temps"] for k, v in NIVELLS.items()}
 XP_ESTRELLA = 30
@@ -625,7 +625,8 @@ NOVETATS = [
                  "título de premio por terminar el DLC."),
         ("jefe", "Los jefes finales (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un 20% "
                  "menos de vida: con todas las mejoras se hacían demasiado largos."),
-        ("vida", "Combate contra la Heredera: los cristales que caen del techo y su lluvia de esquirlas quitan menos vida."),
+        ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
+                 "(y con hueco para esquivar) y sus cristales quitan menos."),
     ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "

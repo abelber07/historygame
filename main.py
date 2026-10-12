@@ -3016,7 +3016,7 @@ class Enemic:
 
     def ferir(self, dany, empenta=(0.0, 0.0)):
         if self.tipus == "final_hereva":
-            if self.naixent:                                  # mentre neix no se la pot ferir
+            if 0 < self.naixent < 50:                         # mentre el capoll esclata no se la pot ferir
                 dany = 0
             elif not self.nascuda and self.vida - dany <= self.vida_max / 2:
                 dany = self.vida - self.vida_max / 2          # el capoll aguanta fins a mitja vida i esclata
@@ -3062,7 +3062,7 @@ class Enemic:
         elif self.tipus == "final_hereva":
             if not self.naixent:
                 self._moure_ruta(250 if self.nascuda else 200, 120, 0.3 if self.nascuda else 0.22, 36)
-            return self._atacar_hereva(jugador, efectes)
+            return self._atacar_hereva(jugador, efectes, altres)
         elif self.tipus == "cacador":
             bales = self._actualitzar_cacador(jugador, altres)
             if self.hd_e and self.mode == "envestida":            # estela del motor
@@ -3503,7 +3503,14 @@ class Enemic:
                 self.fase, self.temps_fase = 0, 0
         return bales
 
-    def _atacar_hereva(self, jugador, efectes):
+    def _cridar_orfes(self, altres, n=1):
+        """El Cor crida orfes, però mai n'hi ha més de dos alhora (i els que crida són més fluixos)."""
+        vius = sum(1 for o in altres if o.tipus == "salvatge" and o.vida > 0)
+        n = min(n, 2 - vius)
+        if n > 0 and not self.invocacions:
+            self.invocacions = [("salvatge", 60)] * n
+
+    def _atacar_hereva(self, jugador, efectes, altres=()):
         """La Hereva. Dins del capoll: anells d'esquirles, el Coro (orfes i ones amb un buit) i pluja de cristalls.
         Quan neix (mitja vida) fa servir els ecos dels altres caps: l'espiral del Nucli, els anells del Comandant,
         la mirada i la cortina de la Nau Mare (amb un buit que es queda on eres)."""
@@ -3531,7 +3538,7 @@ class Enemic:
                 efectes.append(Anell(cx, cy, BLANC, creix=10, vida=22))
                 self.tremolor_nou = 18
                 AUDIO.so("explosio")
-            if self.naixent >= 110:
+            if self.naixent >= 80:
                 self.naixent = 0
             return []
         self.temps_fase += 1
@@ -3546,24 +3553,26 @@ class Enemic:
                 if t >= 180:
                     self.fase, self.temps_fase = 1, 0
             elif self.fase == 1:                                 # el Coro: crida orfes i canta ones amb un buit
-                if t == 1 and not self.invocacions:
-                    self.invocacions = [("salvatge", 90), ("salvatge", 90)]
+                if t == 1:
+                    self._cridar_orfes(altres)
                 if t in (30, 80):
                     bales = anell_bales(cx, cy, 18, v, d, "hereva", gir=random.uniform(0, 1),
                                         forat=(apunta + random.uniform(-0.5, 0.5), 0.6))
                     AUDIO.so("boss")
                 if t >= 130:
                     self.fase, self.temps_fase = 2, 0
-            else:                                                # pluja de cristalls
-                if t % 9 == 0 and t < 130:
+                    self.forat_x = max(80, min(WIDTH - 80, jx))
+            else:                                                # pluja de cristalls (amb un buit on eres)
+                if t % 12 == 0 and t < 130:
                     x = random.uniform(30, WIDTH - 30)
-                    bales.append(Bala(x, -12, random.uniform(-0.3, 0.3), v * 1.3, dc, "cristall"))
+                    if abs(x - self.forat_x) > 80:
+                        bales.append(Bala(x, -12, random.uniform(-0.2, 0.2), v * 1.2, dc, "cristall"))
                 if t >= 170:
                     self.fase, self.temps_fase = 0, 0
             return bales
         if self.fase == 0:                                       # eco del Nucli: espiral
             if t % 7 == 0:
-                braços = 4 if self.furia else 3
+                braços = 3 if self.furia else 2
                 self.gir += 0.21
                 for b in range(braços):
                     a = self.gir + b * math.tau / braços
@@ -3573,8 +3582,8 @@ class Enemic:
                 self.fase, self.temps_fase = 1, 0
         elif self.fase == 1:                                     # eco del Comandant: anells amb un buit
             if t in (1, 45, 90):
-                bales = anell_bales(cx, cy, 26 if self.furia else 22, v * 1.1, d, "hereva", gir=random.uniform(0, 1),
-                                    forat=(apunta + random.uniform(-0.5, 0.5), 0.44 if self.furia else 0.55))
+                bales = anell_bales(cx, cy, 22 if self.furia else 18, v * 1.1, d, "hereva", gir=random.uniform(0, 1),
+                                    forat=(apunta + random.uniform(-0.4, 0.4), 0.55 if self.furia else 0.65))
                 AUDIO.so("boss")
             if t >= 140:
                 self.fase, self.temps_fase = 2, 0
@@ -3583,8 +3592,8 @@ class Enemic:
                 bales = ventall(cx, cy, apunta, 9, math.radians(50), 6.5, d, "hereva")
                 self.flash_cano = 10
                 AUDIO.so("explosio")
-                if self.furia and not self.invocacions:
-                    self.invocacions = [("salvatge", 90), ("salvatge", 90)]
+                if self.furia:
+                    self._cridar_orfes(altres)
             if t >= 120:
                 self.fase, self.temps_fase = 3, 0
                 self.forat_x = max(80, min(WIDTH - 80, jx))
@@ -3592,8 +3601,8 @@ class Enemic:
             if t % 6 == 0 and t < 120:
                 for _ in range(2):
                     x = random.uniform(20, WIDTH - 20)
-                    if abs(x - self.forat_x) > 70:
-                        bales.append(Bala(x, -12, 0, v * 1.45, dc, "cristall"))
+                    if abs(x - self.forat_x) > 90:
+                        bales.append(Bala(x, -12, 0, v * 1.35, dc, "cristall"))
             if t >= 165:
                 self.fase, self.temps_fase = 0, 0
         return bales
