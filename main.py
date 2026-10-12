@@ -4821,14 +4821,42 @@ class Zona:
                                          random.uniform(-1.5, -0.6), (150, 210, 120), vida=20, mida=4))
 
     def dibuixar_davant(self, surf, t):
+        """Columna de gas: bufades suaus que neixen a la reixa, s'eixamplen mentre pugen i s'esvaeixen per dalt
+        (abans es pintaven dins d'un requadre i es veien tallades pels costats i per dalt)."""
         if self.tipus != "gas" or not self.actiu:
             return
-        capa = pygame.Surface(self.rect.size, pygame.SRCALPHA)
-        for k in range(9):
-            y = (self.rect.h - (t * 3 + k * 37) % self.rect.h)
-            r = int(self.w * 0.45 + 8 * math.sin(t * 0.1 + k))
-            pygame.draw.circle(capa, (140, 220, 110, 70), (self.w // 2 + int(10 * math.sin(t * 0.05 + k * 2)), y), r)
-        surf.blit(capa, self.rect)
+        H = self.rect.h
+        actiu = self._fase() - (self.periode - self.ACTIU["gas"])           # fotogrames des que ha començat
+        front = min(1.0, actiu * 3.0 / H)                                    # el gas puja des de la reixa
+        final = min(1.0, (self.ACTIU["gas"] - actiu) / 25)                   # i s'apaga al final
+        for k in range(13):
+            f = ((t * 2.6 + k * H / 13) % H) / H                             # 0 = a la reixa, 1 = a dalt
+            if f > front:
+                continue
+            alfa = 135 * (1 - f) ** 0.7 * min(1.0, f * 8) * final
+            if alfa < 6:
+                continue
+            r = int(self.w * 0.32 + self.w * 0.3 * f + 5 * math.sin(t * 0.1 + k))
+            x = self.x + self.w / 2 + 9 * math.sin(t * 0.05 + k * 2) * (0.4 + f)
+            y = TERRA_Y - 6 - f * (H - 10)
+            b = bufada_gas(max(8, r // 4 * 4), int(alfa // 8) * 8)
+            surf.blit(b, (int(x - b.get_width() / 2), int(y - b.get_height() / 2)))
+
+
+_CACHE_BUFADA = {}
+
+
+def bufada_gas(r, alfa):
+    """Bufada de gas: disc verd amb la vora difuminada (es guarda per mida i transparència)."""
+    clau = (r, alfa)
+    s = _CACHE_BUFADA.get(clau)
+    if s is None:
+        s = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+        for i in range(r, 0, -2):
+            k = 1 - (i / r) ** 2
+            pygame.draw.circle(s, (140 + int(40 * k), 220, 110 + int(30 * k), int(alfa * k)), (r, r), i)
+        _CACHE_BUFADA[clau] = s
+    return s
 
 
 class Caiguda:
