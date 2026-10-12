@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.4"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.5"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
 SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
 SECTOR_DLC = 5            # índex del sector del DLC
@@ -624,6 +624,16 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.5", "titol": "Banda sonora y enemigos por sector", "punts": [
+        ("musica", "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú y cada jefe con dos "
+                   "fases: cuando se enfada, su música cambia."),
+        ("enemic", "Los enemigos básicos cambian en cada sector: se cubren, sueltan esporas, disparan ráfagas, saltan "
+                   "con poca gravedad, se regeneran o se quedan parados."),
+        ("jefe", "Jefes con menos vida, enemigos que hacen menos daño en Normal y más curas y munición. La Heredera es "
+                 "más justa."),
+        ("estrella", "La tercera estrella ahora pide acabar con al menos media vida (ya no sin recibir daño)."),
+        ("hud", "La vida se ve abajo a la izquierda, encima del arma, y la vida de los jefes arriba en el centro."),
+    ]},
     {"versio": "4.4", "titol": "DLC: Ecos de Xylos", "punts": [
         ("estrella", "Nuevo sector 6, Ecos de Xylos: se abre al terminar la historia. Seis meses después de apagar el "
                     "Núcleo, un eco llega desde el otro lado del portal..."),
@@ -633,16 +643,6 @@ NOVETATS = [
                    "ataques de los otros jefes finales."),
         ("cine", "Dos cinemáticas, música nueva, la arena El Coro en Supervivencia, 5 logros nuevos y un uniforme y un "
                  "título de premio por terminar el DLC."),
-        ("jefe", "Los jefes finales tienen un 30% menos de vida que en la 4.2 y los jefes de sector un 10% menos. En "
-                 "Normal, los enemigos hacen un 20% menos de daño y las curas y la munición aparecen más a menudo."),
-        ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
-                 "(y con hueco para esquivar) y sus cristales quitan menos."),
-        ("musica", "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú, música de derrota y "
-                   "cada jefe con dos fases: cuando se enfada (o la Heredera nace), su música cambia."),
-        ("hud", "La vida y las habilidades se ven abajo a la izquierda, encima del arma, y la vida de los jefes arriba "
-                "en el centro."),
-        ("estrella", "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al "
-                     "menos la mitad de la vida. Las estrellas que ya tenías se quedan."),
     ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "

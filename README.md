@@ -114,20 +114,29 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 4.5: banda sonora y enemigos por sector**
+- La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.
+- Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **30% menos de vida** que en la 4.2 y los **jefes de sector** un 10% menos: con todas las mejoras los combates se hacían demasiado largos.
+- **Banda sonora nueva y 100% original**, generada con `tools/generar_musica.py` (síntesis chiptune con numpy, sin samples): un tema nuevo para el menú, una canción para cada escenario, música para la pantalla de derrota y, para cada jefe, dos versiones: la normal y la de **furia**, más rápida, un semitono más aguda y con el riff de la colmena, que empieza cuando el jefe llega a media vida (la Heredera, cuando nace).
+- **Enemigos con estilo propio en cada sector** (soldados, escuderos, kamikazes y drones): cambian de colores y llevan un accesorio, y además se comportan distinto:
+  - Ruinas: polvo y máscara de gas; el soldado se agacha a cubierto después de disparar (es más difícil darle).
+  - Selva: musgo, hojas y esporas; al morir sueltan una nube de esporas que hace daño si te quedas dentro.
+  - Fortaleza: guardia de élite con cresta; el soldado dispara ráfagas de dos.
+  - Órbita: traje espacial con casco de cristal; poca gravedad: saltan y caen despacio.
+  - Xylos: carne viva con cuernos; si dejas de dispararles un momento, se regeneran.
+  - Sector 6: visores rotos; de vez en cuando se quedan parados, medio apagados.
+- **HUD**: la vida, la voltereta y las mejoras se ven abajo a la izquierda, encima del arma (se vuelven transparentes si pasas por detrás); la vida de los jefes, arriba en el centro. En el móvil la vida sigue arriba para no tapar el joystick.
+- En **Normal**, los enemigos hacen un **20% menos de daño** (Fácil y Difícil no cambian).
+- Las **curas y la munición** aparecen más a menudo: una cada 5,5 s en lugar de cada 8 s, y los enemigos las sueltan un poco más.
+- **Heredera** reequilibrada: tiene menos vida que el Núcleo, el Coro nunca deja más de dos huérfanos a la vez, la lluvia de cristales cae con un hueco donde estabas (como la cortina), la espiral tiene los mismos brazos que la del Núcleo, los anillos son más abiertos, las estalactitas caen menos a menudo y quitan 8 en lugar de 12, y lo que cae del techo quita un 40% menos. Al nacer ya se la puede herir en cuanto sale del capullo.
+
 **Versión 4.4: DLC «Ecos de Xylos»**
 - **Sector 6** con tres escenarios nuevos (Colmena en silencio, El Coro y La Cuna), con fondos nuevos, música nueva y estalactitas de cristal que caen del techo. Se abre al terminar la historia (las partidas que ya la habían terminado lo tienen abierto directamente).
 - **Nuevo enemigo**: el Huérfano. **Nueva jefa**: la Heredera, con dos fases (dentro del capullo y nacida).
 - Dos **cinemáticas** nuevas (el eco, que sale siempre al empezar el 6-1 y se puede saltar, y el final del DLC; las dos se pueden volver a ver desde Historia), un expediente nuevo en Historia y dos fichas nuevas en el Bestiario.
 - **Supervivencia**: nueva arena, El Coro.
 - **5 logros** nuevos (uno secreto) y, al terminar el DLC, el uniforme Eco de Xylos, el título «El que calló al Coro» y 2000 monedas.
-- La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.
 - Ahora hay 54 estrellas en total; los desafíos se siguen abriendo con 15, 30 y 45.
-- Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **30% menos de vida** que en la 4.2 y los **jefes de sector** un 10% menos: con todas las mejoras los combates se hacían demasiado largos.
-- **Banda sonora nueva y 100% original**, generada con `tools/generar_musica.py` (síntesis chiptune con numpy, sin samples): un tema nuevo para el menú, una canción para cada escenario, música para la pantalla de derrota y, para cada jefe, dos versiones: la normal y la de **furia**, más rápida, un semitono más aguda y con el riff de la colmena, que empieza cuando el jefe llega a media vida (la Heredera, cuando nace).
-- **HUD**: la vida, la voltereta y las mejoras se ven abajo a la izquierda, encima del arma (se vuelven transparentes si pasas por detrás); la vida de los jefes, arriba en el centro. En el móvil la vida sigue arriba para no tapar el joystick.
-- En **Normal**, los enemigos hacen un **20% menos de daño** (Fácil y Difícil no cambian).
-- Las **curas y la munición** aparecen más a menudo: una cada 5,5 s en lugar de cada 8 s, y los enemigos las sueltan un poco más.
-- **Heredera** reequilibrada: tiene menos vida que el Núcleo, el Coro nunca deja más de dos huérfanos a la vez, la lluvia de cristales cae con un hueco donde estabas (como la cortina), la espiral tiene los mismos brazos que la del Núcleo, los anillos son más abiertos, las estalactitas caen menos a menudo y quitan 8 en lugar de 12, y lo que cae del techo quita un 40% menos. Al nacer ya se la puede herir en cuanto sale del capullo.
 
 **Versión 4.3: mando y móvil**
 - **Mando**: Xbox, PlayStation y la mayoría de mandos USB o Bluetooth. Joystick izquierdo para moverte, derecho para apuntar (sin ayuda para apuntar; solo dispara el gatillo) y RT / R2 para disparar, A para saltar, B o LT para rodar y RB / LB para cambiar de arma. En los menús hay un cursor: la cruceta salta de botón en botón, A acepta y B vuelve atrás.

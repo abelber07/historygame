@@ -2162,6 +2162,26 @@ _DLC_44 = {
         ("Els caps finals tenen un 30% menys de vida que a la 4.2 i els caps de sector un 10% menys. En Normal, els enemics fan un 20% menys de mal i les cures i la munició apareixen més sovint.",
          "Final bosses have 30% less health than in 4.2 and sector bosses 10% less. On Normal, enemies deal 20% less damage and health and ammo pickups appear more often."),
     "Ver el eco": ("Veure l'eco", "Watch the echo"),
+    "Banda sonora y enemigos por sector": ("Banda sonora i enemics per sector", "Soundtrack and enemies by sector"),
+    "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú y cada jefe con dos fases: cuando se enfada, su música cambia.":
+        ("Banda sonora nova: una cançó per a cada escenari, un tema nou al menú i cada cap amb dues fases: quan s'enfada, la seva música canvia.",
+         "New soundtrack: a song for every stage, a new menu theme, and every boss has two phases: when it gets angry, its music changes."),
+    "Los enemigos básicos cambian en cada sector: se cubren, sueltan esporas, disparan ráfagas, saltan con poca gravedad, se regeneran o se quedan parados.":
+        ("Els enemics bàsics canvien a cada sector: es cobreixen, deixen anar espores, disparen ràfegues, salten amb poca gravetat, es regeneren o es queden parats.",
+         "Basic enemies change in every sector: they take cover, release spores, fire bursts, jump in low gravity, regenerate or freeze."),
+    "Jefes con menos vida, enemigos que hacen menos daño en Normal y más curas y munición. La Heredera es más justa.":
+        ("Caps amb menys vida, enemics que fan menys mal en Normal i més cures i munició. L'Hereva és més justa.",
+         "Bosses with less health, enemies dealing less damage on Normal and more health and ammo pickups. The Heiress is fairer."),
+    "La tercera estrella ahora pide acabar con al menos media vida (ya no sin recibir daño).":
+        ("La tercera estrella ara demana acabar amb almenys mitja vida (ja no sense rebre mal).",
+         "The third star now asks you to finish with at least half your health (no longer without taking damage)."),
+    "La vida se ve abajo a la izquierda, encima del arma, y la vida de los jefes arriba en el centro.":
+        ("La vida es veu a baix a l'esquerra, damunt de l'arma, i la vida dels caps a dalt al centre.",
+         "Health now sits at the bottom left, above your weapon, and boss health at the top centre."),
+
+    "Los enemigos básicos cambian en cada sector: polvo y máscara de gas en las ruinas (se cubren tras disparar), musgo en la selva (sueltan esporas al morir), élite en la fortaleza (ráfagas de dos disparos), trajes espaciales en órbita (saltan con poca gravedad), carne viva en Xylos (se regeneran si dejas de dispararles) y visores rotos en el sector 6 (a veces se quedan parados).":
+        ("Els enemics bàsics canvien a cada sector: pols i màscara de gas a les ruïnes (es cobreixen després de disparar), molsa a la selva (deixen anar espores en morir), elit a la fortalesa (ràfegues de dos trets), vestits espacials a l'òrbita (salten amb poca gravetat), carn viva a Xylos (es regeneren si deixes de disparar-los) i visors trencats al sector 6 (de vegades es queden parats).",
+         "Basic enemies change in every sector: dust and gas masks in the ruins (they take cover after shooting), moss in the jungle (they release spores when they die), elites in the fortress (two-shot bursts), space suits in orbit (they jump in low gravity), living flesh on Xylos (they regenerate if you stop shooting them) and broken visors in sector 6 (sometimes they freeze)."),
     "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú, música de derrota y cada jefe con dos fases: cuando se enfada (o la Heredera nace), su música cambia.":
         ("Banda sonora nova: una cançó per a cada escenari, un tema nou al menú, música de derrota i cada cap amb dues fases: quan s'enfada (o l'Hereva neix), la seva música canvia.",
          "New soundtrack: a song for every stage, a new menu theme, defeat music, and every boss has two phases: when it gets angry (or the Heiress is born), its music changes."),

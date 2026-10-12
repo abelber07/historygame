@@ -131,6 +131,80 @@ def cap_soldat(f, hx, hy, angle=0.0):
         f.linia(a, b, MAT["pell"][0])                                                     # mandíbules
     px, py = P([(14, 6)])[0]
     f.px(px, py, MAT["visor"][4])
+    accessori_cap(f, P)
+
+
+# ---------------------------------------------------------------------------------------------
+# Variants per sector (v4.4): cada sector vesteix els enemics bàsics a la seva manera (colors + un
+# accessori al casc). Es generen atles a part: enemics_hd_v0.png ... enemics_hd_v5.png.
+# ---------------------------------------------------------------------------------------------
+def to5(c):
+    return [tuple(int(max(0, min(255, v * k))) for v in c) for k in (0.28, 0.6, 0.85, 1.12, 1.45)]
+
+
+VARIANTS = {
+    0: ("mascara", {"quitina": (120, 104, 86), "quitina_f": (88, 76, 64), "metall": (128, 120, 104), "visor": (200, 150, 50),
+                    "ovni": (150, 140, 120), "ovni_f": (100, 94, 82), "rosa": (200, 130, 70)}),
+    1: ("fulles", {"quitina": (70, 120, 58), "quitina_f": (48, 86, 44), "metall": (80, 110, 70), "visor": (150, 230, 60),
+                   "ovni": (100, 140, 90), "ovni_f": (66, 96, 60), "rosa": (120, 200, 80)}),
+    2: ("cresta", {"quitina": (132, 40, 44), "quitina_f": (60, 40, 52), "metall": (70, 64, 80), "visor": (255, 80, 60),
+                   "ovni": (120, 60, 64), "ovni_f": (70, 40, 48), "rosa": (220, 60, 60)}),
+    3: ("bombolla", {"quitina": (170, 178, 196), "quitina_f": (110, 118, 140), "metall": (190, 196, 210),
+                     "visor": (80, 220, 255), "ovni": (200, 206, 220), "ovni_f": (140, 146, 164), "rosa": (120, 200, 240)}),
+    4: ("banyes", {"quitina": (120, 60, 150), "quitina_f": (80, 40, 100), "metall": (110, 70, 130), "visor": (255, 120, 230),
+                   "pell": (150, 80, 130), "pell_f": (120, 60, 110), "ovni": (140, 90, 170), "ovni_f": (90, 56, 120),
+                   "rosa": (230, 90, 200)}),
+    5: ("esquerda", {"quitina": (98, 104, 120), "quitina_f": (66, 70, 84), "metall": (100, 106, 120), "visor": (70, 84, 96),
+                     "ovni": (120, 126, 140), "ovni_f": (80, 86, 100), "rosa": (120, 160, 170)}),
+}
+ESTIL = [None]                      # accessori de la variant que s'està generant
+_MAT_BASE = {k: list(v) for k, v in MAT.items()}
+
+
+def posar_variant(n):
+    for k, v in _MAT_BASE.items():
+        MAT[k] = list(v)
+    ESTIL[0] = None
+    if n is not None:
+        estil, colors = VARIANTS[n]
+        ESTIL[0] = estil
+        for k, c in colors.items():
+            MAT[k] = to5(c)
+
+
+def accessori_cap(f, P):
+    """Accessori del casc segons la variant (P passa de coordenades del cap a les del llenç)."""
+    estil = ESTIL[0]
+    if estil == "mascara":                                    # màscara de gas amb el tub a la motxilla
+        f.el·lipse("negre", *P([(9, 10)])[0], *P([(16, 16)])[0], "volum")
+        f.membre("negre", P([(10, 15), (4, 20), (-4, 18)]), [1.4, 1.2, 1.0], "pla")
+        f.el·lipse("metall", *P([(13, 11)])[0], *P([(16, 14)])[0], "pla")
+    elif estil == "fulles":                                   # fulles i espores que brillen
+        b = P([(2, 0)])[0]
+        for a, ll in ((-0.9, 9), (-0.4, 11), (0.2, 8)):
+            pt = (b[0] + math.cos(-math.pi / 2 + a) * ll, b[1] + math.sin(-math.pi / 2 + a) * ll)
+            f.membre("pell", [b, pt], [2.2, 0.6], "volum")
+        for x, y in ((-2, 6), (6, 2)):
+            f.el·lipse("energia", *P([(x, y)])[0], *P([(x + 2, y + 2)])[0], "brilla")
+    elif estil == "cresta":                                   # cresta d'elit
+        f.poli("negre", P([(-4, 2), (2, -8), (6, -1)]))
+        f.poli("vermell", P([(-2, 1), (2, -6), (4, -1)]), "pla")
+    elif estil == "bombolla":                                 # casc de vidre (es pinta damunt, amb un reflex)
+        for x, y in ((0, -2), (1, -3), (2, -4), (17, 12), (17, 13)):
+            px, py = P([(x, y)])[0]
+            f.px(px, py, MAT["vidre"][4])
+        arc = [(-5, 7), (-6, 1), (-3, -4), (4, -6), (12, -5), (18, 0), (19, 7), (17, 13)]
+        f.corba(P(arc), MAT["vidre"][3])
+        f.corba(P([(x + 1, y + 1) for x, y in arc]), MAT["vidre"][1])
+    elif estil == "banyes":                                   # banyes d'os i venes que brillen
+        for x0, dx in ((0, -6), (8, 2)):
+            b = P([(x0, 0)])[0]
+            f.membre("banya", [b, (b[0] + dx * 0.5, b[1] - 6), (b[0] + dx, b[1] - 9)], [2.0, 1.4, 0.6])
+        f.linia(*P([(-2, 6), (6, 9)]), (255, 150, 240))
+    elif estil == "esquerda":                                 # visor esquerdat, mig apagat
+        f.linia(P([(10, 4)])[0], P([(13, 9)])[0], MAT["quitina"][4])
+        px, py = P([(15, 6)])[0]
+        f.px(px, py, (120, 255, 220))
 
 
 OX = 36             # els soldats es dibuixen desplaçats: hi ha lloc per caure d'esquena
@@ -202,6 +276,8 @@ def poses_soldat():
     base = {"maluc": (23, 41), "peu_d": ((16, TERRA), 0.0), "peu_f": ((30, TERRA), 0.0)}
     poses["apunta"] = [dict(base, arma=(33, 27), angle_arma=-0.04, inclina=0.08, cap_dx=1, cap_dy=1)]
     poses["dispara"] = [dict(base, arma=(31, 27), angle_arma=-0.18, inclina=0.0, cap_dx=0, cap_dy=0)]
+    poses["ajup"] = [dict(base, maluc=(23, 50), peu_d=((12, TERRA), 0.0), peu_f=((34, TERRA), 0.0), arma=(33, 42),
+                          angle_arma=-0.05, inclina=0.3, cap_dy=1)]
     poses["ferit"] = [dict(base, maluc=(21, 41), arma=(29, 32), angle_arma=0.35, inclina=-0.25, angle_cap=-0.3,
                            peu_f=((28, TERRA - 2), 0.3))]
     poses["mort"] = [dict(base, maluc=(20, 41), arma=(27, 30), angle_arma=0.6, inclina=-0.35, angle_cap=-0.4,
@@ -384,6 +460,8 @@ def escuder(p):
     f.poli("quitina", C([(-3, 2), (4, -5), (10, -3), (8, -1), (2, 1)]))                         # cresta
     f.poli("visor", C([(8, 4), (15, 4), (15, 6), (8, 6)]), "brilla")
     f.marca_linia(*C([(-2, 6), (6, 7)]), -1)
+    if ESTIL[0] != "cresta":                                  # (ja en porta una de sèrie)
+        accessori_cap(f, lambda punts: C([(x, y + 1) for x, y in punts]))
     # braç del davant amb l'emissor de l'escut
     em = p.get("emissor", (tx + 22, ty + 11))
     col_f = colze(esp_f, em, 8.0, 7.5)
@@ -556,9 +634,12 @@ def tots():
     return t
 
 
-def generar():
+def generar(var=None):
     pygame.display.set_mode((1, 1))
+    posar_variant(var)
     t = tots()
+    if var is not None:                      # les variants només vesteixen els enemics bàsics
+        t = {k: v for k, v in t.items() if k in ("soldat", "escut", "kamikaze", "dron", "lloctinent")}
     imatges, info = {}, {}
     for tipus, d in t.items():
         e = {"llenç": list(d["llenç"]), "ancora": list(d["ancora"]), "anims": {}, "boques": {}, "desp": {}}
@@ -579,10 +660,12 @@ def generar():
     atles, rects = empaquetar(imatges, ample=512)
     for e in info.values():
         e["imatges"] = {n: rects[n] + d for n, d in e.pop("desp").items()}
-    pygame.image.save(atles, os.path.join(SORTIDA, "enemics_hd.png"))
-    with open(os.path.join(SORTIDA, "enemics_hd.json"), "w") as fit:
+    nom = "enemics_hd" if var is None else f"enemics_hd_v{var}"
+    pygame.image.save(atles, os.path.join(SORTIDA, nom + ".png"))
+    with open(os.path.join(SORTIDA, nom + ".json"), "w") as fit:
         json.dump(info, fit, separators=(",", ":"))
-    print("enemics_hd.png", atles.get_size(), len(rects), "imatges")
+    print(nom + ".png", atles.get_size(), len(rects), "imatges")
+    posar_variant(None)
     return atles, info
 
 
@@ -608,3 +691,5 @@ if __name__ == "__main__":
         vista(sys.argv[1])
     else:
         generar()
+        for n in VARIANTS:
+            generar(n)

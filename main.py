@@ -744,14 +744,14 @@ MIDES_ENEMIC = {"soldat": (36, 52), "escut": (44, 56), "kamikaze": (28, 20),    
 VOLADORS_HD = ("dron", "lloctinent", "cacador")
 
 
-def _carregar_enemics_hd():
+def _carregar_enemics_hd(nom="enemics_hd"):
     try:
-        with open(ruta("img", "enemics_hd.json"), encoding="utf-8") as fitxer:
+        with open(ruta("img", nom + ".json"), encoding="utf-8") as fitxer:
             info = json.load(fitxer)
     except (OSError, ValueError) as err:
-        print(f"No s'ha pogut carregar enemics_hd.json: {err}")
+        print(f"No s'ha pogut carregar {nom}.json: {err}")
         return {}
-    atles = carregar_imatge("enemics_hd.png")
+    atles = carregar_imatge(nom + ".png")
     if atles is None:
         return {}
     for tipus, e in info.items():
@@ -774,11 +774,22 @@ def _carregar_enemics_hd():
 
 
 ENEMICS_HD = _carregar_enemics_hd()
+# Variants per sector (v4.4): cada sector vesteix els enemics bàsics a la seva manera
+ENEMICS_HD_VAR = {_n: _carregar_enemics_hd(f"enemics_hd_v{_n}") for _n in range(6)}
+TIPUS_VARIANT = ("soldat", "escut", "kamikaze", "dron", "lloctinent")
 
 
-def frame_hd(tipus, anim, k, sentit=1):
+def dades_hd(tipus, var=None):
+    if var is not None:
+        e = ENEMICS_HD_VAR.get(var, {}).get(tipus)
+        if e is not None:
+            return e
+    return ENEMICS_HD[tipus]
+
+
+def frame_hd(tipus, anim, k, sentit=1, var=None):
     """(imatge, desplaçament des de l'ancoratge) del fotograma k d'una animació (es repeteix si cal)."""
-    e = ENEMICS_HD[tipus]
+    e = dades_hd(tipus, var)
     noms = e["anims"][anim]
     return e["fr"][noms[k % len(noms)]][sentit]
 
@@ -2955,6 +2966,14 @@ class Enemic:
         self.esclatar = False
         self.temps_gir = 0
         self.cop_esquena = False
+        # variant del sector (la posa el joc en crear-lo) i comportaments propis
+        self.var = None
+        self.cobert = 0            # ruïnes: el soldat s'ajup darrere la runa després de disparar
+        self.rafaga = 0            # fortalesa: segon tret de la ràfega
+        self.temps_salt = random.randint(120, 260)    # òrbita: salts amb poca gravetat
+        self.sense_cop = 0         # xylos: es regenera si no el toques
+        self.dubte = 0             # DLC: es queda mig apagat un moment
+        self.proper_dubte = random.randint(200, 380)
         # orfe (DLC): salta amb les urpes
         self.saltant = False
         self.cop_fet = False
@@ -2996,8 +3015,15 @@ class Enemic:
 
     @property
     def hitbox(self):
+        if self.cobert:                                  # ajupit darrere la runa: més difícil d'encertar
+            return pygame.Rect(int(self.x + self.w * 0.1), int(self.y + self.h * 0.45),
+                               int(self.w * 0.8), int(self.h * 0.43))
         return pygame.Rect(int(self.x + self.w * 0.1), int(self.y + self.h * 0.12),
                            int(self.w * 0.8), int(self.h * 0.76))
+
+    @property
+    def basic(self):
+        return self.var is not None and self.tipus in TIPUS_VARIANT
 
     @property
     def centre(self):
@@ -3022,6 +3048,7 @@ class Enemic:
         return 1 - falta / 28 if 0 <= falta <= 28 and self.temps_atac > 0 else 0.0
 
     def ferir(self, dany, empenta=(0.0, 0.0)):
+        self.sense_cop = 0
         if self.tipus == "final_hereva":
             if 0 < self.naixent < 50:                         # mentre el capoll esclata no se la pot ferir
                 dany = 0
@@ -3035,6 +3062,25 @@ class Enemic:
 
     # ----- moviment ---------------------------------------------------------
     def actualitzar(self, jugador, altres, efectes, plataformes=()):
+        if self.basic and not self.entrant:
+            if self.var == 4:                            # Xylos: carn viva que es regenera
+                self.sense_cop += 1
+                if self.sense_cop > 90 and 0 < self.vida < self.vida_max:
+                    self.vida = min(self.vida_max, self.vida + self.vida_max * 0.0015)
+                    if self.sense_cop % 12 == 0:
+                        efectes.append(Particula(self.x + random.uniform(0, self.w), self.y + random.uniform(0, self.h), 0, -0.9, (140, 255, 140), vida=22, mida=3))
+            elif self.var == 5 and self.tipus != "kamikaze":     # DLC: mig apagats, de tant en tant dubten
+                if self.dubte:
+                    self.dubte -= 1
+                    self.vx = 0.0
+                    self.apuntant = 0
+                    if self.terrestre:
+                        self._fisica_terra(plataformes)
+                    return []
+                self.proper_dubte -= 1
+                if self.proper_dubte <= 0:
+                    self.dubte = 36
+                    self.proper_dubte = random.randint(240, 420)
         self.t += 0.05
         self.flash = max(0, self.flash - 1)
         self.flash_cano = max(0, self.flash_cano - 1)
@@ -3183,7 +3229,10 @@ class Enemic:
     # ----- enemics de terra ---------------------------------------------------
     def _fisica_terra(self, plataformes):
         bottom_abans = self.y + self.h
-        self.vy = min(self.vy + 0.6, 12.0)
+        if self.var == 3 and self.tipus in TIPUS_VARIANT:    # òrbita: poca gravetat
+            self.vy = min(self.vy + 0.28, 6.0)
+        else:
+            self.vy = min(self.vy + 0.6, 12.0)
         self.y += self.vy
         self.x += self.vx
         self.suport = None
@@ -3222,6 +3271,22 @@ class Enemic:
                 self.entrant = False
             return []
         bales = []
+        if self.basic:
+            if self.var == 3 and self.suport is not None and not self.apuntant:     # òrbita: salts lents
+                self.temps_salt -= 1
+                if self.temps_salt <= 0:
+                    self.temps_salt = random.randint(150, 300)
+                    self.vy = -6.5
+                    self.suport = None
+            if self.rafaga:                                                          # fortalesa: segon tret
+                self.rafaga -= 1
+                if self.rafaga == 0:
+                    bales += self._disparar_terra(jugador, rafaga=False)
+            if self.cobert:                                                          # ruïnes: arrecerat
+                self.cobert -= 1
+                self.vx = 0.0
+                self._fisica_terra(plataformes)
+                return bales
         if self.tipus == "kamikaze":
             if self.armat:
                 self.armat -= 1
@@ -3245,7 +3310,7 @@ class Enemic:
                 self.apuntant -= 1
                 self.vx = 0.0
                 if self.apuntant == 0:
-                    bales = self._disparar_terra(jugador)
+                    bales += self._disparar_terra(jugador)
             else:
                 self.temps_atac += 1
                 if self.tipus == "escut":
@@ -3323,7 +3388,12 @@ class Enemic:
                 return self.x + self.w / 2 + p[0], self.y + self.h + p[1]
         return (self.x + self.w / 2 + self.dir * self.w * 0.5, self.y + self.h * (0.42 if self.tipus == "soldat" else 0.4))
 
-    def _disparar_terra(self, jugador):
+    def _disparar_terra(self, jugador, rafaga=True):
+        if self.basic and self.tipus == "soldat":
+            if self.var == 2 and rafaga:                 # fortalesa: ràfega de dos trets
+                self.rafaga = 9
+            elif self.var == 0 and rafaga:               # ruïnes: després de disparar, s'arrecera
+                self.cobert = 50
         px, py = self.canó_terra()
         jx, jy = jugador.centre
         angle = math.atan2(jy - py, jx - px)
@@ -3644,11 +3714,11 @@ class Enemic:
             return frames[k], ("cap", self.nivell, anim, k)
         if self.hd_e:
             if self.tipus in VOLADORS_HD:
-                fr = ENEMICS_HD[self.tipus]["sencers"]
+                fr = dades_hd(self.tipus, self.var)["sencers"]
                 k = (int(self.t * 20) // {"dron": 6, "lloctinent": 7}.get(self.tipus, 3)) % len(fr)
-                return fr[k], (self.tipus, k)
+                return fr[k], (self.tipus, k, self.var)
             anim, k = self.anim_terra()
-            return frame_hd(self.tipus, anim, k, 1 if self.dir > 0 else -1)[0], None
+            return frame_hd(self.tipus, anim, k, 1 if self.dir > 0 else -1, self.var)[0], None
         return self.sprite, self.clau
 
     def dibuixar(self, surf, desplaçament=(0, 0), forçar_flash=False):
@@ -4154,6 +4224,8 @@ class Enemic:
             if self.armat and (self.armat // (3 if self.armat < 20 else 6)) % 2 == 0:
                 return "armat", 0
             return "corre", camina
+        if self.cobert and self.tipus == "soldat":
+            return "ajup", 0
         if self.tipus == "salvatge":
             if self.flash > 2:
                 return "ferit", 0
@@ -4173,7 +4245,7 @@ class Enemic:
     def _dibuixar_terra_hd(self, surf, desp, forçar_flash):
         sentit = 1 if self.dir > 0 else -1
         anim, k = self.anim_terra()
-        img, (dx, dy) = frame_hd(self.tipus, anim, k, sentit)
+        img, (dx, dy) = frame_hd(self.tipus, anim, k, sentit, self.var)
         ax, ay = self.x + self.w / 2 + desp[0], self.y + self.h + desp[1]
         pos = (int(ax + dx), int(ay + dy))
         if self.tipus == "kamikaze" and self.armat:
@@ -4511,11 +4583,47 @@ class Resta:
         surf.blit(img, img.get_rect(center=(int(self.x), int(self.y))))
 
 
+class NuvolEspores:
+    """Selva (v4.4): els enemics bàsics deixen anar un núvol d'espores en morir; si t'hi quedes, fa mal."""
+
+    RADI = 44
+
+    def __init__(self, x, y):
+        self.x, self.y = x, min(y, TERRA_Y - 20)
+        self.t = 0
+        self.espera = 0
+
+    def actualitzar(self, joc):
+        self.t += 1
+        self.espera = max(0, self.espera - 1)
+        j = joc.jugador
+        jx, jy = j.centre
+        if (self.t > 20 and not self.espera and joc.fase == "jugant" and not j.intocable
+                and math.hypot(jx - self.x, jy - self.y) < self.RADI):
+            joc.ferir_jugador(joc.dany_dificultat(4))
+            self.espera = 40
+        if self.t % 6 == 0:
+            joc.efectes.append(Particula(self.x + random.uniform(-30, 30), self.y + random.uniform(-20, 20),
+                                         random.uniform(-0.3, 0.3), random.uniform(-0.8, -0.2),
+                                         random.choice(((190, 255, 90), (140, 220, 70))), vida=24, mida=3))
+        return self.t >= 170
+
+    def dibuixar(self, surf):
+        k = min(1.0, self.t / 20) * min(1.0, (170 - self.t) / 40)
+        for i in range(3):
+            r = int(self.RADI * (0.55 + 0.15 * i) + 4 * math.sin(self.t * 0.08 + i))
+            b = bufada_gas(max(8, r // 4 * 4), int(90 * k) // 8 * 8)
+            dx = 10 * math.sin(self.t * 0.04 + i * 2.1)
+            if b.get_width():
+                surf.blit(b, (int(self.x + dx - b.get_width() / 2), int(self.y - i * 6 - b.get_height() / 2)))
+
+
 class MortTerra:
     """Soldat abatut en alta definició: cau d'esquena, queda estès a terra i s'esvaeix."""
 
     def __init__(self, e):
         self.tipus = e.tipus
+        self.var = e.var
         self.sentit = 1 if e.dir > 0 else -1
         self.x, self.peus = e.x + e.w / 2, e.y + e.h
         self.vx = -self.sentit * 1.8                  # el cop l'empeny enrere
@@ -4537,7 +4645,7 @@ class MortTerra:
         return self.t >= 120
 
     def dibuixar(self, surf):
-        img, (dx, dy) = frame_hd(self.tipus, "mort", min(2, self.t // 6), self.sentit)
+        img, (dx, dy) = frame_hd(self.tipus, "mort", min(2, self.t // 6), self.sentit, self.var)
         if self.t > 90:
             img = img.copy()
             img.set_alpha(int(255 * (120 - self.t) / 30))
@@ -8212,6 +8320,14 @@ class Game:
         self.botons = [self.boto_saltar_tutorial()] if self.mode == "tutorial" else []
         self.canviar_estat("joc")
 
+    def variant_enemics(self):
+        """Estil dels enemics bàsics: el del sector que es juga (a Supervivència, el de l'arena)."""
+        if self.mode == "historia":
+            return self.nivell_actual
+        if self.mode == "supervivencia":
+            return ARENES[self.arena][0]
+        return None
+
     def crear_enemic(self, tipus, vida, x=None, y=None, nivell=None):
         if nivell is None:
             nivell = self.nivell_enemics
@@ -8219,6 +8335,7 @@ class Game:
             vida *= VIDA_FINALS if tipus.startswith("final_") else VIDA_CAPS if tipus == "boss" else VIDA_ENEMICS
         vida = max(1, round(vida * self.dificultat()["vida"]))
         e = Enemic(tipus, vida, nivell, 0, random.randint(60, 220), self.dificultat())
+        e.var = self.variant_enemics() if tipus in TIPUS_VARIANT else None
         if x is None:
             x = random.uniform(220, WIDTH - e.w - 10)
         e.x = max(10.0, min(WIDTH - e.w - 10.0, x))
@@ -8573,6 +8690,8 @@ class Game:
             self.tremolor = max(self.tremolor, 12)
             return
         self.aturada = max(self.aturada, 2)
+        if e.basic and e.var == 1:                        # selva: núvol d'espores
+            self.restes.append(NuvolEspores(cx, cy))
         if e.tipus == "kamikaze":
             self.explosio_kamikaze(e, ferir_jugador=False)
         if self.efecte != "normal" and e.tipus != "kamikaze":     # cosmètic d'eliminació
