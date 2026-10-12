@@ -625,6 +625,7 @@ NOVETATS = [
                  "título de premio por terminar el DLC."),
         ("jefe", "Los jefes finales (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un 20% "
                  "menos de vida: con todas las mejoras se hacían demasiado largos."),
+        ("vida", "Combate contra la Heredera: los cristales que caen del techo y su lluvia de esquirlas quitan menos vida."),
     ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "

@@ -3510,6 +3510,7 @@ class Enemic:
         self.t_viu += 1
         cx, cy = self.centre
         v, d = self.vel_bala, self.dany
+        dc = max(1, round(d * 0.6))                    # el que cau del sostre fa menys mal (n'hi ha molt)
         jx, jy = jugador.centre
         apunta = math.atan2(jy - cy, jx - cx)
         if self.naixent:
@@ -3556,7 +3557,7 @@ class Enemic:
             else:                                                # pluja de cristalls
                 if t % 9 == 0 and t < 130:
                     x = random.uniform(30, WIDTH - 30)
-                    bales.append(Bala(x, -12, random.uniform(-0.3, 0.3), v * 1.3, d, "cristall"))
+                    bales.append(Bala(x, -12, random.uniform(-0.3, 0.3), v * 1.3, dc, "cristall"))
                 if t >= 170:
                     self.fase, self.temps_fase = 0, 0
             return bales
@@ -3592,7 +3593,7 @@ class Enemic:
                 for _ in range(2):
                     x = random.uniform(20, WIDTH - 20)
                     if abs(x - self.forat_x) > 70:
-                        bales.append(Bala(x, -12, 0, v * 1.45, d, "cristall"))
+                        bales.append(Bala(x, -12, 0, v * 1.45, dc, "cristall"))
             if t >= 165:
                 self.fase, self.temps_fase = 0, 0
         return bales
@@ -4869,7 +4870,7 @@ class Caiguda:
 class Perills:
     """Peligros de cada escenario (vegeu "perills" a dades.py)."""
 
-    DANY_CAIGUDA = {"runa": 10, "morter": 14, "cristall": 12}
+    DANY_CAIGUDA = {"runa": 10, "morter": 14, "cristall": 8}
 
     def __init__(self, specs):
         self.zones = []
