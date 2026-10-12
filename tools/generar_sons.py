@@ -3,6 +3,7 @@
     latido.ogg   batec del cor quan queda poca vida (dos cops greus: «lub-dub»)
     ting.ogg     bala que rebota contra l'escut d'energia (metàl·lic, agut)
     marca.ogg    marca d'impacte: clic sec i curt quan la bala toca un enemic
+    eliminat.ogg has caigut (v4.4): cop sord i quatre notes de pols que baixen (1,6 s; abans era una tonada llarga)
 
 Ús:  python3 tools/generar_sons.py      (cal numpy i ffmpeg)
 """
@@ -57,6 +58,29 @@ def marca():
     return s
 
 
+def pols(freq, durada, duty=0.25):
+    t = temps(durada)
+    fase = (freq * t) % 1.0
+    ona = np.where(fase < duty, 1.0, -1.0) - (2 * duty - 1)
+    return ona * envolupant(t, 0.003, durada * 0.45)
+
+
+def eliminat():
+    """Has caigut: un cop greu i un arpegi que baixa (La-Fa-Re-La), amb una cua greu que s'apaga."""
+    s = np.zeros(int(SR * 1.6))
+    cop = cop_greu(70, 0.35) * 1.2
+    s[:len(cop)] += cop
+    for k, (midi, dur) in enumerate(((69, 0.16), (65, 0.16), (62, 0.18), (57, 0.7))):
+        f = 440 * 2 ** ((midi - 69) / 12)
+        n = pols(f, dur) * (0.5 if k < 3 else 0.6)
+        n += 0.5 * pols(f / 2, dur, 0.5) * (0.6 if k == 3 else 0.3)
+        ini = int(SR * (0.06 + 0.17 * k))
+        s[ini:ini + len(n)] += n[:len(s) - ini]
+    t = temps(len(s) / SR)
+    s *= np.minimum(1.0, (len(s) / SR - t) / 0.25)            # s'apaga al final
+    return s
+
+
 def desar(nom, senyal, pic=0.8):
     senyal = senyal / (np.max(np.abs(senyal)) or 1) * pic
     ruta = os.path.join(SORTIDA, nom + ".ogg")
@@ -70,3 +94,4 @@ if __name__ == "__main__":
     desar("latido", latido(), 0.9)
     desar("ting", ting(), 0.7)
     desar("marca", marca(), 0.6)
+    desar("eliminat", eliminat(), 0.8)
