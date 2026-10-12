@@ -1220,6 +1220,10 @@ def text(surf, txt, font, color, pos, ancora="center", ombra=True, max_w=None):
         max_w = WIDTH - 12                              # mai més ample que la pantalla
     if max_w is not None:
         font = font_que_cap(txt, font, max_w)
+        if font.size(txt)[0] > max_w:                   # ni amb la lletra més petita: s'escurça amb punts
+            while len(txt) > 1 and font.size(txt + "...")[0] > max_w:
+                txt = txt[:-1]
+            txt = txt.rstrip() + "..."
     img = render(txt, font, color)
     rect = img.get_rect(**{ancora: pos})
     if ombra:
@@ -6024,51 +6028,111 @@ def colors_estela(ident, t):
 
 
 # --- insígnies de rang -------------------------------------------------------------
-def dibuixar_insignia(surf, cx, cy, idx, mida=30):
-    """Insígnia militar del rang `idx` (0-14) dins d'un escut."""
-    m = mida
-    tiers = [(90, 96, 110), (70, 110, 70), (70, 110, 70), (70, 110, 70), (60, 90, 150), (60, 90, 150), (60, 90, 150),
-             (130, 80, 160), (130, 80, 160), (130, 80, 160), (170, 70, 60), (170, 70, 60), (40, 40, 52), (40, 40, 52),
-             (30, 26, 60)]
-    fons = tiers[max(0, min(14, idx))]
-    escut = [(cx - m // 2, cy - m // 2), (cx + m // 2, cy - m // 2), (cx + m // 2, cy + m // 6), (cx, cy + m // 2 + 4),
-             (cx - m // 2, cy + m // 6)]
-    pygame.draw.polygon(surf, NEGRE, [(x, y + 2) for x, y in escut])
-    pygame.draw.polygon(surf, fons, escut)
-    or_ = (255, 210, 70) if idx < 12 else (255, 230, 120)
-    pygame.draw.polygon(surf, or_ if idx >= 7 else (200, 205, 220), escut, 2)
-    def galó(y, ample=m * 0.32):
-        pygame.draw.lines(surf, or_, False, [(cx - ample, y - ample * 0.5), (cx, y), (cx + ample, y - ample * 0.5)], 3)
+_CACHE_INSIGNIES = {}
+TIERS_INSIGNIA = [(90, 96, 110), (70, 110, 70), (70, 110, 70), (70, 110, 70), (60, 90, 150), (60, 90, 150),
+                  (60, 90, 150), (130, 80, 160), (130, 80, 160), (130, 80, 160), (170, 70, 60), (170, 70, 60),
+                  (40, 40, 52), (40, 40, 52), (30, 26, 60)]
+
+
+def _motiu_insignia(capa, idx, m, or_, cx, cy):
+    """Dibuixa el motiu del rang al voltant de (cx, cy); després es centra i es retalla dins l'escut."""
+    gruix = max(2, round(m / 11))
+
+    def galo(y, ample):
+        pygame.draw.lines(capa, or_, False, [(cx - ample, y - ample * 0.55), (cx, y), (cx + ample, y - ample * 0.55)],
+                          gruix)
+
     def estrella(x, y, r):
-        dibuixar_estrella(surf, int(x), int(y), r, True, or_)
+        dibuixar_estrella(capa, round(x), round(y), r, True, or_)
     if idx == 0:
-        pygame.draw.line(surf, (200, 205, 220), (cx - m * 0.25, cy), (cx + m * 0.25, cy), 3)
+        pygame.draw.rect(capa, (200, 205, 220), (round(cx - m * 0.24), round(cy - gruix / 2), round(m * 0.48), gruix))
     elif idx <= 3:                                       # galons
         for k in range(idx):
-            galó(cy - m * 0.08 + k * m * 0.18)
-    elif idx <= 6:                                       # galons i arcs
+            galo(cy + k * m * 0.19, m * 0.27)
+    elif idx <= 6:                                       # tres galons i balancins a sota
         for k in range(3):
-            galó(cy - m * 0.2 + k * m * 0.14, m * 0.28)
+            galo(cy + k * m * 0.12, m * 0.24)
         for k in range(idx - 3):
-            y = cy + m * 0.26 + k * 4
-            pygame.draw.arc(surf, or_, (cx - m * 0.28, y - 6, m * 0.56, 10), math.pi, math.tau, 2)
+            y = cy + m * 0.27 + k * (gruix + max(2, m * 0.06))
+            ample, fons = m * 0.24, m * 0.06
+            dalt = [(cx + ample * math.cos(math.pi * i / 10), y + fons * math.sin(math.pi * i / 10)) for i in range(11)]
+            baix = [(x, yy + gruix) for x, yy in reversed(dalt)]
+            pygame.draw.polygon(capa, or_, dalt + baix)
     elif idx <= 9:                                       # barres
-        n = idx - 6
-        for k in range(n):
-            y = cy - (n - 1) * 5 + k * 10
-            pygame.draw.rect(surf, or_, (cx - m * 0.26, y - 2, m * 0.52, 5))
-    elif idx <= 11:                                      # estrelles de vuit puntes
+        for k in range(idx - 6):
+            pygame.draw.rect(capa, or_, (round(cx - m * 0.24), round(cy + k * m * 0.22), round(m * 0.48),
+                                         max(3, round(m * 0.13))))
+    elif idx <= 11:                                      # oficials superiors: estrelles
         n = idx - 9
         for k in range(n):
-            x = cx + (k - (n - 1) / 2) * m * 0.36
-            estrella(x, cy, max(4, m // 5))
+            estrella(cx + (k - (n - 1) / 2) * m * 0.32, cy, max(4, round(m * 0.17)))
     else:                                                # generals: estrelles daurades
         n = idx - 11
-        for k in range(n):
-            x = cx + (k - (n - 1) / 2) * m * 0.3
-            estrella(x, cy - 1, max(4, m // 6))
-        if idx == 14:
-            pygame.draw.circle(surf, or_, (cx, cy), int(m * 0.46), 1)
+        if idx == 14:                                    # galàxia: tres estrelles dins una òrbita
+            pygame.draw.ellipse(capa, aclarir(TIERS_INSIGNIA[14], 70), (round(cx - m * 0.32), round(cy - m * 0.06),
+                                                                         round(m * 0.64), round(m * 0.24)), max(1, m // 30))
+            r = max(4, round(m * 0.12))
+            for x, y in ((cx, cy - m * 0.07), (cx - m * 0.16, cy + m * 0.12), (cx + m * 0.16, cy + m * 0.12)):
+                estrella(x, y, r)
+        else:
+            r = max(4, round(m * 0.15))
+            for k in range(n):
+                estrella(cx + (k - (n - 1) / 2) * r * 2.1, cy, r)
+
+
+def imatge_insignia(idx, mida=30):
+    """Superfície de la insígnia del rang `idx` (0-14) i el seu punt de referència (centre del quadrat de l'escut).
+
+    El motiu es dibuixa a part, es mesura, es centra a la part ampla de l'escut i es retalla amb la seva forma:
+    així mai no en surt cap línia, sigui quina sigui la mida."""
+    idx = max(0, min(14, idx))
+    m = max(12, int(mida))
+    clau = (idx, m)
+    if clau in _CACHE_INSIGNIES:
+        return _CACHE_INSIGNIES[clau]
+    marge = 3
+    w, h = m + marge * 2, m + 4 + marge * 2 + 2
+    cx, top = w // 2, marge
+    meitat = m // 2
+    escut = [(cx - meitat, top), (cx + meitat, top), (cx + meitat, top + meitat + m // 6),
+             (cx, top + m + 4), (cx - meitat, top + meitat + m // 6)]
+    s = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.polygon(s, (0, 0, 0, 200), [(x, y + 2) for x, y in escut])
+    fons = TIERS_INSIGNIA[idx]
+    pygame.draw.polygon(s, fons, escut)
+    pygame.draw.polygon(s, aclarir(fons, 18), [(cx - meitat + 2, top + 2), (cx + meitat - 2, top + 2),
+                                                (cx + meitat - 2, top + m // 5), (cx - meitat + 2, top + m // 5)])
+    or_ = (255, 210, 70) if idx < 12 else (255, 230, 120)
+    # motiu: a una capa a part per poder-lo centrar i retallar
+    capa = pygame.Surface((w * 2, h * 2), pygame.SRCALPHA)
+    _motiu_insignia(capa, idx, m, or_, w, h)
+    rects = pygame.mask.from_surface(capa).get_bounding_rects()
+    if rects:
+        caixa = rects[0].unionall(rects[1:])
+        tros = capa.subsurface(caixa).copy()
+        max_w, max_h = int(m * 0.68), int(m * 0.66)
+        if tros.get_width() > max_w or tros.get_height() > max_h:
+            f = min(max_w / tros.get_width(), max_h / tros.get_height())
+            tros = pygame.transform.smoothscale(tros, (max(1, int(tros.get_width() * f)), max(1, int(tros.get_height() * f))))
+        # retall amb la forma interior de l'escut (sense trepitjar la vora)
+        interior = pygame.Surface((w, h), pygame.SRCALPHA)
+        pygame.draw.polygon(interior, (255, 255, 255), [(cx - meitat + 3, top + 3), (cx + meitat - 3, top + 3),
+                                                       (cx + meitat - 3, top + meitat + m // 6 - 1),
+                                                       (cx, top + m), (cx - meitat + 3, top + meitat + m // 6 - 1)])
+        motiu = pygame.Surface((w, h), pygame.SRCALPHA)
+        centre_y = top + round(m * 0.47)                 # centre visual de l'escut (la punta queda a sota)
+        motiu.blit(tros, tros.get_rect(center=(cx, centre_y)))
+        motiu.blit(interior, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        s.blit(motiu, (0, 0))
+    pygame.draw.polygon(s, or_ if idx >= 7 else (200, 205, 220), escut, 2)
+    _CACHE_INSIGNIES[clau] = (s, (cx, top + meitat))
+    return _CACHE_INSIGNIES[clau]
+
+
+def dibuixar_insignia(surf, cx, cy, idx, mida=30):
+    """Insígnia militar del rang `idx` (0-14) dins d'un escut, amb el quadrat de l'escut centrat a (cx, cy)."""
+    img, (ox, oy) = imatge_insignia(idx, mida)
+    surf.blit(img, (round(cx - ox), round(cy - oy)))
 
 
 # --- drons ----------------------------------------------------------------------------
@@ -6528,25 +6592,59 @@ def fons_targeta(ident, w, h):
 
 
 def dibuixar_targeta(surf, rect, ident, titol, rang, temporada, nivell_passi, prestigi, monedes=None, estrelles=None):
+    """Targeta de jugador. Cada text té el seu espai (mai no trepitja les monedes ni surt de la targeta),
+    i si la targeta és baixa (<70 px) les línies s'arrengleren més juntes."""
     r = pygame.Rect(rect)
     pygame.draw.rect(surf, NEGRE, r.move(0, 3), border_radius=8)
     surf.blit(fons_targeta(ident, r.w, r.h), r)
     pygame.draw.rect(surf, (255, 205, 60) if ident == "daurada" else (90, 120, 190), r, 2, border_radius=6)
-    dibuixar_insignia(surf, r.x + 30, r.centery - 2, rang, 34)
-    x = r.x + 58
-    text(surf, T(TITOLS.get(titol, "")), F_MINI, (255, 200, 255), (x, r.y + 16), ancora="midleft")
-    text(surf, T(RANGS[rang]["nom"]).upper(), F_HUD, BLANC, (x, r.y + 34), ancora="midleft")
-    text(surf, T("Temporada {t} · BP {n}").format(t=temporada, n=nivell_passi), F_MINI, (200, 205, 225),
-         (x, r.y + 54), ancora="midleft")
-    for k in range(min(prestigi, 5)):
-        dibuixar_estrella(surf, x + 6 + k * 14, r.y + 72, 6, True, (190, 140, 255))
-    if monedes is not None:
-        rm = text(surf, str(monedes), F_HUD, GROC, (r.right - 10, r.y + 16), ancora="midright")
-        dibuixar_moneda(surf, rm.left - 12, r.y + 16)
-    if estrelles is not None:
-        re = text(surf, f"{estrelles}/{TOTAL_ESTRELLES}", F_MINI, (255, 220, 120), (r.right - 10, r.bottom - 14), ancora="midright")
-        dibuixar_estrella(surf, re.left - 10, re.centery, 6, True)
-
+    baixa = r.h < 70
+    dreta = r.right - 10
+    if baixa:
+        # targeta baixa (capçaleres): títol, rang i temporada; el prestigi, al costat de la temporada
+        mida_ins = min(34, r.h - 18)
+        dibuixar_insignia(surf, r.x + 12 + mida_ins // 2, r.centery - 2, rang, mida_ins)
+        x = r.x + 24 + mida_ins
+        y_tit, y_rang, y_temp = r.y + 12, r.y + r.h // 2, r.bottom - 12
+        lim_dalt = lim_baix = dreta
+        if monedes is not None:
+            rm = text(surf, str(monedes), F_HUD, GROC, (dreta, y_tit), ancora="midright", max_w=max(40, r.w // 3))
+            dibuixar_moneda(surf, rm.left - 12, y_tit)
+            lim_dalt = rm.left - 26
+        if estrelles is not None:
+            re = text(surf, f"{estrelles}/{TOTAL_ESTRELLES}", F_MINI, (255, 220, 120), (dreta, y_temp), ancora="midright")
+            dibuixar_estrella(surf, re.left - 10, re.centery, 6, True)
+            lim_baix = re.left - 22
+    else:
+        # targeta alta (menú): insígnia amb el prestigi a sota; tres línies de text i, a baix, monedes i estrelles
+        dibuixar_insignia(surf, r.x + 30, r.y + 36, rang, 34)
+        for k in range(min(prestigi, 5)):
+            dibuixar_estrella(surf, r.x + 30 + (k - (min(prestigi, 5) - 1) / 2) * 10, r.bottom - 13, 4, True,
+                              (190, 140, 255))
+        x = r.x + 58
+        y_tit, y_rang, y_temp = r.y + 15, r.y + 33, r.y + 51
+        lim_dalt = lim_baix = dreta
+        y_peu = r.bottom - 15
+        lim_mon = dreta
+        if estrelles is not None:
+            re = text(surf, f"{estrelles}/{TOTAL_ESTRELLES}", F_MINI, (255, 220, 120), (dreta, y_peu), ancora="midright")
+            dibuixar_estrella(surf, re.left - 10, re.centery, 6, True)
+            lim_mon = re.left - 26
+        if monedes is not None:
+            dibuixar_moneda(surf, x + 7, y_peu)
+            text(surf, str(monedes), F_HUD, GROC, (x + 18, y_peu), ancora="midleft", max_w=max(30, lim_mon - x - 18))
+    nom_titol = T(TITOLS.get(titol, ""))
+    if nom_titol:
+        text(surf, nom_titol, F_MINI, (255, 200, 255), (x, y_tit), ancora="midleft", max_w=max(20, lim_dalt - x))
+    text(surf, T(RANGS[rang]["nom"]).upper(), F_HUD, BLANC, (x, y_rang), ancora="midleft", max_w=max(20, dreta - x))
+    rt = text(surf, T("Temporada {t} · BP {n}").format(t=temporada, n=nivell_passi), F_MINI, (200, 205, 225),
+              (x, y_temp), ancora="midleft", max_w=max(20, lim_baix - x))
+    if baixa:
+        for k in range(min(prestigi, 5)):
+            px = rt.right + 12 + k * 13
+            if px + 6 > lim_baix:
+                break
+            dibuixar_estrella(surf, px, y_temp, 5, True, (190, 140, 255))
 
 
 # ---------------------------------------------------------------------------
@@ -8051,11 +8149,8 @@ class Game:
         self.desar_progres()
         self.entrar_botiga()
 
-    def equipar_cosmetic(self, tipus, valor):
-        if PREFIX_COSMETIC[tipus] + valor not in self.cosmetics:
-            self.mostrar_missatge(self.origen_cosmetic(tipus, valor))
-            AUDIO.so("buit")
-            return
+    def posar_cosmetic(self, tipus, valor):
+        """Equipa un cosmètic que ja tens, sense so ni desar."""
         if tipus == "uniforme":
             self.uniforme = valor
         elif tipus == "arma":
@@ -8066,6 +8161,13 @@ class Game:
             setattr(self, tipus, valor)
             if tipus == "tema":
                 TEMA_HUD[0] = TEMES_HUD[valor]
+
+    def equipar_cosmetic(self, tipus, valor):
+        if PREFIX_COSMETIC[tipus] + valor not in self.cosmetics:
+            self.mostrar_missatge(self.origen_cosmetic(tipus, valor))
+            AUDIO.so("buit")
+            return
+        self.posar_cosmetic(tipus, valor)
         AUDIO.so("item")
         self.desar_progres()
         self.revisar_logros()
@@ -10843,11 +10945,16 @@ class Game:
         self.vistos = vistos
         cu = d.get("codis")
         self.codis_usats = [c for c in cu if isinstance(c, str)] if isinstance(cu, list) else []
+        eq = d.get("equips")
+        self.equips = [e if isinstance(e, dict) else None for e in eq[:3]] if isinstance(eq, list) else []
+        self.equips += [None] * (3 - len(self.equips))
+        ea = d.get("equip_actiu")
+        self.equip_actiu = ea if isinstance(ea, int) and 0 <= ea < 3 else 0
 
     def dades_contingut(self):
         return {"xp_passi": self.xp_passi, "temporada": self.temporada, "baixes_arma": self.baixes_arma,
                 "rang_reclamat": self.rang_reclamat, "desafiaments": self.desafiaments, "reptes": self.reptes,
-                "vistos": self.vistos, "codis": self.codis_usats}
+                "vistos": self.vistos, "codis": self.codis_usats, "equips": self.equips, "equip_actiu": self.equip_actiu}
 
     def equipament(self):
         return {"uniforme": self.uniforme, "arma": self.aparenca, "titol": self.titol, "estela": self.estela,
@@ -11080,6 +11187,8 @@ class Game:
             return T("Completa el bestiario")
         if (tipus, valor) == ("titol", "mestre"):
             return T("Todas las armas en oro")
+        if (tipus, valor) in PREMIS_DLC:
+            return T("Completa «Ecos de Xylos»")
         return T("Bloqueado")
 
     def equipar_camo(self, arma_id, camo):
@@ -11330,50 +11439,11 @@ class Game:
             else:
                 text(surf, T("Sin dron"), F_TEXT_P, GRIS, centre)
 
-    # ----- Personalitzar (abans Tienda > Aspecto) -------------------------------------------------------
-    CATEGORIES_ASPECTE = (("uniforme", "Uniforme"), ("arma", "Aspecto de arma"), ("camo", "Camuflaje"),
-                          ("titol", "Título"), ("estela", "Estela"), ("efecte", "Eliminación"), ("mira", "Punto de mira"),
-                          ("tema", "HUD"), ("targeta", "Tarjeta"), ("dron", "Dron"))
-
-    def botons_aspecte(self):
-        b = []
-        cat = getattr(self, "cat_aspecte", "uniforme")
-        for k, (ident, nom) in enumerate(self.CATEGORIES_ASPECTE):
-            b.append(Boto((30, 124 + k * 34, 150, 30), nom, lambda i=ident: self.triar_cat_aspecte(i),
-                          VERD if cat == ident else BLAU, font=F_MINI))
-        if cat == "camo":
-            arma_id = getattr(self, "arma_camo", ARMES[self.arma_actual]["id"])
-            for k, a in enumerate(ARMES):
-                b.append(Boto((236 + k * 140, 124, 130, 36), "", lambda i=a["id"]: self.triar_arma_camo(i), invisible=True))
-            for k, camo in enumerate(CAMUFLATGES):
-                b.append(Boto((236 + k * 140, 170, 130, 170), "", lambda c=camo, a=arma_id: self.equipar_camo(a, c),
-                              invisible=True))
-        else:
-            for k, ident in enumerate(self.cosmetics_visibles(cat)):
-                r = self.rect_cosmetic(k)
-                b.append(Boto(r, "", lambda v=ident, c=cat: self.equipar_cosmetic(c, v), invisible=True))
-        return b
-
     def cosmetics_visibles(self, cat):
         """Els cosmètics d'una categoria que surten a Personalitzar: els ocults (codis secrets), només si ja els tens."""
         pre = PREFIX_COSMETIC[cat]
         return [i for i, info in CATALEG_COSMETIC[cat].items()
                 if not (isinstance(info, dict) and info.get("ocult")) or pre + i in self.cosmetics]
-
-    @staticmethod
-    def rect_cosmetic(k):
-        col, fila = k % 4, k // 4
-        return pygame.Rect(236 + col * 174, 124 + fila * 112, 166, 104)
-
-    def triar_cat_aspecte(self, ident):
-        self.cat_aspecte = ident
-        if ident == "camo":
-            self.arma_camo = ARMES[self.arma_actual]["id"]
-        self.entrar_personalitzar()
-
-    def triar_arma_camo(self, arma_id):
-        self.arma_camo = arma_id
-        self.entrar_personalitzar()
 
     def equipat_de(self, tipus):
         return {"uniforme": self.uniforme, "arma": self.aparenca, "titol": self.titol}.get(tipus) or getattr(self, tipus)
@@ -12815,20 +12885,689 @@ class Game:
 
     IMATGE_FITXA = {}
 
-    # ----- Personalitzar (clic a Nexus al menú) ---------------------------------------------------------
+    # ----- Personalitzar (clic a Nexus al menú) · v4.6 -------------------------------------------------
+    # Esquerra: la peana amb el soldat (el que portes o el que t'estàs provant). Dreta: tres grups, les seves
+    # pestanyes i una graella de targetes amb raresa, el que falta per aconseguir-les i «NUEVO».
+    GRUPS_PERS = (("soldat", "SOLDADO", ("uniforme", "titol", "targeta")),
+                  ("arma", "ARMA", ("arma", "camo", "mira", "estela", "efecte")),
+                  ("extres", "EXTRAS", ("dron", "tema")))
+    NOM_CAT_PERS = {"uniforme": "Uniforme", "titol": "Título", "targeta": "Tarjeta", "arma": "Aspecto",
+                    "camo": "Camuflaje", "mira": "Mira", "estela": "Estela", "efecte": "Eliminación", "dron": "Dron",
+                    "tema": "HUD"}
+    COLOR_RARESA = {"comu": (150, 156, 176), "rar": (80, 160, 255), "epic": (190, 100, 255), "llegendari": (255, 200, 60)}
+    NOM_RARESA = {"comu": "Común", "rar": "Raro", "epic": "Épico", "llegendari": "Legendario"}
+    FILTRES_PERS = ("Ver: todo", "Ver: tengo", "Ver: me falta")
+    PX = 352                                   # on comença la columna de la dreta
+    PERS_PAN = pygame.Rect(16, 76, 318, 372)   # peana
+    PERS_DET = pygame.Rect(352, 458, 584, 50)  # barra de detall
+    PER_PAGINA = 8
 
     def entrar_personalitzar(self):
         self.confirmar_reinici = False
-        self.botons = self.botons_aspecte() + [self.boto_tornar()]
-        self.marcar_vist("personalitzar")
+        if self.estat != "personalitzar":      # entrada des del menú: què hi ha de nou des de l'última visita
+            self.nous_pers = self.cosmetics - set(self.vistos.get("cosmetics", [])) - COSMETICS_INICIALS
+            self.prova_pers = None
+            self.pag_pers = 0
+            self.marcar_vist("personalitzar")
+        if getattr(self, "cat_aspecte", None) not in self.NOM_CAT_PERS:
+            self.cat_aspecte = "uniforme"
+        if getattr(self, "arma_camo", None) not in ARMA_PER_ID:
+            self.arma_camo = ARMES[self.arma_actual]["id"]
+        self.botons = self.botons_personalitzar()
         self.canviar_estat("personalitzar")
+
+    # --- dades -------------------------------------------------------------------------------------------------
+    def grup_pers(self, cat):
+        return next(g for g, _, cats in self.GRUPS_PERS if cat in cats)
+
+    def te_pers(self, cat, ident):
+        if cat == "camo":
+            return self.camo_obert(self.arma_camo, ident)
+        return PREFIX_COSMETIC[cat] + ident in self.cosmetics
+
+    def equipat_pers(self, cat, ident):
+        if cat == "camo":
+            return (self.camos.get(self.arma_camo) or "cap") == ident
+        return self.equipat_de(cat) == ident
+
+    def nou_pers(self, cat, ident):
+        return cat != "camo" and PREFIX_COSMETIC[cat] + ident in getattr(self, "nous_pers", ())
+
+    def items_pers(self, cat):
+        llista = list(CAMUFLATGES) if cat == "camo" else self.cosmetics_visibles(cat)
+        f = getattr(self, "filtre_pers", 0)
+        if f == 1:
+            llista = [i for i in llista if self.te_pers(cat, i)]
+        elif f == 2:
+            llista = [i for i in llista if not self.te_pers(cat, i)]
+        return llista
+
+    def recompte_pers(self, cat):
+        """(els que tens, total) d'una categoria."""
+        if cat == "camo":
+            return (sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap"),
+                    len(ARMES) * (len(CAMUFLATGES) - 1))
+        vis = self.cosmetics_visibles(cat)
+        return sum(PREFIX_COSMETIC[cat] + i in self.cosmetics for i in vis), len(vis)
+
+    def raresa(self, cat, ident):
+        if cat == "camo":
+            return {"cap": "comu", "bronze": "rar", "plata": "epic"}.get(ident, "llegendari")
+        if PREFIX_COSMETIC[cat] + ident in COSMETICS_INICIALS:
+            return "comu"
+        info = CATALEG_COSMETIC[cat].get(ident)
+        if isinstance(info, dict) and info.get("ocult"):
+            return "llegendari"
+        if (cat, ident) in PREMIS_DLC or (cat, ident) in (("targeta", "xenobio"), ("titol", "xenobioleg"),
+                                                           ("titol", "mestre")):
+            return "llegendari"
+        if any((cat, ident) in d["premi"] for d in DESAFIAMENTS.values()):
+            return "llegendari"
+        for i, r in enumerate(RANGS):
+            if (cat, ident) in r["premi"]:
+                return "llegendari" if i >= 11 else "epic"
+        n = self.nivell_passi_de(cat, ident)
+        if n:
+            return "rar" if n <= 15 else ("epic" if n <= 35 else "llegendari")
+        return "rar"
+
+    def progres_pers(self, cat, ident):
+        """(fracció 0-1 o None, text) del que et falta per aconseguir un objecte bloquejat."""
+        if cat == "camo":
+            if ident == "diamant":
+                n = sum(self.nivell_mestria(a["id"]) >= 10 for a in ARMES)
+                return n / len(ARMES), T("Armas en oro: {n}/{t}").format(n=n, t=len(ARMES))
+            cal, niv = CAMUFLATGES[ident]["nivell"], self.nivell_mestria(self.arma_camo)
+            return min(1.0, niv / cal), T("Te faltan {n} niveles de maestría con esta arma").format(n=max(0, cal - niv))
+        n = self.nivell_passi_de(cat, ident)
+        if n:
+            niv = self.nivell_passi()
+            if niv < n:
+                return niv / n, T("Te faltan {n} niveles del Battle Pass").format(n=n - niv)
+            return 1.0, T("Reclámalo en el Battle Pass")
+        for r in RANGS:
+            if (cat, ident) in r["premi"]:
+                return (min(1.0, self.xp / max(1, r["xp"])),
+                        T("Te faltan {n} XP para {r}").format(n=max(0, r["xp"] - self.xp), r=T(r["nom"])))
+        for d in DESAFIAMENTS.values():
+            if (cat, ident) in d["premi"]:
+                est = self.estrelles_totals()
+                if est < d["estrelles"]:
+                    return est / d["estrelles"], T("Desafío «{d}»: te faltan {n} estrellas").format(
+                        d=T(d["nom"]), n=d["estrelles"] - est)
+                return 1.0, T("Supera el desafío «{d}»").format(d=T(d["nom"]))
+        if (cat, ident) in PREMIS_DLC:
+            fets = sum(self.completats[SECTOR_DLC])
+            return fets / 3, T("Completa «Ecos de Xylos» ({n}/3)").format(n=fets)
+        if (cat, ident) in (("targeta", "xenobio"), ("titol", "xenobioleg")):
+            n = sum(self.baixes_bestiari(b["clau"]) > 0 for b in BESTIARI)
+            return n / len(BESTIARI), T("Bestiario: {n}/{t} fichas").format(n=n, t=len(BESTIARI))
+        if (cat, ident) == ("titol", "mestre"):
+            n = sum(self.nivell_mestria(a["id"]) >= 10 for a in ARMES)
+            return n / len(ARMES), T("Armas en oro: {n}/{t}").format(n=n, t=len(ARMES))
+        info = CATALEG_COSMETIC[cat].get(ident)
+        if isinstance(info, dict) and info.get("preu"):
+            return (min(1.0, self.monedes / info["preu"]),
+                    T("Sale en las ofertas del día · {p} monedas").format(p=info["preu"]))
+        return None, self.origen_cosmetic(cat, ident)
+
+    def nom_pers(self, cat, ident):
+        return T(CAMUFLATGES[ident]["nom"]) if cat == "camo" else nom_cosmetic(cat, ident)
+
+    def origen_pers(self, cat, ident):
+        if cat == "camo":
+            return T("Todas en oro") if ident == "diamant" else T("Maestría {n}").format(n=CAMUFLATGES[ident]["nivell"])
+        if PREFIX_COSMETIC[cat] + ident in COSMETICS_INICIALS:
+            return T("De serie")
+        return self.origen_cosmetic(cat, ident)
+
+    # --- accions ----------------------------------------------------------------------------------------------
+    def triar_grup_pers(self, grup):
+        cats = next(c for g, _, c in self.GRUPS_PERS if g == grup)
+        if self.cat_aspecte not in cats:
+            self.triar_cat_aspecte(cats[0])
+
+    def triar_cat_aspecte(self, ident):
+        if ident != self.cat_aspecte:          # el que era nou d'aquesta pestanya ja l'has vist
+            vella = self.cat_aspecte
+            if vella != "camo":
+                self.nous_pers = {c for c in self.nous_pers if not c.startswith(PREFIX_COSMETIC[vella])}
+            self.pag_pers = 0
+        self.cat_aspecte = ident
+        self.entrar_personalitzar()
+
+    def triar_arma_camo(self, arma_id):
+        self.arma_camo = arma_id
+        if self.prova_pers and self.prova_pers[0] == "camo":
+            self.prova_pers = None
+        self.entrar_personalitzar()
+
+    def canviar_filtre_pers(self):
+        self.filtre_pers = (getattr(self, "filtre_pers", 0) + 1) % len(self.FILTRES_PERS)
+        self.pag_pers = 0
+        self.entrar_personalitzar()
+
+    def pagina_pers(self, d):
+        self.pag_pers += d
+        self.entrar_personalitzar()
+
+    def clic_pers(self, cat, ident):
+        if self.te_pers(cat, ident):
+            self.prova_pers = None
+            if cat == "camo":
+                self.equipar_camo(self.arma_camo, ident)
+            else:
+                self.equipar_cosmetic(cat, ident)
+                self.nous_pers.discard(PREFIX_COSMETIC[cat] + ident)
+            self.actualitzar_equip()
+        else:                                   # bloquejat: te'l proves a la peana
+            self.prova_pers = None if self.prova_pers == (cat, ident) else (cat, ident)
+        self.entrar_personalitzar()
+
+    def treure_prova(self):
+        self.prova_pers = None
+        self.entrar_personalitzar()
+
+    def aleatori_pers(self):
+        for tipus in ("uniforme", "arma", "mira", "estela", "efecte", "dron"):
+            opcions = [i for i in self.cosmetics_visibles(tipus) if PREFIX_COSMETIC[tipus] + i in self.cosmetics]
+            if opcions:
+                self.posar_cosmetic(tipus, random.choice(opcions))
+        a = ARMES[self.arma_actual]["id"]
+        self.camos[a] = random.choice([c for c in CAMUFLATGES if self.camo_obert(a, c)])
+        self.prova_pers = None
+        self.actualitzar_equip()
+        AUDIO.so("item")
+        self.desar_progres()
+        self.entrar_personalitzar()
+
+    def instantania_equip(self):
+        e = self.equipament()
+        e["camos"] = dict(self.camos)
+        return e
+
+    def actualitzar_equip(self):
+        self.equips[self.equip_actiu] = self.instantania_equip()
+        self.desar_progres()
+
+    def triar_equip(self, k):
+        if self.equips[k] is None:             # buit: s'hi guarda el que portes
+            self.equip_actiu = k
+            self.equips[k] = self.instantania_equip()
+            self.mostrar_missatge(T("Equipo {n} guardado con lo que llevas").format(n=k + 1), ok=True)
+        else:
+            e = self.equips[k]
+            for tipus in ("uniforme", "arma", "titol", "estela", "efecte", "mira", "tema", "targeta", "dron"):
+                v = e.get(tipus)
+                if isinstance(v, str) and v in CATALEG_COSMETIC[tipus] and PREFIX_COSMETIC[tipus] + v in self.cosmetics:
+                    self.posar_cosmetic(tipus, v)
+            camos = e.get("camos") if isinstance(e.get("camos"), dict) else {}
+            self.camos = {a: c for a, c in camos.items() if a in ARMA_PER_ID and c in CAMUFLATGES and self.camo_obert(a, c)}
+            self.equip_actiu = k
+            self.mostrar_missatge(T("Equipo {n}").format(n=k + 1), ok=True)
+        self.prova_pers = None
+        AUDIO.so("item")
+        self.desar_progres()
+        self.entrar_personalitzar()
+
+    # --- geometria ----------------------------------------------------------------------------------------------
+    def rect_grup_pers(self, k):
+        return pygame.Rect(self.PX + k * 198, 76, 188, 46)
+
+    def rects_pestanyes_pers(self):
+        cats = next(c for g, _, c in self.GRUPS_PERS if g == self.grup_pers(self.cat_aspecte))
+        ample = (584 - 104) // len(cats)
+        return [(cat, pygame.Rect(self.PX + k * ample, 128, ample, 26)) for k, cat in enumerate(cats)]
+
+    def rect_filtre_pers(self):
+        return pygame.Rect(self.PX + 584 - 98, 128, 98, 26)
+
+    def rect_carta_pers(self, k):
+        col, fila = k % 4, k // 4
+        return pygame.Rect(self.PX + col * 148, 164 + fila * 146, 140, 138)
+
+    def rect_xip_arma(self, k):
+        return pygame.Rect(self.PX + k * 118, 164, 112, 36)
+
+    def rect_carta_camo(self, k):
+        return pygame.Rect(self.PX + k * 118, 208, 112, 182)
+
+    def rect_equip(self, k):
+        return pygame.Rect(170 + k * 56, 472, 50, 38)
+
+    def pagines_pers(self):
+        n = len(self.items_pers(self.cat_aspecte))
+        return max(1, (n + self.PER_PAGINA - 1) // self.PER_PAGINA)
+
+    def botons_personalitzar(self):
+        b = []
+        for k, (g, _, _) in enumerate(self.GRUPS_PERS):
+            b.append(Boto(self.rect_grup_pers(k), "", lambda g=g: self.triar_grup_pers(g), invisible=True))
+        for cat, r in self.rects_pestanyes_pers():
+            b.append(Boto(r, "", lambda c=cat: self.triar_cat_aspecte(c), invisible=True))
+        b.append(Boto(self.rect_filtre_pers(), "", self.canviar_filtre_pers, invisible=True))
+        cat = self.cat_aspecte
+        if cat == "camo":
+            for k, a in enumerate(ARMES):
+                b.append(Boto(self.rect_xip_arma(k), "", lambda i=a["id"]: self.triar_arma_camo(i), invisible=True))
+            for k, c in enumerate(self.items_pers(cat)):
+                b.append(Boto(self.rect_carta_camo(k), "", lambda c=c: self.clic_pers("camo", c), invisible=True))
+        else:
+            self.pag_pers = max(0, min(self.pagines_pers() - 1, getattr(self, "pag_pers", 0)))
+            pagina = self.items_pers(cat)[self.pag_pers * self.PER_PAGINA:(self.pag_pers + 1) * self.PER_PAGINA]
+            for k, ident in enumerate(pagina):
+                b.append(Boto(self.rect_carta_pers(k), "", lambda v=ident, c=cat: self.clic_pers(c, v), invisible=True))
+        d = self.PERS_DET
+        if cat != "camo" and self.pagines_pers() > 1:
+            x = d.right - 236 - 108
+            b.append(Boto((x, d.y + 8, 32, 34), "<", lambda: self.pagina_pers(-1), BLAU, self.pag_pers > 0, F_HUD))
+            b.append(Boto((x + 72, d.y + 8, 32, 34), ">", lambda: self.pagina_pers(1), BLAU,
+                          self.pag_pers < self.pagines_pers() - 1, F_HUD))
+        b.append(Boto((d.right - 232, d.y + 8, 110, 34), "Aleatorio", self.aleatori_pers, (90, 70, 140), font=F_MINI))
+        b.append(Boto((d.right - 116, d.y + 8, 110, 34), "Quitar prueba", self.treure_prova, (70, 76, 110),
+                      bool(self.prova_pers), F_MINI))
+        for k in range(3):
+            b.append(Boto(self.rect_equip(k), "", lambda k=k: self.triar_equip(k), invisible=True))
+        b.append(Boto((16, 466, 140, 42), "< Menú", self.entrar_menu, GRIS_FOSC))
+        return b
+
+    # --- dibuix ---------------------------------------------------------------------------------------------------
+    _CACHE_PERS = {}
+
+    def img_carta_pers(self, cat, ident, bloquejat):
+        """Mig cos del soldat ampliat (uniformes i aspectes d'arma), fosc si encara no el tens."""
+        arma_id = ARMES[self.arma_actual]["id"]
+        clau = (cat, ident, bloquejat, arma_id, self.uniforme, self.aparenca)
+        img = self._CACHE_PERS.get(clau)
+        if img is None:
+            sold = mostra_soldat(arma_id, ident, self.aparenca) if cat == "uniforme" else \
+                mostra_soldat(arma_id, self.uniforme, ident)
+            if sold is None:
+                return None
+            tros = sold.subsurface((0, 0, sold.get_width(), int(sold.get_height() * 0.62)))
+            img = pygame.transform.scale(tros, (tros.get_width() * 3, tros.get_height() * 3))
+            if bloquejat:
+                img = img.copy()
+                img.fill((70, 70, 84, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            if len(self._CACHE_PERS) > 120:
+                self._CACHE_PERS.clear()
+            self._CACHE_PERS[clau] = img
+        return img
+
+    def fons_peana(self, r):
+        n, e = self.seguent_escenari()
+        clau = ("fons", n, e, r.size)
+        img = self._CACHE_PERS.get(clau)
+        if img is None:
+            fons = FONS_NIVELLS.get((n, e))
+            img = pygame.Surface(r.size)
+            img.fill((20, 22, 40))
+            if fons is not None:
+                gran = pygame.transform.smoothscale(fons, (r.w * 2, int(fons.get_height() * r.w * 2 / fons.get_width())))
+                y = max(0, min(gran.get_height() - r.h, gran.get_height() - r.h - 40))
+                x = max(0, (gran.get_width() - r.w) // 2 - 60)
+                img.blit(gran, (0, 0), (x, y, r.w, r.h))
+                img.fill((150, 150, 185), special_flags=pygame.BLEND_RGB_MULT)
+            self._CACHE_PERS[clau] = img
+        return img
+
+    def objecte_peana(self):
+        """(categoria, objecte, provant) del que mostra la peana: el que proves, el que assenyales o el que portes."""
+        if self.prova_pers:
+            return self.prova_pers[0], self.prova_pers[1], True
+        pos = ratoli()
+        cat = self.cat_aspecte
+        if cat == "camo":
+            for k, c in enumerate(self.items_pers(cat)):
+                if self.rect_carta_camo(k).collidepoint(pos):
+                    return cat, c, False
+            return cat, self.camos.get(self.arma_camo) or "cap", False
+        pagina = self.items_pers(cat)[self.pag_pers * self.PER_PAGINA:(self.pag_pers + 1) * self.PER_PAGINA]
+        for k, ident in enumerate(pagina):
+            if self.rect_carta_pers(k).collidepoint(pos):
+                return cat, ident, False
+        return cat, self.equipat_de(cat), False
 
     def dibuixar_personalitzar(self, surf):
         self.fons_menu.dibuixar(surf)
-        text(surf, "PERSONALIZAR", F_SUBTITOL, BLANC, (WIDTH // 2, 40))
-        r = text(surf, str(self.monedes), F_UI, GROC, (WIDTH - 24, 40), ancora="midright")
-        dibuixar_moneda(surf, r.left - 14, 40)
-        self.dibuixar_botiga_aparenca(surf)
+        t = self.t_global
+        # capçalera: la teva targeta, el títol i les monedes
+        prova = self.prova_pers or (None, None)
+        dibuixar_targeta(surf, (16, 10, 318, 56), prova[1] if prova[0] == "targeta" else self.targeta,
+                         prova[1] if prova[0] == "titol" else self.titol, self.rang_actual(), self.temporada,
+                         self.nivell_passi(), self.temporada - 1)
+        rm = text(surf, str(self.monedes), F_UI, GROC, (WIDTH - 24, 38), ancora="midright", max_w=160)
+        dibuixar_moneda(surf, rm.left - 14, 38)
+        esq = self.PX
+        text(surf, "PERSONALIZAR", F_SUBTITOL, BLANC, ((esq + rm.left - 26) // 2, 38), max_w=rm.left - 40 - esq)
+        self._dibuixar_peana(surf, t)
+        self._dibuixar_grups_pers(surf)
+        if self.cat_aspecte == "camo":
+            info = self._dibuixar_camos(surf, t)
+        else:
+            info = self._dibuixar_cartes(surf, t)
+        self._dibuixar_detall_pers(surf, info)
+        # equips desats
+        text(surf, "Equipos", F_MINI, GRIS, (254, 462))
+        pos = ratoli()
+        for k in range(3):
+            r = self.rect_equip(k)
+            actiu, buit = k == self.equip_actiu, self.equips[k] is None
+            hover = r.collidepoint(pos)
+            base = (40, 160, 90) if actiu else (36, 44, 84)
+            pygame.draw.rect(surf, NEGRE, r.move(0, 3), border_radius=6)
+            pygame.draw.rect(surf, aclarir(base, 30) if hover else base, r, border_radius=6)
+            pygame.draw.rect(surf, (120, 240, 160) if actiu else (80, 96, 150), r, 2, border_radius=6)
+            text(surf, str(k + 1), F_HUD, BLANC if not buit or actiu else GRIS, (r.centerx, r.centery - (4 if buit else 0)))
+            if buit:
+                text(surf, "+", F_MINI, GRIS, (r.centerx, r.bottom - 8), ombra=False)
+
+    def _dibuixar_peana(self, surf, t):
+        pan = self.PERS_PAN
+        cat, ident, provant = self.objecte_peana()
+        rar = self.raresa(cat, ident)
+        col_rar = self.COLOR_RARESA[rar]
+        surf.blit(self.fons_peana(pan), pan)
+        panell(surf, pan, col_rar, alfa=0)
+        llum_ = llum(110, aclarir(col_rar, 40))
+        llum_.set_alpha(70)
+        surf.blit(llum_, llum_.get_rect(center=(pan.centerx, pan.y + 210)))
+        # el que es mostra: el que portes, amb el que proves o assenyales a sobre
+        eq = {"uniforme": self.uniforme, "arma": self.aparenca, "dron": self.dron, "mira": self.mira,
+              "estela": self.estela, "efecte": self.efecte, "tema": self.tema}
+        arma_id = self.arma_camo if cat == "camo" else ARMES[self.arma_actual]["id"]
+        camo = self.camos.get(arma_id)
+        if cat == "camo":
+            camo = ident
+        elif cat in eq:
+            eq[cat] = ident
+        peus = pan.y + 282
+        pygame.draw.ellipse(surf, (16, 18, 30), (pan.centerx - 92, peus - 16, 184, 34))
+        pygame.draw.ellipse(surf, col_rar, (pan.centerx - 92, peus - 16, 184, 34), 2)
+        sold = mostra_soldat(arma_id, eq["uniforme"], eq["arma"], None if camo in (None, "cap") else camo)
+        if sold is not None:
+            gran = self._CACHE_PERS.get(("peana", arma_id, eq["uniforme"], eq["arma"], camo))
+            if gran is None:
+                gran = pygame.transform.scale(sold, (sold.get_width() * 3, sold.get_height() * 3))
+                self._CACHE_PERS[("peana", arma_id, eq["uniforme"], eq["arma"], camo)] = gran
+            surf.blit(gran, gran.get_rect(midbottom=(pan.centerx - 6, peus + 2)))
+        # dron que sura al costat
+        if eq["dron"] == "teddy" and TEDDY:
+            pose, h = cicle_teddy(t)
+            posar_teddy(surf, pose, pan.right - 64, pan.y + 214 + h, 2)
+        else:
+            dr = sprite_dron(eq["dron"])
+            if dr:
+                dr = pygame.transform.scale(dr, (dr.get_width() * 2, dr.get_height() * 2))
+                surf.blit(dr, dr.get_rect(center=(pan.right - 58, pan.y + 158 + int(5 * math.sin(t * 0.06)))))
+        # vista de l'objecte quan no es veu al soldat (mira, estela, eliminació, HUD) o targeta/títol de prova
+        caixa = pygame.Rect(pan.x + 12, pan.y + 10, pan.w - 24, 66)
+        if cat in ("mira", "estela", "efecte", "tema"):
+            fons = pygame.Surface(caixa.size, pygame.SRCALPHA)
+            fons.fill((10, 12, 24, 190))
+            surf.blit(fons, caixa)
+            pygame.draw.rect(surf, col_rar, caixa, 1, border_radius=4)
+            self.previsualitzar(surf, cat, ident, caixa.inflate(-80, 22).move(0, 9), t)
+        elif cat in ("titol", "targeta"):
+            dibuixar_targeta(surf, (pan.x + 10, pan.y + 40, pan.w - 20, 56),
+                             ident if cat == "targeta" else self.targeta, ident if cat == "titol" else self.titol,
+                             self.rang_actual(), self.temporada, self.nivell_passi(), self.temporada - 1)
+        # brillantor dels llegendaris
+        if rar == "llegendari":
+            for k, ang in enumerate((0.7, 2.2, 3.9, 5.1)):
+                if (t // 8 + k) % 4 == 0:
+                    continue
+                x, y = pan.centerx + math.cos(ang) * 112, pan.y + 200 + math.sin(ang) * 96
+                pygame.draw.line(surf, (255, 240, 180), (x - 5, y), (x + 5, y), 2)
+                pygame.draw.line(surf, (255, 240, 180), (x, y - 5), (x, y + 5), 2)
+        # etiqueta de prova
+        if provant:
+            et = pygame.Rect(pan.x + 10, pan.y + 10, 120, 22)
+            if cat in ("titol", "targeta"):
+                et.y = pan.y + 100
+            elif cat in ("mira", "estela", "efecte", "tema"):
+                et = pygame.Rect(pan.x + 16, pan.y + 14, 96, 18)
+            pygame.draw.rect(surf, (255, 200, 60), et, border_radius=4)
+            text(surf, "PROBANDO", F_MINI, (40, 30, 10), et.center, ombra=False, max_w=et.w - 8)
+        # nom i d'on surt
+        peu_ = pygame.Surface((pan.w - 6, 60), pygame.SRCALPHA)
+        peu_.fill((8, 10, 20, 190))
+        surf.blit(peu_, (pan.x + 3, pan.bottom - 63))
+        text(surf, self.nom_pers(cat, ident), F_UI, aclarir(col_rar, 30), (pan.centerx, pan.bottom - 42), max_w=pan.w - 20)
+        text(surf, f"{T(self.NOM_RARESA[rar])} · {self.origen_pers(cat, ident)}", F_TEXT_PP, col_rar,
+             (pan.centerx, pan.bottom - 18), max_w=pan.w - 20)
+
+    def _dibuixar_grups_pers(self, surf):
+        pos = ratoli()
+        grup_actiu = self.grup_pers(self.cat_aspecte)
+        nous = getattr(self, "nous_pers", set())
+        for k, (g, nom, cats) in enumerate(self.GRUPS_PERS):
+            rr = self.rect_grup_pers(k)
+            actiu = g == grup_actiu
+            hover = rr.collidepoint(pos)
+            base = (40, 160, 90) if actiu else (36, 44, 84)
+            pygame.draw.rect(surf, NEGRE, rr.move(0, 3), border_radius=8)
+            pygame.draw.rect(surf, aclarir(base, 25) if hover else base, rr, border_radius=8)
+            pygame.draw.rect(surf, (120, 240, 160) if actiu else (80, 96, 150), rr, 2, border_radius=8)
+            # icona (mai més ampla de 44 px)
+            if g == "soldat":
+                ic = mostra_soldat(ARMES[self.arma_actual]["id"], self.uniforme, self.aparenca)
+            elif g == "arma":
+                ic = ICONES_ARMA[ARMES[self.arma_actual]["id"]][1]
+            else:
+                ic = sprite_dron(self.dron if self.dron != "cap" else next(d for d in DRONS if d != "cap"))
+            if ic is not None:
+                f = min(1.0, 40 / ic.get_width(), (rr.h - 8) / ic.get_height())
+                if f < 1:
+                    ic = pygame.transform.smoothscale(ic, (max(1, int(ic.get_width() * f)), max(1, int(ic.get_height() * f))))
+                surf.blit(ic, ic.get_rect(center=(rr.x + 26, rr.centery)))
+            x = rr.x + 52
+            text(surf, nom, F_HUD, BLANC, (x, rr.y + 15), ancora="midleft", max_w=rr.right - 10 - x)
+            fets = tot = 0
+            for c in cats:
+                a, b = self.recompte_pers(c)
+                fets, tot = fets + a, tot + b
+            rc = text(surf, f"{fets}/{tot}", F_MINI, (230, 230, 240), (rr.right - 8, rr.y + 33), ancora="midright")
+            barra = pygame.Rect(x, rr.y + 30, max(10, rc.left - 8 - x), 6)
+            pygame.draw.rect(surf, (14, 16, 30), barra)
+            pygame.draw.rect(surf, (255, 214, 64), (barra.x, barra.y, int(barra.w * fets / max(1, tot)), barra.h))
+            if any(c.startswith(PREFIX_COSMETIC[cc]) for cc in cats if cc != "camo" for c in nous):
+                pygame.draw.circle(surf, NEGRE, (rr.right - 7, rr.y + 8), 6)
+                pygame.draw.circle(surf, (255, 70, 70), (rr.right - 7, rr.y + 7), 5)
+        # pestanyes del grup
+        pestanyes = self.rects_pestanyes_pers()
+        font = F_TEXT_P
+        if any(F_TEXT_P.size(T(self.NOM_CAT_PERS[c]))[0] > r.w - 18 for c, r in pestanyes):
+            font = F_TEXT_PP
+        for cat, r in pestanyes:
+            actiu = cat == self.cat_aspecte
+            hover = r.collidepoint(pos)
+            rt = text(surf, self.NOM_CAT_PERS[cat], font, BLANC if actiu or hover else GRIS, (r.centerx, r.centery),
+                      max_w=r.w - 18)
+            if actiu:
+                pygame.draw.line(surf, (120, 240, 160), (rt.x, r.bottom), (rt.right, r.bottom), 3)
+            if cat != "camo" and any(c.startswith(PREFIX_COSMETIC[cat]) for c in nous):
+                pygame.draw.circle(surf, (255, 70, 70), (min(r.right - 4, rt.right + 6), rt.y + 3), 4)
+        rf = self.rect_filtre_pers()
+        hover = rf.collidepoint(pos)
+        pygame.draw.rect(surf, (46, 56, 100) if hover else (28, 34, 64), rf, border_radius=6)
+        pygame.draw.rect(surf, (80, 96, 150), rf, 1, border_radius=6)
+        text(surf, self.FILTRES_PERS[getattr(self, "filtre_pers", 0)], F_TEXT_PP, (170, 190, 240), rf.center,
+             max_w=rf.w - 10)
+
+    def _fons_carta(self, surf, c, rar, provant, equipat):
+        col = self.COLOR_RARESA[rar]
+        clau = ("grad", rar, c.size)
+        grad = self._CACHE_PERS.get(clau)
+        if grad is None:
+            grad = pygame.Surface(c.size, pygame.SRCALPHA)
+            for y in range(c.h):
+                pygame.draw.line(grad, (*col, int(70 * (1 - y / c.h))), (0, y), (c.w, y))
+            self._CACHE_PERS[clau] = grad
+        panell(surf, c, (120, 240, 160) if equipat else col)
+        surf.blit(grad, c)
+        pygame.draw.rect(surf, col, (c.x + 3, c.y + 3, c.w - 6, 3))
+        if provant:
+            pygame.draw.rect(surf, (255, 240, 180), c.inflate(6, 6), 3, border_radius=8)
+
+    def _segell_equipat(self, surf, c):
+        pygame.draw.circle(surf, NEGRE, (c.x + 16, c.y + 18), 10)
+        pygame.draw.circle(surf, (40, 160, 90), (c.x + 16, c.y + 17), 9)
+        pygame.draw.lines(surf, BLANC, False, [(c.x + 11, c.y + 17), (c.x + 15, c.y + 21), (c.x + 21, c.y + 13)], 2)
+
+    def _segell_nou(self, surf, c):
+        et = pygame.Rect(c.right - 50, c.y + 10, 42, 15)
+        pygame.draw.rect(surf, (255, 70, 70), et, border_radius=3)
+        text(surf, "NUEVO", F_MINI, BLANC, et.center, ombra=False, max_w=et.w - 4)
+
+    def _peu_carta(self, surf, c, cat, ident, te, rar, nom=True):
+        pygame.draw.rect(surf, (12, 14, 26), (c.x + 3, c.bottom - 36, c.w - 6, 33))
+        if nom:
+            text(surf, self.nom_pers(cat, ident), F_TEXT_PP, BLANC if te else (170, 170, 185), (c.centerx, c.bottom - 25),
+                 max_w=c.w - 10)
+        y_baix = c.bottom - 10 if nom else c.bottom - 20
+        if te:
+            text(surf, self.NOM_RARESA[rar], F_MINI, self.COLOR_RARESA[rar], (c.centerx, y_baix), max_w=c.w - 10)
+        else:
+            frac, _ = self.progres_pers(cat, ident)
+            if frac is None:
+                text(surf, "???", F_MINI, (255, 170, 90), (c.centerx, y_baix))
+            else:
+                b = pygame.Rect(c.x + 12, y_baix - 3, c.w - 24, 6)
+                pygame.draw.rect(surf, (30, 30, 46), b)
+                pygame.draw.rect(surf, (255, 170, 90), (b.x, b.y, int(b.w * max(0.0, min(1.0, frac))), b.h))
+
+    def _dibuixar_cartes(self, surf, t):
+        cat = self.cat_aspecte
+        pos = ratoli()
+        info = None
+        pagina = self.items_pers(cat)[self.pag_pers * self.PER_PAGINA:(self.pag_pers + 1) * self.PER_PAGINA]
+        if not pagina:
+            text(surf, "No hay nada aquí con este filtro.", F_TEXT_P, GRIS, (self.PX + 292, 300))
+        for k, ident in enumerate(pagina):
+            c = self.rect_carta_pers(k)
+            te = self.te_pers(cat, ident)
+            rar = self.raresa(cat, ident)
+            equipat = self.equipat_pers(cat, ident)
+            provant = self.prova_pers == (cat, ident)
+            self._fons_carta(surf, c, rar, provant, equipat)
+            if cat in ("uniforme", "arma"):
+                img = self.img_carta_pers(cat, ident, not te)
+                if img is not None:
+                    clip = surf.get_clip()
+                    surf.set_clip(c.inflate(-6, -6).clip(clip))
+                    surf.blit(img, img.get_rect(midbottom=(c.centerx - 6, c.bottom - 34)))
+                    surf.set_clip(clip)
+                if cat == "arma":
+                    color = APARENCES_ARMA[ident]["bala"] or Bala.ESTILS[ARMES[self.arma_actual]["estil"]][1]
+                    pygame.draw.circle(surf, color_arc(t) if color == "arc" else color, (c.right - 16, c.bottom - 50), 6)
+            elif cat == "titol":
+                zona = pygame.Rect(c.x + 8, c.y + 12, c.w - 16, c.h - 52)
+                text_bloc(surf, TITOLS[ident], F_TEXT_P, BLANC if te else (170, 170, 185), zona, ombra=True, max_linies=3)
+            else:
+                zona = pygame.Rect(c.x + 4, c.y + 8, c.w - 8, c.h - 36)
+                self.previsualitzar(surf, cat, ident, zona.inflate(0, 22).move(0, 8), t + k * 13)
+                if not te and cat != "titol":
+                    capa = pygame.Surface((c.w - 6, c.h - 40), pygame.SRCALPHA)
+                    capa.fill((0, 0, 0, 130))
+                    surf.blit(capa, (c.x + 3, c.y + 4))
+            self._peu_carta(surf, c, cat, ident, te, rar, nom=cat != "titol")
+            if not te:
+                dibuixar_cadenat(surf, c.right - 15, c.y + 18)
+            elif self.nou_pers(cat, ident):
+                self._segell_nou(surf, c)
+            if equipat:
+                self._segell_equipat(surf, c)
+            if c.collidepoint(pos):
+                pygame.draw.rect(surf, BLANC, c, 1, border_radius=6)
+                info = (cat, ident)
+        return info
+
+    def _dibuixar_camos(self, surf, t):
+        pos = ratoli()
+        info = None
+        for k, a in enumerate(ARMES):
+            r = self.rect_xip_arma(k)
+            actiu = a["id"] == self.arma_camo
+            panell(surf, r, VERD if actiu else (BLAU_CLAR if r.collidepoint(pos) else GRIS_FOSC))
+            ic = ICONES_ARMA[a["id"]][1]
+            surf.blit(ic, ic.get_rect(center=(r.x + 26, r.centery)))
+            text(surf, T("Nv {n}").format(n=self.nivell_mestria(a["id"])), F_MINI, BLANC, (r.right - 8, r.centery),
+                 ancora="midright", max_w=r.w - 56)
+        for k, camo in enumerate(self.items_pers("camo")):
+            c = self.rect_carta_camo(k)
+            te = self.te_pers("camo", camo)
+            rar = self.raresa("camo", camo)
+            equipat = self.equipat_pers("camo", camo)
+            self._fons_carta(surf, c, rar, self.prova_pers == ("camo", camo), equipat)
+            clau = ("camo", self.arma_camo, camo, self.uniforme, self.aparenca, te)
+            img = self._CACHE_PERS.get(clau)
+            if img is None:
+                sold = mostra_soldat(self.arma_camo, self.uniforme, self.aparenca, None if camo == "cap" else camo)
+                if sold is not None:
+                    img = pygame.transform.scale(sold, (sold.get_width() * 2, sold.get_height() * 2))
+                    if not te:
+                        img.fill((70, 70, 84, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                    self._CACHE_PERS[clau] = img
+            if img is not None:
+                clip = surf.get_clip()
+                surf.set_clip(c.inflate(-6, -6).clip(clip))
+                surf.blit(img, img.get_rect(midbottom=(c.centerx - 4, c.bottom - 40)))
+                surf.set_clip(clip)
+            if camo == "diamant" and te and (t // 6) % 4 == 0:
+                pygame.draw.circle(surf, BLANC, (c.centerx + random.randint(-24, 24), c.y + random.randint(40, 120)), 2)
+            self._peu_carta(surf, c, "camo", camo, te, rar)
+            if not te:
+                dibuixar_cadenat(surf, c.right - 15, c.y + 18)
+            if equipat:
+                self._segell_equipat(surf, c)
+            if c.collidepoint(pos):
+                pygame.draw.rect(surf, BLANC, c, 1, border_radius=6)
+                info = ("camo", camo)
+        # maestria de l'arma triada
+        nivell = self.nivell_mestria(self.arma_camo)
+        b = self.baixes_arma.get(self.arma_camo, 0)
+        barra = pygame.Rect(self.PX, 406, 584, 10)
+        pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=5)
+        nom = T(ARMES[ARMA_PER_ID[self.arma_camo]]["nom"])
+        if nivell < 10:
+            ini, fi = MAESTRIA[nivell - 1], MAESTRIA[nivell]
+            pygame.draw.rect(surf, (255, 200, 120), (barra.x, barra.y, int(barra.w * (b - ini) / (fi - ini)), barra.h),
+                             border_radius=5)
+            txt = T("Maestría {a}: nivel {n}/10 · {b}/{f} bajas para el siguiente").format(a=nom, n=nivell, b=b, f=fi)
+        else:
+            pygame.draw.rect(surf, GROC, barra, border_radius=5)
+            txt = T("Maestría {a}: nivel máximo ({b} bajas)").format(a=nom, b=b)
+        text(surf, txt, F_TEXT_PP, BLANC, (barra.centerx, barra.bottom + 16), max_w=barra.w)
+        return info
+
+    def _dibuixar_detall_pers(self, surf, info):
+        d = self.PERS_DET
+        panell(surf, d, (90, 120, 190))
+        pagines = self.pagines_pers() if self.cat_aspecte != "camo" else 1
+        limit = d.right - 236 - (116 if pagines > 1 else 0)
+        if pagines > 1:
+            text(surf, f"{self.pag_pers + 1}/{pagines}", F_MINI, BLANC, (d.right - 236 - 108 + 52, d.centery))
+        zona = pygame.Rect(d.x + 12, d.y + 4, limit - d.x - 20, d.h - 8)
+        if self.missatge:
+            col = VERD if getattr(self, "missatge_ok", False) else (255, 120, 120)
+            text_bloc(surf, self.missatge, F_TEXT_PP, col, zona, alinea="left", ombra=True, max_linies=2)
+            return
+        objecte = info or self.prova_pers
+        if objecte:
+            cat, ident = objecte
+            if self.te_pers(cat, ident):
+                txt = T("Equipado") if self.equipat_pers(cat, ident) else T("Toca para equipar")
+                col = (140, 240, 170)
+            else:
+                txt = self.progres_pers(cat, ident)[1]
+                if self.prova_pers != objecte:
+                    txt += " · " + T("Toca para probártelo")
+                col = (255, 200, 120)
+        else:
+            txt = T("Toca algo bloqueado para probártelo antes de tenerlo.")
+            col = (170, 190, 240)
+        text_bloc(surf, txt, F_TEXT_PP, col, zona, alinea="left", ombra=True, max_linies=2)
 
     def rect_nexus_menu(self):
         return pygame.Rect(426, 296, 160, 172)
@@ -13158,83 +13897,6 @@ class Game:
             dibuixar_pips(surf, 604, fila.top + 18, nivell, total=len(m["costos"]), color=VERD, mida=14)
         if not self.missatge:
             peu(surf, "Las mejoras se abren al avanzar en la historia; el último nivel pide estrellas.", CIAN, F_TEXT_P)
-
-    def dibuixar_botiga_aparenca(self, surf):
-        t = self.t_global
-        cat = getattr(self, "cat_aspecte", "uniforme")
-        pos = ratoli()
-        info = None
-        # comptador de cada categoria al costat del botó
-        for k, (ident, _) in enumerate(self.CATEGORIES_ASPECTE):
-            if ident == "camo":
-                fets = sum(self.camo_obert(a["id"], c) for a in ARMES for c in CAMUFLATGES if c != "cap")
-                total = len(ARMES) * (len(CAMUFLATGES) - 1)
-            else:
-                visibles = self.cosmetics_visibles(ident)
-                fets = sum(PREFIX_COSMETIC[ident] + i in self.cosmetics for i in visibles)
-                total = len(visibles)
-            text(surf, f"{fets}/{total}", F_MINI, GRIS, (186, 139 + k * 34), ancora="midleft")
-        if cat == "camo":
-            arma_id = getattr(self, "arma_camo", ARMES[self.arma_actual]["id"])
-            for k, a in enumerate(ARMES):
-                r = pygame.Rect(236 + k * 140, 124, 130, 36)
-                panell(surf, r, VERD if a["id"] == arma_id else GRIS_FOSC)
-                ic = ICONES_ARMA[a["id"]][1]
-                surf.blit(ic, ic.get_rect(center=(r.x + 26, r.centery)))
-                text(surf, T("Nv {n}").format(n=self.nivell_mestria(a["id"])), F_MINI, BLANC, (r.right - 8, r.centery),
-                     ancora="midright")
-            for k, (camo, dades) in enumerate(CAMUFLATGES.items()):
-                r = pygame.Rect(236 + k * 140, 170, 130, 170)
-                obert = self.camo_obert(arma_id, camo)
-                equipat = (self.camos.get(arma_id) or "cap") == camo
-                hover = r.collidepoint(pos)
-                panell(surf, r, VERD if equipat else (BLAU_CLAR if obert and hover else (GRIS if obert else GRIS_FOSC)))
-                img = mostra_soldat(arma_id, self.uniforme, self.aparenca, None if camo == "cap" else camo)
-                if not obert:
-                    img = img.copy()
-                    img.fill((60, 60, 60, 255), special_flags=pygame.BLEND_RGBA_MULT)
-                surf.blit(img, img.get_rect(center=(r.centerx, r.y + 70)))
-                if camo == "diamant" and obert and (t // 6) % 4 == 0:
-                    pygame.draw.circle(surf, BLANC, (r.centerx + random.randint(-20, 20), r.y + random.randint(40, 100)), 2)
-                text(surf, T(dades["nom"]), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 34), max_w=r.w - 8)
-                req = T("Todas en oro") if camo == "diamant" else T("Maestría {n}").format(n=dades["nivell"])
-                text(surf, req, F_MINI, VERD if obert else (255, 170, 120), (r.centerx, r.bottom - 16), max_w=r.w - 8)
-                if hover:
-                    info = T("Sube de nivel de maestría eliminando enemigos con esta arma.")
-            nivell = self.nivell_mestria(arma_id)
-            b = self.baixes_arma.get(arma_id, 0)
-            barra = pygame.Rect(236, 362, 690, 12)
-            pygame.draw.rect(surf, GRIS_FOSC, barra, border_radius=5)
-            if nivell < 10:
-                ini, fi = MAESTRIA[nivell - 1], MAESTRIA[nivell]
-                pygame.draw.rect(surf, (255, 200, 120), (barra.x, barra.y, int(barra.w * (b - ini) / (fi - ini)), barra.h),
-                                 border_radius=5)
-                txt = T("Maestría {a}: nivel {n}/10 · {b}/{f} bajas para el siguiente").format(
-                    a=T(ARMES[ARMA_PER_ID[arma_id]]["nom"]), n=nivell, b=b, f=fi)
-            else:
-                pygame.draw.rect(surf, GROC, barra, border_radius=5)
-                txt = T("Maestría {a}: nivel máximo ({b} bajas)").format(a=T(ARMES[ARMA_PER_ID[arma_id]]["nom"]), b=b)
-            text(surf, txt, F_TEXT_P, BLANC, (barra.centerx, barra.bottom + 20), max_w=barra.w)
-        else:
-            equipat = self.equipat_de(cat)
-            for k, ident in enumerate(self.cosmetics_visibles(cat)):
-                r = self.rect_cosmetic(k)
-                obert = PREFIX_COSMETIC[cat] + ident in self.cosmetics
-                hover = r.collidepoint(pos)
-                panell(surf, r, VERD if equipat == ident else (BLAU_CLAR if obert and hover else (GRIS if obert else GRIS_FOSC)))
-                self.previsualitzar(surf, cat, ident, r, t + k * 13)
-                if not obert:
-                    capa = pygame.Surface((r.w - 4, r.h - 4), pygame.SRCALPHA)
-                    capa.fill((0, 0, 0, 120))
-                    surf.blit(capa, (r.x + 2, r.y + 2))
-                    dibuixar_cadenat(surf, r.right - 14, r.y + 14)
-                if cat != "titol":
-                    text(surf, nom_cosmetic(cat, ident), F_MINI, BLANC if obert else GRIS, (r.centerx, r.bottom - 12),
-                         max_w=r.w - 8)
-                if hover:
-                    info = (T("Equipado") if equipat == ident else T("Clic para equipar")) if obert else self.origen_cosmetic(cat, ident)
-        if not self.missatge:
-            peu(surf, info or T("Consigue más en el Battle Pass, los rangos, los desafíos y las ofertas del día."), CIAN, F_TEXT_PP)
 
     # ----- Battle Pass per pàgines ------------------------------------------------------------------
 
@@ -13630,9 +14292,9 @@ class Game:
         if self.estat not in ("narrativa", "derrota"):
             for b in self.botons:
                 b.dibuixar(surf)
-        if self.missatge and self.estat != "joc":
+        if self.missatge and self.estat not in ("joc", "personalitzar"):
             col = VERD if getattr(self, "missatge_ok", False) else VERMELL
-            if self.estat in ("botiga", "personalitzar"):
+            if self.estat == "botiga":
                 peu(surf, self.missatge, col, F_HUD)
             elif self.estat == "arma":
                 text_bloc(surf, self.missatge, F_HUD, col, (182, HEIGHT - 58, WIDTH - 300 - 194, 50), ombra=True)

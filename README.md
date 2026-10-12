@@ -114,6 +114,13 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 4.6: Personalizar renovado**
+- **Personalizar** se rehace: a la izquierda, tu soldado en una peana con el fondo del sector por el que vas, el dron flotando a su lado y el nombre, la rareza y el origen de lo que ves; a la derecha, tres grupos (**Soldado**: uniforme, título y tarjeta; **Arma**: aspecto, camuflaje, mira, estela y eliminación; **Extras**: dron y HUD) con su progreso, pestañas y una cuadrícula de tarjetas grandes.
+- Cada objeto tiene **rareza** (común, raro, épico o legendario, según de dónde sale), una etiqueta **NUEVO** si aún no lo habías visto y, si está bloqueado, una **barra con lo que te falta** (niveles del Battle Pass, XP del rango, estrellas del desafío, maestría del arma...).
+- **Pruébatelo**: al tocar algo bloqueado se ve puesto en la peana antes de tenerlo. Botón **Aleatorio** para un aspecto al azar con lo que ya tienes, filtro **Ver: todo / tengo / me falta** y **tres equipos** guardados (se actualizan solos al equipar).
+- **Insignias de rango** redibujadas: el dibujo se centra en el escudo y se recorta con su forma, así no se sale nada a ningún tamaño.
+- La **tarjeta de jugador** ya no monta los textos: las monedas y las estrellas van abajo, el prestigio debajo de la insignia, y cada texto se encoge (o se recorta con «...») para caber en su sitio.
+
 **Versión 4.5: banda sonora y enemigos por sector**
 - La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.
 - Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **30% menos de vida** que en la 4.2 y los **jefes de sector** un 10% menos: con todas las mejoras los combates se hacían demasiado largos.

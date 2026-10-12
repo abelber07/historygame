@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.5"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.6"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
 SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
 SECTOR_DLC = 5            # índex del sector del DLC
@@ -624,6 +624,16 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.6", "titol": "Personalizar renovado", "punts": [
+        ("mira", "Personalizar renovado: tu soldado en una peana con el fondo de tu sector y todo ordenado en tres "
+                 "grupos: Soldado, Arma y Extras."),
+        ("estrella", "Cada objeto tiene rareza (común, raro, épico o legendario), una etiqueta NUEVO y una barra con "
+                     "lo que te falta para conseguirlo."),
+        ("dron", "Toca algo bloqueado para probártelo antes de tenerlo, prueba un aspecto aleatorio y guarda hasta "
+                 "tres equipos."),
+        ("rang", "Insignias de rango redibujadas: centradas y sin líneas que se salen del escudo. La tarjeta de jugador "
+                 "ya no monta los textos con muchas monedas o un título largo."),
+    ]},
     {"versio": "4.5", "titol": "Banda sonora y enemigos por sector", "punts": [
         ("musica", "Banda sonora nueva: una canción para cada escenario, un tema nuevo en el menú y cada jefe con dos "
                    "fases: cuando se enfada, su música cambia."),

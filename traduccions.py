@@ -2209,3 +2209,59 @@ _DLC_44 = {
 for _es, (_ca, _en) in _DLC_44.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)
+
+
+# --- v4.6: Personalizar renovado -----------------------------------------------------------------------------
+_PERS_46 = {
+    "Personalizar renovado": ("Personalitzar renovat", "Customize, redesigned"),
+    "Personalizar renovado: tu soldado en una peana con el fondo de tu sector y todo ordenado en tres grupos: Soldado, Arma y Extras.":
+        ("Personalitzar renovat: el teu soldat en una peana amb el fons del teu sector i tot ordenat en tres grups: Soldat, Arma i Extres.",
+         "Customize, redesigned: your soldier on a stand with your sector in the background, and everything sorted into three groups: Soldier, Weapon and Extras."),
+    "Cada objeto tiene rareza (común, raro, épico o legendario), una etiqueta NUEVO y una barra con lo que te falta para conseguirlo.":
+        ("Cada objecte té raresa (comú, rar, èpic o llegendari), una etiqueta NOU i una barra amb el que et falta per aconseguir-lo.",
+         "Every item has a rarity (common, rare, epic or legendary), a NEW tag and a bar showing what you still need to unlock it."),
+    "Toca algo bloqueado para probártelo antes de tenerlo, prueba un aspecto aleatorio y guarda hasta tres equipos.":
+        ("Toca una cosa bloquejada per provar-te-la abans de tenir-la, prova un aspecte aleatori i desa fins a tres equips.",
+         "Tap something locked to try it on before you own it, try a random look and save up to three loadouts."),
+    "Insignias de rango redibujadas: centradas y sin líneas que se salen del escudo. La tarjeta de jugador ya no monta los textos con muchas monedas o un título largo.":
+        ("Insígnies de rang redibuixades: centrades i sense línies que surten de l'escut. La targeta de jugador ja no encavalca els textos amb moltes monedes o un títol llarg.",
+         "Rank badges redrawn: centred, with no lines sticking out of the shield. The player card no longer overlaps its text with lots of coins or a long title."),
+    "SOLDADO": ("SOLDAT", "SOLDIER"),
+    "EXTRAS": ("EXTRES", "EXTRAS"),
+    "Mira": ("Mira", "Crosshair"),
+    "Aleatorio": ("Aleatori", "Random"),
+    "Quitar prueba": ("Treure prova", "Stop trying"),
+    "PROBANDO": ("PROVANT", "TRYING ON"),
+    "NUEVO": ("NOU", "NEW"),
+    "Equipos": ("Equips", "Loadouts"),
+    "Equipo {n}": ("Equip {n}", "Loadout {n}"),
+    "Equipo {n} guardado con lo que llevas": ("Equip {n} desat amb el que portes", "Loadout {n} saved with what you're wearing"),
+    "Común": ("Comú", "Common"),
+    "Raro": ("Rar", "Rare"),
+    "Épico": ("Èpic", "Epic"),
+    "Legendario": ("Llegendari", "Legendary"),
+    "De serie": ("De sèrie", "Default"),
+    "Ver: todo": ("Veure: tot", "Show: all"),
+    "Ver: tengo": ("Veure: tinc", "Show: owned"),
+    "Ver: me falta": ("Veure: em falta", "Show: missing"),
+    "No hay nada aquí con este filtro.": ("No hi ha res aquí amb aquest filtre.", "Nothing here with this filter."),
+    "Toca para equipar": ("Toca per equipar", "Tap to equip"),
+    "Toca para probártelo": ("Toca per provar-t'ho", "Tap to try it on"),
+    "Toca algo bloqueado para probártelo antes de tenerlo.":
+        ("Toca una cosa bloquejada per provar-te-la abans de tenir-la.", "Tap something locked to try it on before you own it."),
+    "Te faltan {n} niveles del Battle Pass": ("Et falten {n} nivells del Battle Pass", "{n} more Battle Pass levels"),
+    "Reclámalo en el Battle Pass": ("Reclama-ho al Battle Pass", "Claim it in the Battle Pass"),
+    "Te faltan {n} XP para {r}": ("Et falten {n} XP per a {r}", "{n} more XP to reach {r}"),
+    "Desafío «{d}»: te faltan {n} estrellas": ("Desafiament «{d}»: et falten {n} estrelles", "Challenge “{d}”: {n} more stars"),
+    "Supera el desafío «{d}»": ("Supera el desafiament «{d}»", "Beat the challenge “{d}”"),
+    "Completa «Ecos de Xylos»": ("Completa «Ecos de Xylos»", "Complete “Echoes of Xylos”"),
+    "Completa «Ecos de Xylos» ({n}/3)": ("Completa «Ecos de Xylos» ({n}/3)", "Complete “Echoes of Xylos” ({n}/3)"),
+    "Bestiario: {n}/{t} fichas": ("Bestiari: {n}/{t} fitxes", "Bestiary: {n}/{t} entries"),
+    "Armas en oro: {n}/{t}": ("Armes en or: {n}/{t}", "Weapons in gold: {n}/{t}"),
+    "Te faltan {n} niveles de maestría con esta arma": ("Et falten {n} nivells de mestria amb aquesta arma",
+                                                        "{n} more mastery levels with this weapon"),
+    "Sale en las ofertas del día · {p} monedas": ("Surt a les ofertes del dia · {p} monedes", "Shows up in the daily deals · {p} coins"),
+}
+for _es, (_ca, _en) in _PERS_46.items():
+    CA.setdefault(_es, _ca)
+    EN.setdefault(_es, _en)
