@@ -2162,6 +2162,9 @@ _DLC_44 = {
         ("Els caps finals tenen un 30% menys de vida que a la 4.2 i els caps de sector un 10% menys. En Normal, els enemics fan un 20% menys de mal i les cures i la munició apareixen més sovint.",
          "Final bosses have 30% less health than in 4.2 and sector bosses 10% less. On Normal, enemies deal 20% less damage and health and ammo pickups appear more often."),
     "Ver el eco": ("Veure l'eco", "Watch the echo"),
+    "Música nueva para los jefes finales y para la pantalla de derrota. La vida y las habilidades se ven abajo a la izquierda, encima del arma, y la vida de los jefes arriba en el centro.":
+        ("Música nova per als caps finals i per a la pantalla de derrota. La vida i les habilitats es veuen a baix a l'esquerra, damunt de l'arma, i la vida dels caps a dalt al centre.",
+         "New music for the final bosses and the defeat screen. Health and abilities now sit at the bottom left, above your weapon, and boss health at the top centre."),
     "Verde = completado · Cuadros = potencia · Estrellas: completar, rápido, con media vida":
         ("Verd = completat · Quadres = potència · Estrelles: completar, ràpid, amb mitja vida",
          "Green = completed · Squares = power · Stars: complete, fast, with half health"),

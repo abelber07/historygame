@@ -627,6 +627,8 @@ NOVETATS = [
                  "Normal, los enemigos hacen un 20% menos de daño y las curas y la munición aparecen más a menudo."),
         ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
                  "(y con hueco para esquivar) y sus cristales quitan menos."),
+        ("musica", "Música nueva para los jefes finales y para la pantalla de derrota. La vida y las habilidades se ven "
+                   "abajo a la izquierda, encima del arma, y la vida de los jefes arriba en el centro."),
         ("estrella", "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al "
                      "menos la mitad de la vida. Las estrellas que ya tenías se quedan."),
     ]},

@@ -1103,7 +1103,7 @@ class DescarregaMusica:
     """Al navegador el paquet inicial només porta la música del menú (càrrega molt més ràpida).
     Les altres pistes es descarreguen d'una en una en segon pla, en l'ordre en què es necessiten."""
 
-    ORDRE = ["sector1", "jefe", "sector2", "sector3", "boss_final", "sector4", "sector5", "final", "supervivencia",
+    ORDRE = ["sector1", "derrota", "jefe", "sector2", "sector3", "boss_final", "sector4", "sector5", "final", "supervivencia",
              "sector6"]
 
     def __init__(self):
@@ -4979,7 +4979,7 @@ class Radio:
         qui, txt, t = self.actual
         txt = T(txt)
         entrada = min(1.0, t / 10)
-        caixa = pygame.Rect(12, 80, 500, 76)
+        caixa = pygame.Rect(12, 54 if CONTROL is None or CONTROL.mode != "tactil" else 80, 500, 76)
         caixa.x = int(-caixa.w + (caixa.w + 12) * entrada)
         capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
         capa.fill((6, 10, 22, 205))
@@ -8037,7 +8037,7 @@ class Game:
 
     def mostrar_derrota(self):
         self.desar_progres()
-        AUDIO.aturar_musica()
+        AUDIO.musica("derrota")
         AUDIO.so("eliminat")
         botons = [Boto((WIDTH // 2 - 230, HEIGHT - 110, 200, 50), "Menú", self.entrar_menu, GRIS_FOSC),
                   Boto((WIDTH // 2 + 30, HEIGHT - 110, 200, 50), "Reintentar", self.iniciar_joc, VERMELL)]
@@ -9110,7 +9110,7 @@ class Game:
         nou = not self.records or self.punts > max(r["punts"] for r in self.records)
         self.records = sorted(self.records + [rec], key=lambda r: -r["punts"])[:5]
         self.desar_progres()
-        AUDIO.aturar_musica()
+        AUDIO.musica("derrota")
         AUDIO.so("eliminat")
         botons = [Boto((WIDTH // 2 - 230, HEIGHT - 110, 200, 50), "Menú", self.entrar_supervivencia, GRIS_FOSC),
                   Boto((WIDTH // 2 + 30, HEIGHT - 110, 200, 50), "Reintentar", self.iniciar_supervivencia, VERMELL)]
@@ -10052,18 +10052,36 @@ class Game:
         self.nums_dany[id(e)] = n
         self.textos.append(n)
 
+    _CAPA_VIDA = None
+
     def _hud_vida(self, surf, j):
-        """Panell de dalt a l'esquerra: cors, voltereta, millores actives i Battle Pass."""
+        """Panell de baix a l'esquerra, damunt de l'arma: cors, voltereta, millores actives i Battle Pass.
+        (Amb la pantalla tàctil es queda a dalt a l'esquerra: a baix hi ha el joystick.) Si el soldat hi passa
+        per darrere, el panell es torna transparent perquè es vegi."""
+        dy = 0 if CONTROL is not None and CONTROL.mode == "tactil" else HEIGHT - 118 - 6
+        ample = max(206, 18 + (j.vida_max // 20) * 28)
+        if dy and j.rect.colliderect((0, dy, ample + 12, 78)):
+            capa = Game._CAPA_VIDA
+            if capa is None or capa.get_width() < ample + 12:
+                capa = Game._CAPA_VIDA = pygame.Surface((ample + 12, 78), pygame.SRCALPHA)
+            capa.fill((0, 0, 0, 0))
+            self._dibuixar_vida(capa, j, 0)
+            capa.set_alpha(85)
+            surf.blit(capa, (0, dy))
+        else:
+            self._dibuixar_vida(surf, j, dy)
+
+    def _dibuixar_vida(self, surf, j, dy):
         cors = j.vida_max // 20
         ample = max(206, 18 + cors * 28)
-        panell_hud(surf, (6, 6, ample, 66))
+        panell_hud(surf, (6, 6 + dy, ample, 66))
         ultim = max(0, math.ceil(j.vida / 20) - 1)
         p = self.batec_t % 60
         batec = self.batec_t > 0 and (p < 8 or 12 <= p < 20)
         for i in range(cors):
             fr = math.ceil(max(0.0, min(1.0, (j.vida - i * 20) / 20)) * 2) / 2
             fb = max(0.0, min(1.0, (self.vida_mostrada - i * 20) / 20))
-            x, y, mida = 14 + i * 28, 12, 22
+            x, y, mida = 14 + i * 28, 12 + dy, 22
             if self.cop_hud:                                  # els cors tremolen amb el cop
                 a = self.cop_hud / 4
                 x += random.uniform(-a, a)
@@ -10072,7 +10090,7 @@ class Game:
                 x, y, mida = x - 2, y - 2, 26
             dibuixar_cor(surf, int(x), int(y), mida, fr, fb)
         # voltereta: es recarrega com un rellotge
-        cx, cy = 22, 46
+        cx, cy = 22, 46 + dy
         fr = 1 - j.recarrega_esquiva / j.RECARREGA_ESQUIVA
         pygame.draw.circle(surf, NEGRE, (cx, cy), 11)
         llesta = fr >= 1 and not j.esquiva
@@ -10102,20 +10120,20 @@ class Game:
             ic = ICONES_MILLORA[ident]
             if actiu:
                 l = llum(14, DIBUIX_MILLORES[ident][0])
-                surf.blit(l, (x + 9 - 14, 46 - 14))
-            surf.blit(ic["off" if apagat else "on"], (x, 37))
+                surf.blit(l, (x + 9 - 14, 46 + dy - 14))
+            surf.blit(ic["off" if apagat else "on"], (x, 37 + dy))
             if len(m["costos"]) > 1:
                 for k in range(len(m["costos"])):
-                    pygame.draw.rect(surf, GROC if k < n else GRIS_FOSC, (x + 2 + k * 5, 57, 4, 2))
+                    pygame.draw.rect(surf, GROC if k < n else GRIS_FOSC, (x + 2 + k * 5, 57 + dy, 4, 2))
             x += 22
         # Battle Pass
         nivell = self.nivell_passi()
         fr = 1.0 if nivell >= len(PASSI) else (self.xp % XP_PER_NIVELL) / XP_PER_NIVELL
         amp = ample - 62
-        pygame.draw.rect(surf, NEGRE, (13, 63, amp + 2, 5))
-        pygame.draw.rect(surf, GRIS_FOSC, (14, 64, amp, 3))
-        pygame.draw.rect(surf, (255, 150, 255), (14, 64, int(amp * fr), 3))
-        text(surf, f"BP{nivell}", F_MINI, (255, 200, 255), (amp + 22, 66), ancora="midleft")
+        pygame.draw.rect(surf, NEGRE, (13, 63 + dy, amp + 2, 5))
+        pygame.draw.rect(surf, GRIS_FOSC, (14, 64 + dy, amp, 3))
+        pygame.draw.rect(surf, (255, 150, 255), (14, 64 + dy, int(amp * fr), 3))
+        text(surf, f"BP{nivell}", F_MINI, (255, 200, 255), (amp + 22, 66 + dy), ancora="midleft")
 
     def _hud_info(self, surf):
         """Panell de dalt a la dreta: monedes, sector i onada, enemics i cronòmetre."""
@@ -10269,10 +10287,10 @@ class Game:
         return img
 
     def _hud_cap(self, surf):
-        """Barra del cap: retrat, vida perduda en blanc, segments i marca de la fase de fúria (50%)."""
+        """Barra del cap (a dalt al centre): retrat, vida perduda en blanc, segments i marca de la fúria (50%)."""
         cap = self.cap
         furia = cap.furia
-        r = panell_hud(surf, (286, HEIGHT - 46, 420, 40), (220, 80, 100))
+        r = panell_hud(surf, (WIDTH // 2 - 210, 6, 420, 40), (220, 80, 100))
         pr = pygame.Rect(r.x + 5, r.y + 5, 30, 30)
         pygame.draw.rect(surf, (40, 12, 24), pr)
         img = self.retrat_cap(cap)

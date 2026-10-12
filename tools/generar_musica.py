@@ -8,6 +8,8 @@ Sintetiza desde cero, sólo con numpy, seis pistas y las guarda como Ogg Vorbis 
     sector4.ogg        "Órbita"                  arpegios flotantes con eco, Re dórico, 126 BPM
     sector5.ogg        "Xylos, el mundo colmena" frigio + tonos enteros, bajo pulsante, 112 BPM
     sector6.ogg        "Ecos de Xylos" (DLC)     lamento con eco, Si menor, 100 BPM
+    boss_final.ogg     jefes finales             Re menor armónico, latido y riff de la colmena, 147 BPM
+    derrota.ogg        pantalla de derrota       lamento corto en La menor, 84 BPM
     jefe.ogg           combate contra jefe       rápido e intenso, Do menor, 150 BPM
     supervivencia.ogg  modo supervivencia        acción enérgica, Mi menor, 140 BPM
     final.ogg          final / créditos          esperanzador y heroico, Re mayor, 98 BPM
@@ -1037,6 +1039,92 @@ def jefe():
     return p
 
 
+def boss_final():
+    """Jefes finales: Re menor armónico, 147 BPM. Latido, el tema heroico en Re menor, un puente coral
+    y un riff con el semitono de la colmena (Re-Mib). Intro(4) A(16) B(8) C(8) A'(16) = 52 compases."""
+    p = Pista("boss_final", "Duelo final", 147, 52, 147, eco_tiempos=0.75, eco_fb=0.24, rev_rt60=1.4,
+              instrumentos={"lead": dict(eco=0.14, vib=(6.0, 16, 0.18)), "arp": dict(eco=0.18),
+                            "campana": dict(gain=0.11)},
+              bateria={"k": (0.28, 0.0, 0.0, 0.02)})
+    A = ["Dm", "Bb", "C", "A", "Dm", "Bb", "Gm", "A", "Dm", "F", "C", "Bb", "Gm", "Bb", "A", "A"]
+    p.acordes(0, ["Dm", "Dm", "Bb", "A"])
+    p.acordes(4, A)
+    p.acordes(20, ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "A", "A"])
+    p.acordes(28, ["Dm", "Dm", "Eb", "Eb", "Dm", "Dm", "Bb", "A"])
+    p.acordes(36, A)
+
+    tema = ("D5.2 F5.2 A5.4 D6.4 A5.4 | Bb5.6 A5.2 F5.4 D5.4 | C5.2 E5.2 G5.4 C6.4 G5.4 | C#6.6 D6.2 E6.4 A5.4 |"
+            " D6.2 C6.2 A5.4 F5.4 A5.4 | Bb5.6 C6.2 D6.4 F6.4 | G5.2 Bb5.2 D6.4 G6.4 F6.2 D6.2 | E6.8 C#6.4 A5.4 |"
+            " F6.6 E6.2 D6.4 A5.4 | C6.6 A5.2 F5.4 C6.4 | E6.6 D6.2 C6.4 G5.4 | D6.6 C6.2 Bb5.4 F5.4 |"
+            " G5.4 Bb5.4 D6.4 G6.4 | F6.6 D6.2 Bb5.8 | A5.2 C#6.2 E6.4 G6.4 E6.4 | A6.12 r.4")
+    GALOP = "R.1 R.1 R.2 R.1 R.1 R.2 R.1 R.1 R.2 8.2 b.2"
+    FINAL = {"k": "X.x.X.x.X.x.X.x.", "s": "....X.......X...", "h": "x.x.x.x.x.x.x.x."}
+    FINAL_B = {"k": "X.......X.......", "s": "....X.......X...", "o": "..x...x...x...x."}
+    FINAL_C = {"k": "XXx.XXx.XXx.X.x.", "s": "....X.......X..o", "h": "x.x.x.x.x.x.x.x."}
+    RELL = {"s": "....X...XoXoXXXX"}
+    RELL_TOM = {"s": "....X...........", "t": "........11223333"}
+    ARP = "0 1 2 1 3 1 2 1 0 1 2 1 4 3 2 1"
+
+    # Intro: un latido, la llamada en campana y un redoble que crece
+    p.melodia("campana", 0, "D6.4 r.4 A5.4 r.4 | D6.4 r.4 F6.4 E6.4 | D6.6 C6.2 Bb5.8 | A5.4 C#6.4 E6.4 A6.4")
+    p.pad(0, 4, lo=50, hi=66, vel=0.9)
+    p.bajo(0, 4, "R.4 r.4 R.4 r.4", lo=38)
+    p.bateria(0, 2, {"k": "X..x........X..x"}, platillo=False, vol=0.9)
+    p.bateria(2, 2, {"k": "X..x....X..x....", "t": "........1.2.3.33"}, platillo=False)
+    p.redoble(3 * 4, 4, 0.15, 1.0)
+
+    # A
+    m1 = p.melodia("lead", 4, tema)
+    p.bajo(4, 16, GALOP, lo=38)
+    p.arpegio("arp", 12, 8, ARP, lo=62, vel=0.85)
+    p.contra_guia("contra", 12, 8, [(0, 4), (4, 4), (8, 4), (12, 4)], 55, 67, m1[len(m1) // 2:], vel=0.7)
+    p.bateria(4, 8, FINAL, RELL)
+    p.bateria(12, 8, FINAL, RELL_TOM, platillo=False)
+
+    # B: puente coral, notas largas y bombo a blancas
+    mb = p.melodia("lead2", 20, "G5.8 D6.8 | Eb6.8 G5.8 | F5.8 D6.8 | C6.12 A5.4 | Bb5.8 G5.8 | G5.4 Bb5.4 Eb6.8 |"
+                                " E5.4 G5.4 A5.4 C#6.4 | E6.12 r.4")
+    p.contra_tercera("contra", mb, vel=0.75)
+    p.pad(20, 8, lo=53, hi=69)
+    p.arpegio("arp", 20, 8, ARP, lo=62, vel=0.8)
+    p.bajo(20, 8, "R.4 8.4 R.4 8.4", lo=36)
+    p.bateria(20, 8, FINAL_B, RELL)
+
+    # C: riff con el semitono de la colmena y doble bombo
+    r1 = "D5.1 r.1 D5.1 r.1 F5.2 D5.1 r.1 A5.2 G#5.2 G5.2 F5.2 | D5.1 r.1 D5.1 r.1 F5.2 D5.1 r.1 C5.2 C#5.2 D5.4"
+    r2 = "Eb5.1 r.1 Eb5.1 r.1 G5.2 Eb5.1 r.1 Bb5.2 A5.2 G5.2 F5.2 | Eb5.1 r.1 Eb5.1 r.1 G5.2 Eb5.1 r.1 D5.2 Eb5.2 F5.4"
+    mc = p.melodia("lead", 28, r1 + " | " + r2 + " | " + r1 + " | Bb4.2 D5.2 F5.2 Bb5.2 D6.2 F6.2 D6.2 Bb5.2 |"
+                                                         " A4.2 C#5.2 E5.2 A5.2 G6.2 E6.2 C#6.2 A5.2")
+    p.contra_tercera("contra", [n for n in mc if n[0] >= 32 * 4], vel=0.7)
+    p.bajo(28, 6, "R.1 r.1 R.1 r.1 R.2 R.1 r.1 R.2 R.2 R.2 R.2", lo=38, vel=1.05)
+    p.bajo(34, 2, "R.2 R.2 R.2 R.2 R.2 R.2 R.2 R.2", lo=38)
+    p.bateria(28, 8, FINAL_C, RELL_TOM)
+
+    # A': el tema con armonía y colchón
+    m2 = p.melodia("lead", 36, tema)
+    p.contra_tercera("contra", m2)
+    p.bajo(36, 16, GALOP, lo=38)
+    p.arpegio("arp", 36, 16, ARP, lo=62)
+    p.pad(44, 8, lo=53, hi=69, vel=0.7)
+    p.bateria(36, 8, FINAL, RELL_TOM)
+    p.bateria(44, 8, FINAL, {"s": "....X...rrrrXXXX", "t": "........1.2.3..."}, platillo=False)
+    return p
+
+
+def derrota():
+    """Pantalla de derrota: La menor, 84 BPM. Un lamento corto y tranquilo que se repite. 8 compases."""
+    p = Pista("derrota", "Has caído", 84, 8, 84, eco_tiempos=0.75, eco_fb=0.4, rev_rt60=2.4,
+              instrumentos={"lead2": dict(eco=0.32, vib=(4.5, 18, 0.25), gain=0.17), "campana": dict(gain=0.09)})
+    p.acordes(0, ["Am", "F", "C", "E", "Am", "F", "Dm", "E"])
+    m = p.melodia("lead2", 0, "E5.6 D5.2 C5.4 A4.4 | F5.6 E5.2 C5.8 | G4.4 C5.4 E5.4 G5.4 | G#5.8 E5.4 B4.4 |"
+                              " A5.6 G5.2 E5.4 C5.4 | F5.6 E5.2 D5.4 C5.4 | D5.4 F5.4 A5.8 | G#5.6 B5.2 E5.8", vel=0.85)
+    p.contra_tercera("contra", m[8:], vel=0.5)
+    p.pad(0, 8, lo=50, hi=66)
+    p.bajo(0, 8, "R.8 5.8", lo=33, vel=0.8)
+    p.melodia("campana", 0, "r.16 | r.8 A6.8 | r.16 | r.8 E6.8 | r.16 | r.8 A6.8 | r.16 | r.8 B6.8", vel=0.6)
+    return p
+
+
 def supervivencia():
     """Modo supervivencia: Mi menor. Intro(4) A(16) B(8) C(8) A'(16) B'(8) = 60 compases."""
     p = Pista("supervivencia", "Supervivencia", 140, 60, 140, eco_tiempos=0.5, eco_fb=0.25, rev_rt60=1.1,
@@ -1172,6 +1260,7 @@ def final():
 
 
 PISTAS = {"sector1": sector1, "sector4": sector4, "sector5": sector5, "sector6": sector6, "jefe": jefe,
+          "boss_final": boss_final, "derrota": derrota,
           "supervivencia": supervivencia, "final": final}
 
 
