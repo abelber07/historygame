@@ -180,7 +180,7 @@ XP_ESTRELLA = 30
 # Vida dels enemics sobre la que posa cada escenari (v4.1: el joc era massa fàcil amb les millores al màxim)
 VIDA_ENEMICS = 1.25         # enemics normals (i els que invoquen els caps)
 VIDA_CAPS = 1.5             # caps de sector
-VIDA_FINALS = 2.0           # Comandant Suprem, Nau Mare, Nucli de Xylos i la Hereva (v4.2)
+VIDA_FINALS = 1.6           # Comandant Suprem, Nau Mare, Nucli de Xylos i la Hereva (v4.2: 2.0; v4.4: -20%)
 DANY_ENEMICS = 1.3          # dany dels trets i cops dels enemics (v4.2; la cadència i la velocitat de bala no canvien)
 CURA_ITEM = 15              # vida que dona l'ítem de vida
 SPAWN_ITEMS = 480           # fotogrames entre ítem i ítem (vida o munició)
@@ -623,6 +623,8 @@ NOVETATS = [
                    "ataques de los otros jefes finales."),
         ("cine", "Dos cinemáticas, música nueva, la arena El Coro en Supervivencia, 5 logros nuevos y un uniforme y un "
                  "título de premio por terminar el DLC."),
+        ("jefe", "Los jefes finales (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un 20% "
+                 "menos de vida: con todas las mejoras se hacían demasiado largos."),
     ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "

@@ -121,6 +121,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - **Supervivencia**: nueva arena, El Coro.
 - **5 logros** nuevos (uno secreto) y, al terminar el DLC, el uniforme Eco de Xylos, el título «El que calló al Coro» y 2000 monedas.
 - Ahora hay 54 estrellas en total; los desafíos se siguen abriendo con 15, 30 y 45.
+- Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **20% menos de vida** que en la 4.2: con todas las mejoras los combates se hacían demasiado largos.
 
 **Versión 4.3: mando y móvil**
 - **Mando**: Xbox, PlayStation y la mayoría de mandos USB o Bluetooth. Joystick izquierdo para moverte, derecho para apuntar (sin ayuda para apuntar; solo dispara el gatillo) y RT / R2 para disparar, A para saltar, B o LT para rodar y RB / LB para cambiar de arma. En los menús hay un cursor: la cruceta salta de botón en botón, A acepta y B vuelve atrás.

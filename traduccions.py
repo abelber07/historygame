@@ -2157,6 +2157,9 @@ _DLC_44 = {
         ("Dues cinemàtiques, música nova, l'arena El Cor a Supervivència, 5 assoliments nous i un uniforme i un títol de premi per acabar el DLC.",
          "Two cutscenes, new music, the Choir arena in Survival, 5 new achievements, and a uniform and title as rewards for finishing the DLC."),
     "Uniforme Eco de Xylos": ("Uniforme Eco de Xylos", "Echo of Xylos uniform"),
+    "Los jefes finales (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un 20% menos de vida: con todas las mejoras se hacían demasiado largos.":
+        ("Els caps finals (Comandant Suprem, Nau Mare, Nucli de Xylos i l'Hereva) tenen un 20% menys de vida: amb totes les millores es feien massa llargs.",
+         "Final bosses (Supreme Commander, Mothership, Core of Xylos and the Heiress) have 20% less health: with every upgrade the fights dragged on too long."),
     "Título: El que calló al Coro": ("Títol: Qui va fer callar el Cor", "Title: The one who silenced the Choir"),
 }
 for _es, (_ca, _en) in _DLC_44.items():
