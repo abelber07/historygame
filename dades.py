@@ -179,16 +179,16 @@ XP_ESTRELLA = 30
 
 # Vida dels enemics sobre la que posa cada escenari (v4.1: el joc era massa fàcil amb les millores al màxim)
 VIDA_ENEMICS = 1.25         # enemics normals (i els que invoquen els caps)
-VIDA_CAPS = 1.5             # caps de sector
-VIDA_FINALS = 1.6           # Comandant Suprem, Nau Mare, Nucli de Xylos i la Hereva (v4.2: 2.0; v4.4: -20%)
+VIDA_CAPS = 1.35            # caps de sector (v4.4: abans 1.5)
+VIDA_FINALS = 1.4           # Comandant Suprem, Nau Mare, Nucli de Xylos i la Hereva (v4.2: 2.0; v4.4: 1.4)
 DANY_ENEMICS = 1.3          # dany dels trets i cops dels enemics (v4.2; la cadència i la velocitat de bala no canvien)
 CURA_ITEM = 15              # vida que dona l'ítem de vida
-SPAWN_ITEMS = 480           # fotogrames entre ítem i ítem (vida o munició)
+SPAWN_ITEMS = 330           # fotogrames entre ítem i ítem (vida o munició; v4.4: abans 480)
 
 # Dificultad: multiplica la vida, el daño y la cadencia de los enemigos y las monedas que se ganan
 DIFICULTATS = {
     "facil": {"nom": "Fácil", "vida": 0.8, "dany": 0.6, "cadencia": 1.25, "monedes": 0.75},
-    "normal": {"nom": "Normal", "vida": 1.0, "dany": 1.0, "cadencia": 1.0, "monedes": 1.0},
+    "normal": {"nom": "Normal", "vida": 1.0, "dany": 0.8, "cadencia": 1.0, "monedes": 1.0},      # v4.4: dany 1.0 -> 0.8
     "dificil": {"nom": "Difícil", "vida": 1.25, "dany": 1.4, "cadencia": 0.85, "monedes": 1.3},
 }
 
@@ -623,8 +623,8 @@ NOVETATS = [
                    "ataques de los otros jefes finales."),
         ("cine", "Dos cinemáticas, música nueva, la arena El Coro en Supervivencia, 5 logros nuevos y un uniforme y un "
                  "título de premio por terminar el DLC."),
-        ("jefe", "Los jefes finales (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un 20% "
-                 "menos de vida: con todas las mejoras se hacían demasiado largos."),
+        ("jefe", "Los jefes finales tienen un 30% menos de vida que en la 4.2 y los jefes de sector un 10% menos. En "
+                 "Normal, los enemigos hacen un 20% menos de daño y las curas y la munición aparecen más a menudo."),
         ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
                  "(y con hueco para esquivar) y sus cristales quitan menos."),
         ("estrella", "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al "

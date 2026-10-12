@@ -2158,6 +2158,9 @@ _DLC_44 = {
          "Two cutscenes, new music, the Choir arena in Survival, 5 new achievements, and a uniform and title as rewards for finishing the DLC."),
     "Uniforme Eco de Xylos": ("Uniforme Eco de Xylos", "Echo of Xylos uniform"),
     "Con media vida o más": ("Amb mitja vida o més", "Half health or more"),
+    "Los jefes finales tienen un 30% menos de vida que en la 4.2 y los jefes de sector un 10% menos. En Normal, los enemigos hacen un 20% menos de daño y las curas y la munición aparecen más a menudo.":
+        ("Els caps finals tenen un 30% menys de vida que a la 4.2 i els caps de sector un 10% menys. En Normal, els enemics fan un 20% menys de mal i les cures i la munició apareixen més sovint.",
+         "Final bosses have 30% less health than in 4.2 and sector bosses 10% less. On Normal, enemies deal 20% less damage and health and ammo pickups appear more often."),
     "Ver el eco": ("Veure l'eco", "Watch the echo"),
     "Verde = completado · Cuadros = potencia · Estrellas: completar, rápido, con media vida":
         ("Verd = completat · Quadres = potència · Estrelles: completar, ràpid, amb mitja vida",

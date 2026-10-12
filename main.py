@@ -8545,7 +8545,7 @@ class Game:
             elif not (e.hd_e and e.tipus == "kamikaze"):
                 self.restes.append(Resta(e))
             esclat(self.efectes, cx, cy, 10, [TARONJA, GROC, BLANC], vel=(1, 4), mida=(2, 4), vida=(10, 20))
-        if random.random() < 0.3 and len(self.items) < 4:
+        if random.random() < 0.35 and len(self.items) < 4:
             self.items.append(Item(cx - Item.W / 2, cy, self.tipus_item_necessari(), caure=True, vida=600))
 
     def actualitzar_joc(self):
