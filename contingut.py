@@ -266,7 +266,7 @@ REPTES_POOL = [
     ("baixes_arma", 25, "Elimina {n} enemigos con {a}"),
     ("baixes_tipus", 10, "Elimina {n} enemigos del tipo: {a}"),
     ("escenaris", 3, "Completa {n} escenarios"),
-    ("sense_dany", 1, "Completa un escenario sin recibir daño"),
+    ("sense_dany", 1, "Completa un escenario con al menos media vida"),
     ("tres_estrelles", 1, "Completa un escenario consiguiendo las 3 estrellas"),
     ("onada", 6, "Llega a la oleada {n} en Supervivencia"),
     ("voltes", 25, "Haz {n} volteretas"),

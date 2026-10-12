@@ -45,7 +45,7 @@ Durante los escenarios hablan por **radio** el comandante Reyes, la doctora Vega
 
 ## Estrellas, supervivencia y dificultad
 
-- Cada escenario da hasta **3 estrellas**: completarlo, acabarlo antes de un tiempo (el cronómetro está arriba a la derecha) y hacerlo sin recibir daño. Cada estrella nueva da 30 XP para el Battle Pass.
+- Cada escenario da hasta **3 estrellas**: completarlo, acabarlo antes de un tiempo (el cronómetro está arriba a la derecha) y terminarlo con al menos la mitad de la vida (hasta la 4.3 era sin recibir daño). Cada estrella nueva da 30 XP para el Battle Pass.
 - **Supervivencia** (se desbloquea al completar el sector 1): oleadas infinitas en la arena que elijas, cada vez más difíciles y con un jefe cada cinco. Se guardan los 5 mejores récords. Da la mitad de monedas y XP.
 - **Dificultad** Fácil, Normal o Difícil en Opciones: cambia la vida, el daño y la cadencia de los enemigos (y las monedas que ganas).
 - **Idioma**: español, catalán o inglés, en Opciones o con el icono del planeta arriba a la izquierda del menú (salen las banderas).
@@ -120,6 +120,7 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 - Dos **cinemáticas** nuevas (el eco y el final del DLC), un expediente nuevo en Historia y dos fichas nuevas en el Bestiario.
 - **Supervivencia**: nueva arena, El Coro.
 - **5 logros** nuevos (uno secreto) y, al terminar el DLC, el uniforme Eco de Xylos, el título «El que calló al Coro» y 2000 monedas.
+- La **tercera estrella** ya no pide acabar sin recibir daño, que era casi imposible: ahora hay que terminar el escenario con al menos la mitad de la vida. El reto diario equivalente cambia igual. Las estrellas ya conseguidas se conservan.
 - Ahora hay 54 estrellas en total; los desafíos se siguen abriendo con 15, 30 y 45.
 - Los **jefes finales** (Comandante Supremo, Nave Nodriza, Núcleo de Xylos y la Heredera) tienen un **20% menos de vida** que en la 4.2: con todas las mejoras los combates se hacían demasiado largos.
 - **Heredera** reequilibrada: tiene menos vida que el Núcleo, el Coro nunca deja más de dos huérfanos a la vez, la lluvia de cristales cae con un hueco donde estabas (como la cortina), la espiral tiene los mismos brazos que la del Núcleo, los anillos son más abiertos, las estalactitas caen menos a menudo y quitan 8 en lugar de 12, y lo que cae del techo quita un 40% menos. Al nacer ya se la puede herir en cuanto sale del capullo.

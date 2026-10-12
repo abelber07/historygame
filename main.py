@@ -7686,6 +7686,11 @@ class Game:
     def vida_max(self):
         return VIDA_MAX + 20 * self.nivell_millora("blindatge")
 
+    def mitja_vida(self):
+        """Tercera estrella: el jugador té almenys la meitat de la vida màxima."""
+        j = getattr(self, "jugador", None)
+        return j is not None and j.vida * 2 >= self.vida_max()
+
     def multiplicador_dany(self):
         return 1 + 0.10 * self.nivell_millora("potencia")
 
@@ -8868,9 +8873,10 @@ class Game:
         elif n < NUM_SECTORS - 1:
             self.nivells_desbloquejats[n + 1][0] = True
         # estrelles: completar, abans del temps i sense rebre mal (la més difícil, l'última)
-        noves = [True, self.temps_joc <= TEMPS_ESTRELLA[(n, e)] * FPS, self.dany_rebut == 0]
+        # tercera estrella (v4.4): acabar amb almenys la meitat de la vida (abans: sense rebre cap cop)
+        noves = [True, self.temps_joc <= TEMPS_ESTRELLA[(n, e)] * FPS, self.mitja_vida()]
         self.progres_repte("escenaris")
-        if self.dany_rebut == 0:
+        if self.mitja_vida():
             self.progres_repte("sense_dany")
         if all(noves):
             self.progres_repte("tres_estrelles")
@@ -10143,7 +10149,7 @@ class Game:
             a_temps = self.temps_joc // FPS <= limit
             r2 = text(surf, rellotge, F_MINI, (255, 220, 120) if a_temps else GRIS, (r.right - 10, 58), ancora="midright")
             dibuixar_estrella(surf, r2.left - 26, 58, 6, a_temps)                  # mateix ordre que al final:
-            dibuixar_estrella(surf, r2.left - 10, 58, 6, self.dany_rebut == 0, (255, 140, 140))   # temps, sense mal
+            dibuixar_estrella(surf, r2.left - 10, 58, 6, self.mitja_vida(), (255, 140, 140))   # temps, mitja vida
 
     def _hud_arma(self, surf):
         """Panell de baix a l'esquerra: icona de l'arma, munició en bales o barra de calor."""
@@ -12778,7 +12784,7 @@ class Game:
             if self.estrelles_noves:
                 noves, guanyades = self.estrelles_noves
                 limit = TEMPS_ESTRELLA[(self.nivell_actual, self.escenari_actual)]
-                noms = [T("Completado"), T("En menos de {s} s").format(s=limit), T("Sin recibir daño")]
+                noms = [T("Completado"), T("En menos de {s} s").format(s=limit), T("Con media vida o más")]
                 for i in range(3):
                     if self.temps_fase < 30 + i * 22:
                         continue
@@ -12887,7 +12893,7 @@ class Game:
                     dibuixar_pips(surf, x + 2, y + 28, POTENCIA_MAX[(n, e)], mida=6, color=TARONJA)
                     for k, ple in enumerate(self.estrelles[n][e]):
                         dibuixar_estrella(surf, x + 66 + k * 14, y + 31, 6, ple)
-        text_bloc(surf, "Verde = completado · Cuadros = potencia · Estrellas: completar, sin daño, rápido", F_TEXT_PP, GRIS,
+        text_bloc(surf, "Verde = completado · Cuadros = potencia · Estrellas: completar, rápido, con media vida", F_TEXT_PP, GRIS,
                   (184, HEIGHT - 60, 520, 52))
 
     def dibuixar_botiga(self, surf):
@@ -13177,7 +13183,7 @@ class Game:
             "Cada escenario limita la potencia de las armas que puedes usar.",
             "Cuando un enemigo brilla, va a atacar: ¡apártate o rueda!",
             "Los escudos solo paran lo que les llega de frente: rodéalos.",
-            "Estrellas: completa el escenario, sin recibir daño y a tiempo.",
+            "Estrellas: completa el escenario, a tiempo y acabando con al menos media vida.",
         ]
         for i, c in enumerate(consells):
             text(surf, "· " + T(c), F_TEXT_P, CIAN, (130, 366 + i * 25), ancora="midleft")

@@ -627,6 +627,8 @@ NOVETATS = [
                  "menos de vida: con todas las mejoras se hacían demasiado largos."),
         ("vida", "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo "
                  "(y con hueco para esquivar) y sus cristales quitan menos."),
+        ("estrella", "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al "
+                     "menos la mitad de la vida. Las estrellas que ya tenías se quedan."),
     ]},
     {"versio": "4.3", "titol": "Mando y móvil", "punts": [
         ("mira", "Se puede jugar con mando (Xbox, PlayStation y la mayoría de mandos USB o Bluetooth): joystick "

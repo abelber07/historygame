@@ -2157,6 +2157,17 @@ _DLC_44 = {
         ("Dues cinemàtiques, música nova, l'arena El Cor a Supervivència, 5 assoliments nous i un uniforme i un títol de premi per acabar el DLC.",
          "Two cutscenes, new music, the Choir arena in Survival, 5 new achievements, and a uniform and title as rewards for finishing the DLC."),
     "Uniforme Eco de Xylos": ("Uniforme Eco de Xylos", "Echo of Xylos uniform"),
+    "Con media vida o más": ("Amb mitja vida o més", "Half health or more"),
+    "Verde = completado · Cuadros = potencia · Estrellas: completar, rápido, con media vida":
+        ("Verd = completat · Quadres = potència · Estrelles: completar, ràpid, amb mitja vida",
+         "Green = completed · Squares = power · Stars: complete, fast, with half health"),
+    "Estrellas: completa el escenario, a tiempo y acabando con al menos media vida.":
+        ("Estrelles: completa l'escenari, a temps i acabant amb almenys mitja vida.",
+         "Stars: complete the stage, in time and finishing with at least half your health."),
+    "Completa un escenario con al menos media vida": ("Completa un escenari amb almenys mitja vida", "Complete a stage with at least half your health"),
+    "La tercera estrella ya no pide terminar sin recibir daño: ahora hay que acabar el escenario con al menos la mitad de la vida. Las estrellas que ya tenías se quedan.":
+        ("La tercera estrella ja no demana acabar sense rebre mal: ara cal acabar l'escenari amb almenys la meitat de la vida. Les estrelles que ja tenies es queden.",
+         "The third star no longer asks you to finish without taking damage: now you must finish the stage with at least half your health. Stars you already have are kept."),
     "Combate contra la Heredera más justo: menos vida, como mucho dos huérfanos a la vez, menos cosas cayendo (y con hueco para esquivar) y sus cristales quitan menos.":
         ("Combat contra l'Hereva més just: menys vida, com a molt dos orfes alhora, menys coses caient (i amb un buit per esquivar) i els seus cristalls treuen menys.",
          "Fairer fight against the Heiress: less health, at most two orphans at once, fewer things falling (with a gap to dodge) and her crystals hurt less."),
