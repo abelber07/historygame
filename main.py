@@ -1124,6 +1124,8 @@ class DescarregaMusica:
     def __init__(self):
         self.cua = [n for n in self.ORDRE if not os.path.exists(ruta("musica", n + ".ogg"))]
         self.fallides = set()
+        self.baixades = 0
+        self.esperar = lambda: False             # el joc hi posa «estic en una cinemàtica»
 
     def prioritzar(self, nom):
         if nom in self.cua:
@@ -1140,6 +1142,10 @@ class DescarregaMusica:
             print(f"Descàrrega de música no disponible: {err}")
             return
         while self.cua:
+            # durant les cinemàtiques, com a molt dues pistes: escriure fitxers grans en ple dibuix fa saltar
+            # la música (les altres esperen que s'acabi)
+            while self.baixades >= 2 and self.esperar() and self.cua and self.cua[0] != AUDIO.musica_actual:
+                await asyncio.sleep(0.3)
             nom = self.cua.pop(0)
             desti = ruta("musica", nom + ".ogg")
             try:
@@ -1150,6 +1156,7 @@ class DescarregaMusica:
                 with open(desti, "wb") as sortida:
                     sortida.write(dades_ogg)
                 AUDIO.arribada(nom)
+                self.baixades += 1
             except Exception as err:
                 print(f"No s'ha pogut descarregar la música {nom}: {err}")
                 self.fallides.add(nom)
@@ -5272,6 +5279,49 @@ def cel_degradat(dalt, baix, alt=HEIGHT):
     return s
 
 
+_VELS = {}
+
+
+def vel_pantalla(surf, color, alfa):
+    """Vel d'un color a tota la pantalla amb alfa global (molt més ràpid que una capa amb alfa per píxel)."""
+    alfa = max(0, min(255, int(alfa)))
+    if alfa <= 0:
+        return
+    v = _VELS.get(color)
+    if v is None:
+        v = _VELS[color] = pygame.Surface((WIDTH, HEIGHT)).convert() if pygame.display.get_surface() else pygame.Surface((WIDTH, HEIGHT))
+        v.fill(color)
+    v.set_alpha(alfa)
+    surf.blit(v, (0, 0))
+
+
+def poligon_alfa(surf, color, punts):
+    """Polígon translúcid dibuixat en una capa de la mida justa (no de tota la pantalla)."""
+    xs, ys = [p[0] for p in punts], [p[1] for p in punts]
+    caixa = pygame.Rect(int(min(xs)) - 1, int(min(ys)) - 1, int(max(xs) - min(xs)) + 3, int(max(ys) - min(ys)) + 3)
+    caixa = caixa.clip(surf.get_rect())
+    if caixa.w <= 0 or caixa.h <= 0:
+        return
+    locals_ = tuple((round(x - caixa.x), round(y - caixa.y)) for x, y in punts)
+    clau = ("pol", color, caixa.size, locals_)
+    capa = _VELS.get(clau)                           # el mateix raig en fotogrames seguits: es reaprofita
+    if capa is None:
+        if len(_VELS) > 160:
+            for k in [k for k in _VELS if k[0] == "pol"]:
+                del _VELS[k]
+        capa = _VELS[clau] = pygame.Surface(caixa.size, pygame.SRCALPHA)
+        pygame.draw.polygon(capa, color, locals_)
+    surf.blit(capa, caixa.topleft)
+
+
+def rect_alfa(surf, color, rect):
+    r = pygame.Rect(rect).clip(surf.get_rect())
+    if r.w > 0 and r.h > 0:
+        capa = pygame.Surface(r.size, pygame.SRCALPHA)
+        capa.fill(color)
+        surf.blit(capa, r.topleft)
+
+
 class Intro:
     """Cinemàtica dibuixada amb codi: la introducció i les escenes que segueixen cada cap final."""
 
@@ -5300,7 +5350,13 @@ class Intro:
         self.ciutat_lluny = silueta_ciutat(WIDTH + 40, 260, rnd, (34, 28, 52), finestres=False)
         self.runes = silueta_ciutat(WIDTH + 200, 240, rnd, (30, 18, 22), trencada=True, color_finestra=(255, 140, 60))
         self.runes_lluny = silueta_ciutat(WIDTH + 200, 280, rnd, (90, 44, 44), finestres=False, trencada=True)
+        if pygame.display.get_surface() is not None:     # mateix format que la pantalla: blits més ràpids
+            self.cel_nit, self.cel_alba, self.cel_sortida = (c.convert() for c in (self.cel_nit, self.cel_alba,
+                                                                                   self.cel_sortida))
+            self.ciutat, self.ciutat_lluny, self.runes, self.runes_lluny = (
+                c.convert_alpha() for c in (self.ciutat, self.ciutat_lluny, self.runes, self.runes_lluny))
         self.platets = crear_platet(1)
+        self._platets_mida = {}
         self.foc = [(rnd.uniform(40, WIDTH - 40), rnd.uniform(HEIGHT - 210, HEIGHT - 165)) for _ in range(8)]
         self.portals = [(220, 110, 64, 0), (610, 78, 86, 45), (830, 160, 46, 90)]
         self.preparar_escena()
@@ -5411,17 +5467,14 @@ class Intro:
         for x, y, rmax, retard in self.portals:
             r = rmax * max(0.0, min(1.0, (self.t - retard) / 110))
             if r > 6:
-                raig = CAPA_TRANSPARENT
-                raig.fill((0, 0, 0, 0))
-                pygame.draw.polygon(raig, (190, 110, 255, 30), [(x - r * 0.4, y), (x + r * 0.4, y),
+                poligon_alfa(surf, (190, 110, 255, 30), [(x - r * 0.4, y), (x + r * 0.4, y),
                                                                 (x + r * 1.4, HEIGHT - 130), (x - r * 1.4, HEIGHT - 130)])
-                surf.blit(raig, (0, 0))
             self._portal(surf, x, y, r, self.t * 0.05)
         surf.blit(self.ciutat_lluny, (-20, HEIGHT - 300))
         surf.blit(self.ciutat, (-20 + math.sin(self.t * 0.01) * 4, HEIGHT - 230))
 
     def _act_invasio(self):
-        if self.t % 7 == 0 and self.t < self.durada - 40:
+        if self.t % 9 == 0 and self.t < self.durada - 40 and len(self.ovnis) < 30:
             x, y, r, _ = random.choice(self.portals)
             ang = random.uniform(0.3, 2.8)
             self.ovnis.append([x, y, math.cos(ang) * random.uniform(1.5, 3.5), math.sin(ang) * random.uniform(0.5, 2.2),
@@ -5440,20 +5493,19 @@ class Intro:
     def _dibuixar_invasio(self, surf):
         surf.blit(self.cel_nit, (0, 0))
         self._estrelles(surf)
-        vermell = CAPA_TRANSPARENT
-        vermell.fill((160, 30, 30, min(90, self.t // 3)))
-        surf.blit(vermell, (0, 0))
+        vel_pantalla(surf, (160, 30, 30), min(90, self.t // 3))
         for x, y, r, _ in self.portals:
             self._portal(surf, x, y, r, self.t * 0.08)
         surf.blit(self.ciutat_lluny, (-20, HEIGHT - 300))
         for o in self.ovnis:
-            img = pygame.transform.scale(self.platets[(self.t // 8) % 3], (int(48 * o[4]), int(22 * o[4])))
+            clau = ((self.t // 8) % 3, int(o[4] * 10))       # mides arrodonides: s'escalen una sola vegada
+            img = self._platets_mida.get(clau)
+            if img is None:
+                img = self._platets_mida[clau] = pygame.transform.scale(self.platets[clau[0]],
+                                                                        (int(4.8 * clau[1]), int(2.2 * clau[1])))
             if o[1] > 220 and int(o[0]) % 3 == 0:
-                raig = CAPA_TRANSPARENT
-                raig.fill((0, 0, 0, 0))
-                pygame.draw.polygon(raig, (120, 255, 160, 40), [(o[0] - 4, o[1] + 8), (o[0] + 4, o[1] + 8),
+                poligon_alfa(surf, (120, 255, 160, 40), [(o[0] - 4, o[1] + 8), (o[0] + 4, o[1] + 8),
                                                                 (o[0] + 30, HEIGHT), (o[0] - 30, HEIGHT)])
-                surf.blit(raig, (0, 0))
             surf.blit(img, img.get_rect(center=(int(o[0]), int(o[1]))))
         surf.blit(self.ciutat, (-20, HEIGHT - 230))
         for p in self.particules:
@@ -5479,12 +5531,9 @@ class Intro:
         for k in range(3):                                   # drones buscando supervivientes
             x = (self.t * (0.8 + k * 0.3) + k * 260) % (WIDTH + 100) - 50
             y = 120 + k * 40 + math.sin(self.t * 0.04 + k) * 10
-            cono = CAPA_TRANSPARENT
-            cono.fill((0, 0, 0, 0))
             a = math.sin(self.t * 0.03 + k) * 0.4
-            pygame.draw.polygon(cono, (255, 255, 200, 40), [(x, y + 6), (x + math.sin(a) * 300 - 50, HEIGHT),
+            poligon_alfa(surf, (255, 255, 200, 40), [(x, y + 6), (x + math.sin(a) * 300 - 50, HEIGHT),
                                                             (x + math.sin(a) * 300 + 50, HEIGHT)])
-            surf.blit(cono, (0, 0))
             surf.blit(self.platets[(self.t // 8 + k) % 3], (int(x) - 24, int(y) - 11))
 
     def _act_nexus(self):
@@ -5601,11 +5650,8 @@ class Intro:
         if self.t > 120:                                   # raig cap al cel
             k = min(1.0, (self.t - 120) / 40)
             amp = int(10 + 26 * k + 4 * math.sin(self.t * 0.4))
-            raig = CAPA_TRANSPARENT
-            raig.fill((0, 0, 0, 0))
-            pygame.draw.rect(raig, (255, 90, 220, 90), (cx - amp, 0, amp * 2, int(base - 60)))
-            pygame.draw.rect(raig, (255, 220, 250, 200), (cx - amp // 4, 0, amp // 2, int(base - 60)))
-            surf.blit(raig, (0, 0))
+            rect_alfa(surf, (255, 90, 220, 90), (cx - amp, 0, amp * 2, int(base - 60)))
+            rect_alfa(surf, (255, 220, 250, 200), (cx - amp // 4, 0, amp // 2, int(base - 60)))
             l = llum(70, (255, 100, 230))
             surf.blit(l, l.get_rect(center=(cx, int(base - 90))))
         if img:
@@ -5622,11 +5668,8 @@ class Intro:
     def _dibuixar_senyal(self, surf):
         self._fons(surf, (3, 0))
         k = min(1.0, self.t / 60)
-        raig = CAPA_TRANSPARENT
-        raig.fill((0, 0, 0, 0))
-        pygame.draw.polygon(raig, (255, 100, 230, 110), [(150, HEIGHT), (190, HEIGHT), (WIDTH // 2 + 20, 150),
+        poligon_alfa(surf, (255, 100, 230, 110), [(150, HEIGHT), (190, HEIGHT), (WIDTH // 2 + 20, 150),
                                                           (WIDTH // 2 - 20, 150)])
-        surf.blit(raig, (0, 0))
         nau = SPR_ENEMIC.get("final_nau")
         if nau and self.t > 50:
             gran = pygame.transform.scale(nau, (nau.get_width() * 2, nau.get_height() * 2))
@@ -5647,9 +5690,7 @@ class Intro:
                     encesa = (self.t // 6 - i) % 9 < 3
                     pygame.draw.circle(surf, (255, 230, 120) if encesa else (110, 90, 60), (int(x), int(y + 140)), 3)
         if self.t < 60:
-            vel = CAPA_TRANSPARENT
-            vel.fill((0, 0, 0, int(200 * (1 - k))))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (0, 0, 0), int(200 * (1 - k)))
 
     def _act_llancament(self):
         if self.t > 150 and self.t % 2 == 0:
@@ -5707,9 +5748,7 @@ class Intro:
         for p in self.particules:
             p.dibuixar(surf)
         if 168 < self.t < 190:
-            vel = CAPA_TRANSPARENT
-            vel.fill((255, 255, 255, int(255 * (1 - (self.t - 168) / 22))))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (255, 255, 255), int(255 * (1 - (self.t - 168) / 22)))
 
     def _dibuixar_portal(self, surf):
         surf.blit(self.cel_nit, (0, 0))
@@ -5736,9 +5775,7 @@ class Intro:
             m = max(1, int(5 * (1 - fase)))
             pygame.draw.rect(surf, (90, 80, 110), (int(x), int(y), m * 2, m))
         if 235 < self.t < 265:
-            vel = CAPA_TRANSPARENT
-            vel.fill((230, 200, 255, int(220 * (1 - abs(self.t - 250) / 15))))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (230, 200, 255), int(220 * (1 - abs(self.t - 250) / 15)))
 
     def _dibuixar_apagada(self, surf):
         self._fons(surf, (4, 2))
@@ -5753,9 +5790,7 @@ class Intro:
             pygame.draw.ellipse(surf, (110, 50, 130), (centre[0] - rs - 2, centre[1] - rs - 2, rs * 2 + 4, max(2, alt)))
             pygame.draw.ellipse(surf, (110, 50, 130), (centre[0] - rs - 2, centre[1] + rs + 2 - max(2, alt), rs * 2 + 4,
                                                        max(2, alt)))
-        vel = CAPA_TRANSPARENT
-        vel.fill((0, 0, 8, int(200 * k)))
-        surf.blit(vel, (0, 0))
+        vel_pantalla(surf, (0, 0, 8), int(200 * k))
 
     def _dibuixar_portals(self, surf):
         surf.blit(self.cel_alba, (0, 0))
@@ -5881,9 +5916,7 @@ class Intro:
             alt = rs * 2 * k                                         # la parpella es tanca
             pygame.draw.ellipse(surf, (40, 120, 70), (ux - rs - 2, uy - rs - 2, rs * 2 + 4, max(2, alt)))
             pygame.draw.ellipse(surf, (40, 120, 70), (ux - rs - 2, uy + rs + 2 - max(2, alt), rs * 2 + 4, max(2, alt)))
-        vel = CAPA_TRANSPARENT
-        vel.fill((0, 0, 6, int(190 * k)))
-        surf.blit(vel, (0, 0))
+        vel_pantalla(surf, (0, 0, 6), int(190 * k))
 
     def _dibuixar_eco_lliures(self, surf):
         self._fons(surf, (5, 1))
@@ -5951,9 +5984,7 @@ class Intro:
         if self.sortint:
             negre = max(negre, 1 - self.sortint / 16)
         if negre > 0:
-            vel = CAPA_TRANSPARENT
-            vel.fill((0, 0, 0, int(255 * negre)))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (0, 0, 0), int(255 * negre))
 
     def _subtitols(self, surf):
         if self.escena == "esc_radio":            # el retrat ja és gran a la pantalla
@@ -5962,8 +5993,10 @@ class Intro:
             qui = self.qui
         alt = max(len(self.linies) * 34 + 26, 84 if qui else 0)
         caixa = pygame.Rect(30, HEIGHT - self.FRANJA - alt - 10, WIDTH - 60, alt)
-        capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
-        capa.fill((0, 0, 0, 175))
+        capa = _VELS.get(("sub", alt))
+        if capa is None:
+            capa = _VELS[("sub", alt)] = pygame.Surface(caixa.size, pygame.SRCALPHA)
+            capa.fill((0, 0, 0, 175))
         surf.blit(capa, caixa)
         x = caixa.left + 20
         color = self.COLORS_QUI.get(self.qui, BLANC)
@@ -6043,9 +6076,7 @@ class Intro:
             x = (k * 97 + dx) % (WIDTH + 40) - 20
             pygame.draw.line(surf, aclarir(color, 14), (x, sol + 8), (x + 30, sol + 8), 2)
         if fosc:
-            vel = CAPA_TRANSPARENT
-            vel.fill((0, 0, 8, fosc))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (0, 0, 8), fosc)
         return dx
 
     def _crear_actors(self):
@@ -6123,9 +6154,7 @@ class Intro:
         self._fons_pla(surf, pan=0.05, fosc=60 if revelat else 150)
         llamp = getattr(self, "llamp", 0)
         if llamp > 6:
-            vel = CAPA_TRANSPARENT
-            vel.fill((230, 220, 255, 120))
-            surf.blit(vel, (0, 0))
+            vel_pantalla(surf, (230, 220, 255), 120)
         for e in self.actors:
             capa = pygame.Surface((e.w + 160, e.h + 160), pygame.SRCALPHA)
             e.x, e.y = 80, 80
@@ -6185,9 +6214,7 @@ class Intro:
             pygame.draw.line(surf, (60, 80, 120), (x, altre.centery - h), (x, altre.centery + h), 3)
         # fundido de entrada
         if self.t < 25:
-            negre = CAPA_TRANSPARENT
-            negre.fill((0, 0, 0, int(255 * (1 - self.t / 25))))
-            surf.blit(negre, (0, 0))
+            vel_pantalla(surf, (0, 0, 0), int(255 * (1 - self.t / 25)))
 
 
 def mostra_soldat(arma_id, uniforme="classic", aparenca="estandard", camo=None):
@@ -14860,6 +14887,7 @@ class Game:
         if not AUDIO.silenci:
             AUDIO.musica("menu")
         if WEB:
+            DESCARREGUES.esperar = lambda: self.estat == "intro"
             self.descarrega = asyncio.create_task(DESCARREGUES.executar())    # música en segon pla
         oculta = False
         while True:
