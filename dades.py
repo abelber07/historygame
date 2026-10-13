@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.8"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.9"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
 SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
 SECTOR_DLC = 5            # índex del sector del DLC
@@ -277,6 +277,77 @@ TEXTOS_NARRATIVA = {
             "misma nota. Es el Coro: alguien les está enseñando a pensar como uno solo otra vez.",
     (5, 2): "En el fondo de la caverna late un capullo de cristal y oro. Dentro crece una semilla del Núcleo: la "
             "Heredera. Se alimenta del Coro y, si nace, volverá a abrir los portales. No dejes que despierte del todo.",
+}
+
+# Cinemáticas cortas antes de cada escenario (v4.9): sustituyen el texto largo de la narrativa.
+# Cada plano: (tipo, [(quién, frase), ...], {parámetros}). Tipos (se dibujan en main.py):
+#   "arribada": Nexus llega al escenario; "patrulla": los enemigos pasan delante, Nexus a cubierto;
+#   "cap": el jefe aparece entre relámpagos; "radio": primer plano de quien habla por radio.
+# Parámetros: "enemics" (tipos), "cap" (tipo, nivel), "clima" (pluja, gas, neu, espores, cristall), "fons" (n, e).
+CINE_ESCENARIS = {
+    (0, 0): [("arribada", [("comandant", "Nexus, aquí Reyes. Si me oyes, has salido del búnker con vida."),
+                           ("nexus", "Lo que queda de la ciudad... No reconozco nada.")], {"enemics": ["dron", "dron"]}),
+             ("patrulla", [("doctora", "Drones de vigilancia. Buscan supervivientes por todo el barrio norte."),
+                           ("comandant", "Destruye su puesto de vigilancia. Que no sepan que estamos aquí.")],
+              {"enemics": ["dron", "soldat", "dron"]})],
+    (0, 1): [("radio", [("doctora", "Han encontrado tu rastro. Sus lugartenientes dirigen la búsqueda."),
+                        ("comandant", "Si dan con el búnker, se acabó. Elimínalos antes.")], {"clima": "pluja"}),
+             ("patrulla", [("nexus", "Que vengan. Así no tendré que buscarlos.")],
+              {"enemics": ["lloctinent", "soldat", "soldat"], "clima": "pluja"})],
+    (0, 2): [("arribada", [("comandant", "Ese general controla todo el sector desde su base.")], {}),
+             ("cap", [("ment", "Un humano que no oye nuestra voz... Interesante."),
+                      ("nexus", "Pues vas a oír la mía.")], {"cap": ("boss", 0)})],
+    (1, 0): [("arribada", [("doctora", "Esto eran bosques. Ahora son plantas y máquinas fusionadas."),
+                           ("doctora", "Los Xylothians no construyen: cultivan. Y están cultivando la Tierra.")],
+              {"clima": "espores"}),
+             ("patrulla", [("comandant", "Abre camino hacia el sur, Nexus.")], {"enemics": ["soldat", "kamikaze", "soldat"]})],
+    (1, 1): [("arribada", [("doctora", "Un laboratorio alienígena. Hay criaturas en esos tanques..."),
+                           ("doctora", "Y el aire está lleno de gas inflamable. Cuidado con lo que disparas."),
+                           ("nexus", "Entendido. Nada de fuegos artificiales... de momento.")], {"clima": "gas"})],
+    (1, 2): [("radio", [("comandant", "El Maestro de la Selva hace crecer esta jungla y protege su corazón."),
+                        ("doctora", "Si cae, la selva dejará de avanzar.")], {}),
+             ("cap", [("ment", "La selva es nuestra. Pronto, toda la Tierra lo será.")], {"cap": ("boss", 1)})],
+    (2, 0): [("arribada", [("comandant", "La Fortaleza. Desde aquí dirigen la invasión de todo el continente.")], {}),
+             ("patrulla", [("doctora", "Legiones de élite. Los escudos solo paran lo que les llega de frente."),
+                           ("nexus", "Pues habrá que rodearlos.")], {"enemics": ["escut", "soldat", "soldat"]})],
+    (2, 1): [("radio", [("nexus", "Estoy en las cloacas. Huele a... prefiero no saberlo."),
+                        ("comandant", "Cruza el patio interior. El Comandante de Élite vigila la segunda línea.")],
+              {"clima": "gas"}),
+             ("cap", [("ment", "Ningún humano ha pasado de este patio.")], {"cap": ("boss", 2)})],
+    (2, 2): [("arribada", [("comandant", "En la cima te espera el Comandante Supremo, la voz del enemigo en la Tierra.")],
+              {"clima": "neu"}),
+             ("cap", [("ment", "Has llegado lejos, pequeño soldado. Pero yo solo soy una voz."),
+                      ("nexus", "Entonces te dejaré sin voz.")], {"cap": ("final_comandant", 2), "clima": "neu"})],
+    (3, 0): [("arribada", [("doctora", "Lanzadera acoplada al casco exterior de la Nave Nodriza."),
+                           ("comandant", "Esos restos son nuestros satélites. Los derribaron en 2139.")], {}),
+             ("patrulla", [("nexus", "Abro camino hacia los hangares.")], {"enemics": ["soldat", "escut", "soldat"]})],
+    (3, 1): [("patrulla", [("doctora", "Los hangares están llenos de cazadores. Atacan en picado.")],
+              {"enemics": ["cacador", "lloctinent", "cacador"]}),
+             ("radio", [("comandant", "Y están cargando un rayo capaz de arrasar ciudades. Detenlos, Nexus."),
+                        ("nexus", "Voy.")], {})],
+    (3, 2): [("arribada", [("doctora", "El puente de mando. Nexus, la nave entera está... viva.")], {}),
+             ("cap", [("ment", "Doce kilómetros de mi cuerpo te rodean, humano."),
+                      ("comandant", "Si cae, la flota se queda sin órdenes. Acaba con ella.")], {"cap": ("final_nau", 3)})],
+    (4, 0): [("arribada", [("nexus", "Un cielo violeta... Estoy en Xylos."),
+                           ("doctora", "Todos obedecen a una sola mente: el Núcleo de Xylos. Y está aquí.")], {}),
+             ("patrulla", [("ment", "Bienvenido a casa. A mi casa.")], {"enemics": ["lloctinent", "soldat", "kamikaze"]})],
+    (4, 1): [("radio", [("doctora", "Un campo supresor bloquea las armas pesadas."),
+                        ("comandant", "Solo tus reflejos te llevarán más allá, Nexus.")], {}),
+             ("cap", [("ment", "Nadie pasa a la cámara del Núcleo.")], {"cap": ("boss", 4)})],
+    (4, 2): [("arribada", [("doctora", "La cámara del Núcleo... Nexus, ¿lo estás viendo?")], {}),
+             ("cap", [("ment", "Mil años. Cientos de mundos. Nadie había llegado hasta aquí."),
+                      ("nexus", "Siempre hay una primera vez.")], {"cap": ("final_nucli", 4)})],
+    (5, 0): [("arribada", [("doctora", "Xylos está gris. Sin el Núcleo, la colmena se ha quedado callada.")],
+              {"clima": "cristall"}),
+             ("patrulla", [("nexus", "Huérfanos. Atacan a todo lo que se mueve."),
+                           ("doctora", "Busca el origen del eco.")], {"enemics": ["salvatge", "soldat", "salvatge"]})],
+    (5, 1): [("arribada", [("doctora", "El eco sale de esa caverna de cristal...")], {"clima": "cristall"}),
+             ("radio", [("hereva", "Cantad. Cantad todos conmigo."),
+                        ("nexus", "Alguien les está enseñando a pensar como uno solo otra vez.")], {"clima": "cristall"})],
+    (5, 2): [("arribada", [("doctora", "Ahí está el capullo. La semilla del Núcleo: la Heredera.")], {"clima": "cristall"}),
+             ("cap", [("hereva", "¿Por qué? Solo quiero que no estén solos."),
+                      ("comandant", "Si nace, volverá a abrir los portales. No la dejes despertar, Nexus.")],
+              {"cap": ("final_hereva", 5), "clima": "cristall"})],
 }
 
 # Cinemáticas al derrotar a cada jefe final: (escena, texto). Las escenas se dibujan en main.py.
@@ -624,6 +695,14 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "4.9", "titol": "Cinemáticas antes de cada escenario", "punts": [
+        ("cine", "Cada escenario empieza con una cinemática corta (Nexus llegando, los enemigos de patrulla, el jefe "
+                 "entre relámpagos o la radio en primer plano) en lugar del texto largo."),
+        ("cine", "Todas las cinemáticas tienen franjas de cine, fundidos entre escenas y subtítulos con la cara de "
+                 "quien habla."),
+        ("bandera", "Antes de jugar, una ficha de misión con la imagen del escenario, la potencia permitida y las "
+                    "estrellas."),
+    ]},
     {"versio": "4.8", "titol": "Premios al volver a la sala", "punts": [
         ("trofeu", "Los premios ya no salen mientras juegas: los ves al volver a la sala, como mucho dos a la vez y "
                    "con los repetidos juntos (Ascenso ×2, Battle Pass 13 → 15)."),

@@ -21,7 +21,7 @@ from contingut import (CODIS, BESTIARI, CAMUFLATGES, DESAFIAMENTS, DIBUIX_DRONS,
                        MIRES, MONEDES_REPETICIO, PREMI_REPTE, PREMI_TOTS_REPTES, PREMIS_DLC, RANGS, REPTES_POOL, TARGETES, TEMES_HUD,
                        XP_LOGRO, xp_acumulada_passi, xp_nivell_passi)
 from dades import (DETALL_ARMES, DETALL_MILLORES, NIVELL_TUTORIAL, PASSOS_TUTORIAL, PASSOS_TUTORIAL_MANDO, PASSOS_TUTORIAL_TACTIL, CALOR_DISPAR, ARRENCADA, FRE_MINIGUN,
-                   REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP,
+                   REFREDAMENT, REFREDAMENT_BLOQUEJADA, VIDA_ENEMICS, VIDA_CAPS, VIDA_FINALS, DANY_ENEMICS, CURA_ITEM, SPAWN_ITEMS, APARENCES_ARMA, ARENES, NOMS_ARENES, CATEGORIES_LOGRO, LOGROS, LOGRO_PER_ID, PLAQUES, REPISES_PLACA, ARMA_PER_ID, ARMES, ARXIU, CAPS_FINALS, CAPS_NORMALS, CINEMATICA_CAP, CINE_ESCENARIS,
                    CINEMATIQUES, DIFICULTATS, ENEMICS_TERRA, INTRO, MILLORES, MOTIUS_RESTRICCIO, MUSICA_SECTOR, MUSICA_ESCENARIS,
                    NIVELLS, NOMS_CAPS, NOMS_RADIO, NOMS_SECTORS, NUM_SECTORS, SECTORS_HISTORIA, SECTOR_DLC, TOTAL_ESTRELLES,
                    PASSI, POTENCIA_MAX, PRESENTACIO_CAPS,
@@ -5156,7 +5156,9 @@ class Radio:
 # Pantalles de text (narrativa, victòria i derrota)
 # ---------------------------------------------------------------------------
 class PantallaText:
-    def __init__(self, titol, cos, color_titol, botons, fons, pista=None, peu=()):
+    def __init__(self, titol, cos, color_titol, botons, fons, pista=None, peu=(), imatge=None, subtitol=None):
+        self.imatge = pygame.transform.smoothscale(imatge, (440, 246)) if imatge is not None and not cos else None
+        self.subtitol = subtitol
         self.pista = T(pista) if pista else None
         self.peu = [(T(l), c) for l, c in peu]      # línies extra sota el text: [(text, color), ...]
         self.titol = T(titol)
@@ -5183,6 +5185,22 @@ class PantallaText:
     def dibuixar(self, surf):
         self.fons.dibuixar(surf)
         text(surf, self.titol, F_SUBTITOL, self.color_titol, (WIDTH // 2, 62))
+        if self.imatge is not None:                      # fitxa de missió: la imatge de l'escenari i les dades
+            r = self.imatge.get_rect(midtop=(WIDTH // 2, 90))
+            pygame.draw.rect(surf, NEGRE, r.move(0, 4).inflate(8, 8), border_radius=6)
+            surf.blit(self.imatge, r)
+            pygame.draw.rect(surf, self.color_titol, r.inflate(6, 6), 3, border_radius=6)
+            if self.subtitol:
+                et = text(surf, self.subtitol, F_HUD, BLANC, (r.x + 14, r.bottom - 20), ancora="midleft")
+                capa = pygame.Surface(et.inflate(16, 10).size, pygame.SRCALPHA)
+                capa.fill((0, 0, 0, 170))
+                surf.blit(capa, et.inflate(16, 10))
+                text(surf, self.subtitol, F_HUD, BLANC, (r.x + 14, r.bottom - 20), ancora="midleft")
+            for i, (linia, color) in enumerate(self.peu):
+                text(surf, linia, F_TEXT_P, color, (WIDTH // 2, r.bottom + 24 + i * 25), max_w=WIDTH - 80)
+            for b in self.botons:
+                b.dibuixar(surf)
+            return
         alt = len(self.linies) * 34 + 36
         panell = pygame.Rect(60, 100, WIDTH - 120, alt)
         capa = pygame.Surface(panell.size, pygame.SRCALPHA)
@@ -5270,6 +5288,8 @@ class Intro:
         self.i = 0
         self.saltada = False
         self.saltable = saltable                 # la primera vegada no es pot saltar
+        self.t_total = 0                         # fotogrames des que comença (franges de cine)
+        self.sortint = 0                         # fosa a negre abans de canviar d'escena
         self.boto_saltar = Boto((WIDTH - 156, HEIGHT - 40, 140, 30), "Saltar  >>", self.saltar, GRIS_FOSC, font=F_MINI)
         rnd = random.Random(21)
         self.estrelles = [(rnd.uniform(0, WIDTH), rnd.uniform(0, 300), rnd.uniform(0, 6)) for _ in range(160)]
@@ -5288,17 +5308,47 @@ class Intro:
     # ----- control ------------------------------------------------------
     def preparar_escena(self):
         self.t = 0
-        self.escena, cos = self.escenes[self.i]
-        cos = T(cos)
-        self.linies = ajustar_linies(cos, F_TEXT, WIDTH - 120)
-        self.total = sum(len(l) for l in self.linies)
-        self.mostrats = 0.0
+        entrada = self.escenes[self.i]
+        self.escena, cos = entrada[0], entrada[1]
+        self.param = entrada[2] if len(entrada) > 2 else {}
+        # el text pot ser una frase de narrador o una llista de (qui, frase): un diàleg
+        self.dialeg = [(None, cos)] if isinstance(cos, str) else list(cos)
+        self.linia = 0
         self.particules = []
         self.ovnis = []
-        # temps per llegir-ho tot amb calma: el text no es pot accelerar, només saltar la cinemàtica
-        self.durada = max(360, int(self.total / 0.9) + max(170, int(self.total * 2.2)))
+        self.actors = None
+        self._preparar_linia()
+        # durada de l'escena: el que es triga a llegir-ho tot amb calma (el text no es pot accelerar)
+        if len(self.dialeg) == 1:
+            self.durada = self.durada_linia
+        else:
+            self.durada = sum(self._durada_de(T(txt)) for _, txt in self.dialeg)
+        self.durada = max(self.durada, self.param.get("min", 0))
+
+    @staticmethod
+    def _durada_de(txt):
+        n = len(txt)
+        return max(300, int(n / 0.9) + max(150, int(n * 1.9)))
+
+    def _preparar_linia(self):
+        self.qui, txt = self.dialeg[self.linia]
+        txt = T(txt)
+        ample = WIDTH - 120 - (84 if self.qui else 0)
+        self.linies = ajustar_linies(txt, F_TEXT, ample)
+        self.total = sum(len(l) for l in self.linies)
+        self.mostrats = 0.0
+        self.t_linia = 0
+        if len(self.dialeg) == 1:          # una sola frase: la mateixa durada que abans (les escenes hi van a temps)
+            self.durada_linia = max(360, int(self.total / 0.9) + max(170, int(self.total * 2.2)))
+        else:
+            self.durada_linia = self._durada_de(txt)
 
     def seguent(self):
+        if self.sortint:
+            return
+        self.sortint = 16                  # fosa a negre i, després, l'escena següent
+
+    def _passar(self):
         if self.i < len(self.escenes) - 1:
             self.i += 1
             self.preparar_escena()
@@ -5311,13 +5361,24 @@ class Intro:
 
     def actualitzar(self):
         self.t += 1
+        self.t_total += 1
+        self.t_linia += 1
         self.mostrats = min(self.total, self.mostrats + 0.9)
         getattr(self, "_act_" + self.escena, lambda: None)()
         for p in self.particules[:]:
             if p.actualitzar():
                 self.particules.remove(p)
-        if self.t >= self.durada and self.mostrats >= self.total:
-            self.seguent()
+        if self.sortint:
+            self.sortint -= 1
+            if self.sortint == 0:
+                self._passar()
+            return
+        if self.t_linia >= self.durada_linia and self.mostrats >= self.total:
+            if self.linia < len(self.dialeg) - 1:
+                self.linia += 1
+                self._preparar_linia()
+            elif self.t >= self.durada or len(self.dialeg) > 1:
+                self.seguent()
 
     # ----- escenas -------------------------------------------------------
     def _estrelles(self, surf):
@@ -5507,10 +5568,10 @@ class Intro:
             LOGO_MENU.dibuixar(surf, WIDTH // 2, 8, self.t)
 
     # ----- escenes de després dels caps finals -----------------------------
-    def _fons(self, surf, clau):
+    def _fons(self, surf, clau, dy=0):
         fons = FONS_NIVELLS.get(clau)
         if fons:
-            surf.blit(fons, (-20, -10))
+            surf.blit(fons, (-20, -10 + dy))
         else:
             surf.blit(self.cel_nit, (0, 0))
 
@@ -5531,12 +5592,12 @@ class Intro:
 
     def _act_caiguda(self):
         if 20 < self.t < 110 and self.t % 9 == 0:
-            self._explosio(WIDTH * 0.62 + random.uniform(-60, 60), 250 + random.uniform(-60, 60))
+            self._explosio(WIDTH * 0.62 + random.uniform(-60, 60), 190 + random.uniform(-60, 60))
 
     def _dibuixar_caiguda(self, surf):
-        self._fons(surf, (2, 2))
+        self._fons(surf, (2, 2), -64)                      # càmera més amunt: es veuen per sobre dels subtítols
         img = COMANDANT_MORT or SPR_ENEMIC.get("final_comandant")
-        cx, base = int(WIDTH * 0.62), 420
+        cx, base = int(WIDTH * 0.62), 356
         if self.t > 120:                                   # raig cap al cel
             k = min(1.0, (self.t - 120) / 40)
             amp = int(10 + 26 * k + 4 * math.sin(self.t * 0.4))
@@ -5554,7 +5615,7 @@ class Intro:
             if self.t < 110 and (self.t // 6) % 2 == 0:
                 cos = tenyir(cos, (255, 255, 255), 120)
             surf.blit(cos, cos.get_rect(midbottom=(cx + random.randint(-2, 2) * (self.t < 110), base)))
-        self._soldat(surf, WIDTH * 0.25, 492)
+        self._soldat(surf, WIDTH * 0.25, 428)
         for p in self.particules:
             p.dibuixar(surf)
 
@@ -5664,6 +5725,16 @@ class Intro:
             y = 330 - (330 - 220) * k
             if k < 1:
                 surf.blit(img, img.get_rect(center=(int(x), int(y))))
+        # restes que suren cap al portal
+        rnd = random.Random(3)
+        for k in range(14):
+            fase = (self.t * rnd.uniform(0.004, 0.01) + rnd.random()) % 1
+            ang = rnd.uniform(0, math.tau)
+            dist = (1 - fase) * rnd.uniform(220, 420)
+            x = WIDTH // 2 + 120 + math.cos(ang) * dist
+            y = 220 + math.sin(ang) * dist * 0.5
+            m = max(1, int(5 * (1 - fase)))
+            pygame.draw.rect(surf, (90, 80, 110), (int(x), int(y), m * 2, m))
         if 235 < self.t < 265:
             vel = CAPA_TRANSPARENT
             vel.fill((230, 200, 255, int(220 * (1 - abs(self.t - 250) / 15))))
@@ -5846,30 +5917,272 @@ class Intro:
         if self.t > 60:
             text(surf, "FIN", F_TITOL, GROC, (WIDTH // 2, 330))
 
+    FRANJA = 34                                  # alçada de les franges negres de cine
+    COLORS_QUI = {"comandant": CIAN, "doctora": (140, 255, 200), "nexus": (120, 200, 255), "ment": MORAT,
+                  "hereva": (140, 255, 230)}
+
     def dibuixar(self, surf):
         getattr(self, "_dibuixar_" + self.escena)(surf)
-        etiqueta = self.ETIQUETES.get(self.escena)
+        self._clima(surf)
+        surf.blit(VINYETA, (0, 0))
+        # franges de cine (entren al principi)
+        f = int(self.FRANJA * min(1.0, self.t_total / 24))
+        if f:
+            pygame.draw.rect(surf, NEGRE, (0, 0, WIDTH, f))
+            pygame.draw.rect(surf, NEGRE, (0, HEIGHT - f, WIDTH, f))
+        etiqueta = self.ETIQUETES.get(self.escena) or self.param.get("etiqueta")
         if etiqueta and not (self.escena == "despertar" and self.t > 130):
-            text(surf, etiqueta, F_SUBTITOL, BLANC, (30, 36), ancora="midleft")
-        # subtítulos
-        alt = len(self.linies) * 34 + 26
-        caixa = pygame.Rect(30, HEIGHT - alt - 40, WIDTH - 60, alt)
-        capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
-        capa.fill((0, 0, 0, 170))
-        surf.blit(capa, caixa)
-        restants = int(self.mostrats)
-        y = caixa.top + 12
-        for linia in self.linies:
-            if restants <= 0:
-                break
-            text(surf, linia[:restants], F_TEXT, BLANC, (caixa.left + 20, y), ancora="topleft")
-            restants -= len(linia)
-            y += 34
+            a = min(1.0, self.t / 20) * (1.0 if self.t < 200 else max(0.0, 1 - (self.t - 200) / 30))
+            if a > 0:
+                img = render(T(etiqueta), F_SUBTITOL, BLANC)
+                img = img.copy()
+                img.set_alpha(int(255 * a))
+                surf.blit(img, img.get_rect(midleft=(30 - int(12 * (1 - a)), self.FRANJA + 26)))
+        self._subtitols(surf)
         if self.saltable:
             self.boto_saltar.dibuixar(surf)
         n = len(self.escenes)
         for k in range(n):
-            pygame.draw.circle(surf, BLANC if k == self.i else GRIS_FOSC, (WIDTH - 30 - (n - 1 - k) * 14, 26), 4)
+            pygame.draw.circle(surf, BLANC if k == self.i else GRIS_FOSC, (WIDTH - 30 - (n - 1 - k) * 14, 17), 4)
+        # fosa d'entrada i de sortida
+        negre = 0
+        if self.t < 16:
+            negre = 1 - self.t / 16
+        if self.sortint:
+            negre = max(negre, 1 - self.sortint / 16)
+        if negre > 0:
+            vel = CAPA_TRANSPARENT
+            vel.fill((0, 0, 0, int(255 * negre)))
+            surf.blit(vel, (0, 0))
+
+    def _subtitols(self, surf):
+        if self.escena == "esc_radio":            # el retrat ja és gran a la pantalla
+            qui = None
+        else:
+            qui = self.qui
+        alt = max(len(self.linies) * 34 + 26, 84 if qui else 0)
+        caixa = pygame.Rect(30, HEIGHT - self.FRANJA - alt - 10, WIDTH - 60, alt)
+        capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
+        capa.fill((0, 0, 0, 175))
+        surf.blit(capa, caixa)
+        x = caixa.left + 20
+        color = self.COLORS_QUI.get(self.qui, BLANC)
+        if qui:
+            frames = RETRATS.get(qui) or []
+            parlant = self.mostrats < self.total
+            if frames:
+                img = frames[1 if parlant and (self.t // 5) % 2 else 0]
+                surf.blit(img, (caixa.x + 10, caixa.y + 10))
+                pygame.draw.rect(surf, color, (caixa.x + 8, caixa.y + 8, 68, 68), 2, border_radius=3)
+            x = caixa.left + 94
+        if self.qui:
+            pygame.draw.rect(surf, color, (caixa.x, caixa.y + 8, 3, caixa.h - 16))
+            text(surf, T(NOMS_RADIO.get(self.qui, self.qui)).upper(), F_MINI, color, (x, caixa.top + 10), ancora="midleft")
+        restants = int(self.mostrats)
+        y = caixa.top + (20 if self.qui else 12)
+        for linia in self.linies:
+            if restants <= 0:
+                break
+            text(surf, linia[:restants], F_TEXT, BLANC, (x, y), ancora="topleft")
+            restants -= len(linia)
+            y += 34
+
+    # ----- clima dels plans (pluja, gas, neu, espores, cristall) --------------------------------------------
+    def _clima(self, surf):
+        clima = self.param.get("clima")
+        if not clima:
+            return
+        t = self.t
+        rnd = random.Random(7)
+        if clima == "pluja":
+            for k in range(70):
+                x = (rnd.uniform(0, WIDTH + 200) - t * 9 * rnd.uniform(0.6, 1.0)) % (WIDTH + 200) - 100
+                y = (rnd.uniform(0, HEIGHT) + t * 16 * rnd.uniform(0.8, 1.2)) % HEIGHT
+                pygame.draw.line(surf, (150, 170, 210), (int(x), int(y)), (int(x - 4), int(y + 12)), 1)
+        elif clima == "neu":
+            for k in range(60):
+                x = (rnd.uniform(0, WIDTH) + math.sin(t * 0.02 + k) * 20 - t * 0.6) % WIDTH
+                y = (rnd.uniform(0, HEIGHT) + t * rnd.uniform(0.6, 1.4)) % HEIGHT
+                pygame.draw.rect(surf, (235, 240, 255), (int(x), int(y), 2 + k % 2, 2 + k % 2))
+        elif clima in ("espores", "cristall"):
+            col = (190, 255, 90) if clima == "espores" else (140, 255, 230)
+            for k in range(30):
+                x = (rnd.uniform(0, WIDTH) + math.sin(t * 0.015 + k) * 30) % WIDTH
+                y = (rnd.uniform(0, HEIGHT) - t * rnd.uniform(0.2, 0.6)) % HEIGHT
+                a = 0.5 + 0.5 * math.sin(t * 0.07 + k)
+                pygame.draw.circle(surf, tuple(int(c * (0.5 + 0.5 * a)) for c in col), (int(x), int(y)), 1 + (k % 3 == 0))
+        elif clima == "gas":
+            for k in range(5):
+                b = bufada_gas(96, 48)
+                if b.get_width():
+                    x = (rnd.uniform(0, WIDTH) + t * 0.4 * (1 + k % 2)) % (WIDTH + 200) - 100
+                    surf.blit(b, (int(x - b.get_width() / 2), int(HEIGHT - 190 - k * 14 - b.get_height() / 2)))
+
+    # ----- plans abans de cada escenari (v4.9) ------------------------------------------------------------
+    CAM_Y = -78                                  # la càmera puja: el terra queda per sobre dels subtítols
+
+    def _fons_pla(self, surf, pan=0.12, fosc=0):
+        """Fons de l'escenari amb un travelling lent; torna el desplaçament (per moure-hi els actors)."""
+        clau = self.param.get("fons")
+        fons = FONS_NIVELLS.get(clau)
+        dx = -int(min(40, self.t * pan))
+        if fons:
+            surf.blit(fons, (dx, -10 + self.CAM_Y))
+        else:
+            surf.blit(self.cel_nit, (0, 0))
+        # terra: el color del peu del fons, una mica més fosc
+        sol = TERRA_Y + self.CAM_Y
+        if fons:
+            c = fons.get_at((fons.get_width() // 2, fons.get_height() - 6))
+            color = (int(c.r * 0.55), int(c.g * 0.55), int(c.b * 0.6))
+        else:
+            color = (20, 22, 34)
+        pygame.draw.rect(surf, color, (0, sol, WIDTH, HEIGHT - sol))
+        pygame.draw.line(surf, aclarir(color, 40), (0, sol), (WIDTH, sol), 2)
+        for k in range(12):
+            x = (k * 97 + dx) % (WIDTH + 40) - 20
+            pygame.draw.line(surf, aclarir(color, 14), (x, sol + 8), (x + 30, sol + 8), 2)
+        if fosc:
+            vel = CAPA_TRANSPARENT
+            vel.fill((0, 0, 8, fosc))
+            surf.blit(vel, (0, 0))
+        return dx
+
+    def _crear_actors(self):
+        n = (self.param.get("fons") or (0, 0))[0]
+        actors = []
+        for k, tipus in enumerate(self.param.get("enemics", [])):
+            try:
+                e = Enemic(tipus, 100, n, 0, 160)
+            except Exception:
+                continue
+            e.var = n if tipus in TIPUS_VARIANT else None
+            e.entrant = False
+            actors.append(e)
+        return actors
+
+    def _moure_actor(self, e, x, y, vx):
+        e.x, e.y = x, y
+        e.vx = vx
+        if vx:
+            e.dir = 1 if vx > 0 else -1
+        e.pas_anim += abs(vx) * 0.09
+        e.t += 0.05
+
+    def _dibuixar_esc_arribada(self, surf):
+        dx = self._fons_pla(surf)
+        if self.actors is None:
+            self.actors = self._crear_actors()
+        for k, e in enumerate(self.actors):                    # al fons, patrullant
+            if e.terrestre:
+                x = 640 + k * 110 + math.sin(self.t * 0.01 + k) * 50
+                self._moure_actor(e, x + dx, TERRA_Y + self.CAM_Y - e.h, math.cos(self.t * 0.01 + k) * 0.5)
+            else:
+                self._moure_actor(e, 600 + k * 140 + dx + math.sin(self.t * 0.02 + k) * 30,
+                                  110 + k * 40 + math.sin(self.t * 0.05 + k) * 8, 0)
+                e.dir = -1
+            e.dibuixar(surf)
+        x = min(250, -30 + self.t * 2.6)                       # Nexus arriba corrent i s'atura
+        self._soldat(surf, x + dx * 0.3, TERRA_Y + self.CAM_Y + 2, "corre" if x < 250 else "quiet", 1)
+
+    def _dibuixar_esc_patrulla(self, surf):
+        self._fons_pla(surf, pan=0.2)
+        if self.actors is None:
+            self.actors = self._crear_actors()
+        for k, e in enumerate(self.actors):                    # passen per davant, cap a l'esquerra
+            if e.terrestre:
+                x = WIDTH - 90 + k * 120 - self.t * 0.9
+                self._moure_actor(e, x, TERRA_Y + self.CAM_Y - e.h, -0.9)
+            else:
+                x = WIDTH - 40 + k * 150 - self.t * 1.1
+                self._moure_actor(e, x, 90 + (k % 2) * 60 + math.sin(self.t * 0.05 + k) * 10, -1.1)
+            e.dibuixar(surf)
+        # Nexus a cobert, darrere la runa del primer pla
+        sol = TERRA_Y + self.CAM_Y
+        self._soldat(surf, 150, sol + 2, "quiet", 1)
+        runa = [(0, HEIGHT), (0, sol - 30), (60, sol - 44), (120, sol - 20), (190, sol - 34),
+                (230, sol + 6), (260, HEIGHT)]
+        pygame.draw.polygon(surf, (10, 10, 18), runa)
+        pygame.draw.lines(surf, (40, 40, 60), False, runa[1:-1], 2)
+
+    def _act_esc_cap(self):
+        if self.t in (50, 120, 175):
+            self.llamp = 10
+        self.llamp = max(0, getattr(self, "llamp", 0) - 1)
+
+    def _dibuixar_esc_cap(self, surf):
+        if self.actors is None:
+            tipus, niv = self.param.get("cap", ("boss", 0))
+            try:
+                e = Enemic(tipus, 100, niv, 0, 160)
+                e.entrant = False
+                self.actors = [e]
+            except Exception:
+                self.actors = []
+        revelat = self.t >= 175
+        self._fons_pla(surf, pan=0.05, fosc=60 if revelat else 150)
+        llamp = getattr(self, "llamp", 0)
+        if llamp > 6:
+            vel = CAPA_TRANSPARENT
+            vel.fill((230, 220, 255, 120))
+            surf.blit(vel, (0, 0))
+        for e in self.actors:
+            capa = pygame.Surface((e.w + 160, e.h + 160), pygame.SRCALPHA)
+            e.x, e.y = 80, 80
+            e.t += 0.05
+            e.dir = -1
+            e.dibuixar(capa)
+            if not revelat and llamp <= 6:                     # silueta a la foscor (només els ulls de llum)
+                capa.fill((14, 10, 26, 255), special_flags=pygame.BLEND_RGBA_MIN)
+            esc = 1.6 if e.h < 140 else 1.25
+            gran = pygame.transform.scale(capa, (int(capa.get_width() * esc), int(capa.get_height() * esc)))
+            puja = 0 if revelat else int(30 * (1 - min(1.0, self.t / 175)))
+            tremol = (random.randint(-2, 2), random.randint(-2, 2)) if 175 <= self.t < 200 else (0, 0)
+            if revelat:
+                l = llum(170, (255, 90, 110))
+                l.set_alpha(110)
+                surf.blit(l, l.get_rect(center=(WIDTH * 0.64, 250)))
+            surf.blit(gran, gran.get_rect(center=(int(WIDTH * 0.64) + tremol[0], 250 + puja + tremol[1])))
+        # Nexus, en primer pla i a contrallum
+        spr = sprites_jugador("pistola")
+        if spr:
+            img = spr.poses["quiet"][(self.t // 35) % 2][1]
+            gran = pygame.transform.scale(img, (img.get_width() * 2, img.get_height() * 2))
+            gran = gran.copy()
+            gran.fill((20, 20, 34, 255), special_flags=pygame.BLEND_RGBA_MIN)
+            surf.blit(gran, gran.get_rect(midbottom=(180, HEIGHT - self.FRANJA + 30)))
+
+    def _dibuixar_esc_radio(self, surf):
+        self._fons_pla(surf, pan=0.05, fosc=170)
+        for y in range(0, HEIGHT, 3):                          # línies d'escaneig
+            pygame.draw.line(surf, (0, 0, 0), (0, y), (WIDTH, y))
+        qui = self.qui or "comandant"
+        frames = RETRATS.get(qui) or []
+        esquerra = qui == "nexus"
+        color = self.COLORS_QUI.get(qui, BLANC)
+        marc = pygame.Rect(0, 0, 212, 212)
+        marc.center = (250 if esquerra else WIDTH - 250, 220)
+        pygame.draw.rect(surf, (6, 10, 22), marc)
+        if frames:
+            parlant = self.mostrats < self.total
+            img = frames[1 if parlant and (self.t // 5) % 2 else 0]
+            gran = pygame.transform.scale(img, (192, 192))
+            surf.blit(gran, gran.get_rect(center=marc.center))
+            if (self.t // 40) % 2 == 0 or qui in ("ment", "hereva"):        # interferències
+                for k in range(3):
+                    y = marc.y + 10 + random.randint(0, 190)
+                    pygame.draw.line(surf, (200, 220, 255), (marc.x + 10, y), (marc.right - 10, y))
+        pygame.draw.rect(surf, color, marc, 3, border_radius=4)
+        text(surf, T(NOMS_RADIO.get(qui, qui)).upper(), F_HUD, color, (marc.centerx, marc.bottom + 18))
+        # l'altre interlocutor, apagat
+        altre = pygame.Rect(0, 0, 120, 120)
+        altre.center = (WIDTH - 250 if esquerra else 250, 240)
+        pygame.draw.rect(surf, (6, 10, 22), altre)
+        pygame.draw.rect(surf, (50, 60, 90), altre, 2, border_radius=4)
+        ones = [abs(math.sin(self.t * 0.3 + k * 0.7)) * (14 if self.mostrats < self.total else 3) for k in range(9)]
+        for k, h in enumerate(ones):
+            x = altre.x + 16 + k * 11
+            pygame.draw.line(surf, (60, 80, 120), (x, altre.centery - h), (x, altre.centery + h), 3)
         # fundido de entrada
         if self.t < 25:
             negre = CAPA_TRANSPARENT
@@ -7821,11 +8134,13 @@ class Game:
         self.eco_vist = bool(d.get("eco_vist", False))
         cv = d.get("cinematiques")
         if isinstance(cv, list):
-            self.cinematiques_vistes = {c for c in cv if c in CINEMATIQUES}
+            valides = set(CINEMATIQUES) | {f"esc_{n}_{e}" for n, e in CINE_ESCENARIS}
+            self.cinematiques_vistes = {c for c in cv if c in valides}
         else:                                    # partida d'abans: les dels caps que ja has vençut compten com a vistes
             self.cinematiques_vistes = {c for (n, e), c in CINEMATICA_CAP.items() if self.completats[n][e]}
             if self.eco_vist:
                 self.cinematiques_vistes.add("eco")
+        self.cinematiques_vistes |= {f"esc_{n}_{e}" for n in range(NUM_SECTORS) for e in range(3) if self.completats[n][e]}
         self.xp = d.get("xp", 0) if isinstance(d.get("xp"), int) else 0
         self.passi_reclamat = d.get("passi", 0) if isinstance(d.get("passi"), int) else 0
         mill = d.get("millores", {})
@@ -8360,10 +8675,14 @@ class Game:
         self.canviar_estat("credits")
 
     def mostrar_narrativa(self, nivell, escenari, cinematica=True):
-        if (nivell, escenari) == (SECTOR_DLC, 0) and cinematica:
+        if (nivell, escenari) == (SECTOR_DLC, 0) and cinematica is True:
             self.eco_vist = True                     # el DLC sempre comença amb la seva cinemàtica (es pot saltar)
             self.desar_progres()
-            self.veure_cinematica("eco", lambda: self.mostrar_narrativa(nivell, escenari, cinematica=False))
+            self.veure_cinematica("eco", lambda: self.mostrar_narrativa(nivell, escenari, cinematica="escenari"))
+            return
+        if cinematica and (nivell, escenari) in CINE_ESCENARIS:      # v4.9: cinemàtica curta en lloc del text
+            self.veure_cinematica(f"esc_{nivell}_{escenari}",
+                                  lambda: self.mostrar_narrativa(nivell, escenari, cinematica=False))
             return
         self.mode = "historia"
         self.nivell_actual = nivell
@@ -8381,8 +8700,10 @@ class Game:
         est = self.estrelles[nivell][escenari]
         peu.append((T("Estrellas: {e}/3 · récord de tiempo: {s} s").format(e=sum(est), s=TEMPS_ESTRELLA[(nivell, escenari)]),
                     (255, 220, 120)))
-        self.pantalla_text = PantallaText(titol, TEXTOS_NARRATIVA[(nivell, escenari)], CIAN, [boto], self.fons_menu,
-                                          peu=peu)
+        cos = "" if (nivell, escenari) in CINE_ESCENARIS else TEXTOS_NARRATIVA[(nivell, escenari)]
+        self.pantalla_text = PantallaText(titol, cos, CIAN, [boto], self.fons_menu, peu=peu,
+                                          imatge=FONS_NIVELLS.get((nivell, escenari)),
+                                          subtitol=T("ESCENARIO {n}-{e}").format(n=nivell + 1, e=escenari + 1))
         self.botons = [boto]
         self.canviar_estat("narrativa")
 
@@ -9449,9 +9770,27 @@ class Game:
         if pr["t"] >= 170:
             self.presentacio = None
 
+    @staticmethod
+    def escenes_escenari(n, e):
+        """Plans de la cinemàtica d'abans de l'escenari (n, e), amb el fons de l'escenari i l'etiqueta."""
+        plans = []
+        for k, (tipus, dialeg, param) in enumerate(CINE_ESCENARIS[(n, e)]):
+            param = dict(param)
+            param.setdefault("fons", (n, e))
+            if k == 0:
+                param["etiqueta"] = f"{n + 1}-{e + 1} · {T(NOMS_SECTORS[n]).upper()}"
+            plans.append(("esc_" + tipus, dialeg, param))
+        return plans
+
     def veure_cinematica(self, clau, despres):
-        AUDIO.musica({"comandant": "sector4", "nau": "sector5", "final": "final", "eco": "sector6",
-                      "hereva": "final"}.get(clau, "menu"))
+        if clau.startswith("esc_"):
+            n, e = (int(v) for v in clau[4:].split("_"))
+            AUDIO.musica(musica_escenari(n, e))
+            escenes = self.escenes_escenari(n, e)
+        else:
+            AUDIO.musica({"comandant": "sector4", "nau": "sector5", "final": "final", "eco": "sector6",
+                          "hereva": "final"}.get(clau, "menu"))
+            escenes = CINEMATIQUES[clau]
 
         def fi():
             if clau == "final" and not self.intro.saltada:
@@ -9459,7 +9798,7 @@ class Game:
             self.cinematiques_vistes.add(clau)
             self.desar_progres()
             despres()
-        self.intro = Intro(fi, CINEMATIQUES[clau], saltable=clau in self.cinematiques_vistes)
+        self.intro = Intro(fi, escenes, saltable=clau in self.cinematiques_vistes)
         self.botons = []
         self.canviar_estat("intro")
 

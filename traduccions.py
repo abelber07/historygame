@@ -2320,3 +2320,111 @@ _AVISOS_47.update({
 for _es, (_ca, _en) in _AVISOS_47.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)
+
+
+# --- v4.9: cinemàtiques abans de cada escenari ------------------------------------------------------------------
+_CINE_49 = {
+    "ESCENARIO {n}-{e}": ("ESCENARI {n}-{e}", "STAGE {n}-{e}"),
+    "Nexus, aquí Reyes. Si me oyes, has salido del búnker con vida.":
+        ("Nexus, aquí Reyes. Si em sents, has sortit del búnquer amb vida.", "Nexus, Reyes here. If you can hear me, you made it out of the bunker alive."),
+    "Lo que queda de la ciudad... No reconozco nada.":
+        ("El que queda de la ciutat... No reconec res.", "What's left of the city... I don't recognise any of it."),
+    "Drones de vigilancia. Buscan supervivientes por todo el barrio norte.":
+        ("Drons de vigilància. Busquen supervivents per tot el barri nord.", "Surveillance drones. They're hunting for survivors all over the north district."),
+    "Destruye su puesto de vigilancia. Que no sepan que estamos aquí.":
+        ("Destrueix el seu lloc de vigilància. Que no sàpiguen que som aquí.", "Destroy their lookout post. They can't know we're here."),
+    "Han encontrado tu rastro. Sus lugartenientes dirigen la búsqueda.":
+        ("Han trobat el teu rastre. Els seus lloctinents dirigeixen la recerca.", "They've picked up your trail. Their lieutenants are leading the search."),
+    "Si dan con el búnker, se acabó. Elimínalos antes.":
+        ("Si troben el búnquer, s'ha acabat. Elimina'ls abans.", "If they find the bunker, it's over. Take them out first."),
+    "Que vengan. Así no tendré que buscarlos.": ("Que vinguin. Així no els hauré de buscar.", "Let them come. Saves me looking for them."),
+    "Ese general controla todo el sector desde su base.":
+        ("Aquell general controla tot el sector des de la seva base.", "That general controls the whole sector from his base."),
+    "Un humano que no oye nuestra voz... Interesante.":
+        ("Un humà que no sent la nostra veu... Interessant.", "A human who cannot hear our voice... Interesting."),
+    "Pues vas a oír la mía.": ("Doncs sentiràs la meva.", "Well, you're about to hear mine."),
+    "Esto eran bosques. Ahora son plantas y máquinas fusionadas.":
+        ("Això eren boscos. Ara són plantes i màquines fusionades.", "These used to be forests. Now they're plants and machines fused together."),
+    "Los Xylothians no construyen: cultivan. Y están cultivando la Tierra.":
+        ("Els Xylothians no construeixen: conreen. I estan conreant la Terra.", "The Xylothians don't build: they grow. And they're growing the Earth."),
+    "Abre camino hacia el sur, Nexus.": ("Obre camí cap al sud, Nexus.", "Clear a path south, Nexus."),
+    "Un laboratorio alienígena. Hay criaturas en esos tanques...":
+        ("Un laboratori alienígena. Hi ha criatures en aquells tancs...", "An alien lab. There are creatures in those tanks..."),
+    "Y el aire está lleno de gas inflamable. Cuidado con lo que disparas.":
+        ("I l'aire és ple de gas inflamable. Compte amb el que dispares.", "And the air is full of flammable gas. Careful what you shoot."),
+    "Entendido. Nada de fuegos artificiales... de momento.":
+        ("Entesos. Res de focs artificials... de moment.", "Understood. No fireworks... for now."),
+    "El Maestro de la Selva hace crecer esta jungla y protege su corazón.":
+        ("El Mestre de la Selva fa créixer aquesta jungla i en protegeix el cor.", "The Jungle Master grows this jungle and guards its heart."),
+    "Si cae, la selva dejará de avanzar.": ("Si cau, la selva deixarà d'avançar.", "If it falls, the jungle stops spreading."),
+    "La selva es nuestra. Pronto, toda la Tierra lo será.":
+        ("La selva és nostra. Aviat, tota la Terra ho serà.", "The jungle is ours. Soon, all of Earth will be."),
+    "La Fortaleza. Desde aquí dirigen la invasión de todo el continente.":
+        ("La Fortalesa. Des d'aquí dirigeixen la invasió de tot el continent.", "The Fortress. From here they run the invasion of the whole continent."),
+    "Legiones de élite. Los escudos solo paran lo que les llega de frente.":
+        ("Legions d'elit. Els escuts només aturen el que els arriba de cara.", "Elite legions. Shields only stop what hits them head-on."),
+    "Pues habrá que rodearlos.": ("Doncs caldrà envoltar-los.", "Then I'll go around them."),
+    "Estoy en las cloacas. Huele a... prefiero no saberlo.":
+        ("Soc a les clavegueres. Fa olor de... prefereixo no saber-ho.", "I'm in the sewers. It smells like... I'd rather not know."),
+    "Cruza el patio interior. El Comandante de Élite vigila la segunda línea.":
+        ("Creua el pati interior. El Comandant d'Elit vigila la segona línia.", "Cross the inner courtyard. The Elite Commander guards the second line."),
+    "Ningún humano ha pasado de este patio.": ("Cap humà no ha passat d'aquest pati.", "No human has ever made it past this courtyard."),
+    "En la cima te espera el Comandante Supremo, la voz del enemigo en la Tierra.":
+        ("Al cim t'espera el Comandant Suprem, la veu de l'enemic a la Terra.", "At the summit waits the Supreme Commander, the enemy's voice on Earth."),
+    "Has llegado lejos, pequeño soldado. Pero yo solo soy una voz.":
+        ("Has arribat lluny, petit soldat. Però jo només soc una veu.", "You have come far, little soldier. But I am only a voice."),
+    "Entonces te dejaré sin voz.": ("Doncs et deixaré sense veu.", "Then I'll leave you speechless."),
+    "Lanzadera acoplada al casco exterior de la Nave Nodriza.":
+        ("Llançadora acoblada al casc exterior de la Nau Mare.", "Shuttle docked to the Mothership's outer hull."),
+    "Esos restos son nuestros satélites. Los derribaron en 2139.":
+        ("Aquestes restes són els nostres satèl·lits. Els van abatre el 2139.", "That debris is our satellites. They shot them down in 2139."),
+    "Abro camino hacia los hangares.": ("Obro camí cap als hangars.", "Clearing a path to the hangars."),
+    "Los hangares están llenos de cazadores. Atacan en picado.":
+        ("Els hangars són plens de caçadors. Ataquen en picat.", "The hangars are full of hunters. They dive-bomb you."),
+    "Y están cargando un rayo capaz de arrasar ciudades. Detenlos, Nexus.":
+        ("I estan carregant un raig capaç d'arrasar ciutats. Atura'ls, Nexus.", "And they're charging a beam that can level cities. Stop them, Nexus."),
+    "Voy.": ("Hi vaig.", "On my way."),
+    "El puente de mando. Nexus, la nave entera está... viva.":
+        ("El pont de comandament. Nexus, la nau sencera és... viva.", "The bridge. Nexus, the whole ship is... alive."),
+    "Doce kilómetros de mi cuerpo te rodean, humano.":
+        ("Dotze quilòmetres del meu cos t'envolten, humà.", "Twelve kilometres of my body surround you, human."),
+    "Si cae, la flota se queda sin órdenes. Acaba con ella.":
+        ("Si cau, la flota es queda sense ordres. Acaba-la.", "If it falls, the fleet has no orders. Finish it."),
+    "Un cielo violeta... Estoy en Xylos.": ("Un cel violeta... Soc a Xylos.", "A violet sky... I'm on Xylos."),
+    "Todos obedecen a una sola mente: el Núcleo de Xylos. Y está aquí.":
+        ("Tots obeeixen una sola ment: el Nucli de Xylos. I és aquí.", "They all obey a single mind: the Core of Xylos. And it's here."),
+    "Bienvenido a casa. A mi casa.": ("Benvingut a casa. A casa meva.", "Welcome home. My home."),
+    "Un campo supresor bloquea las armas pesadas.": ("Un camp supressor bloqueja les armes pesants.", "A suppression field blocks heavy weapons."),
+    "Solo tus reflejos te llevarán más allá, Nexus.": ("Només els teus reflexos et duran més enllà, Nexus.", "Only your reflexes will get you through, Nexus."),
+    "Nadie pasa a la cámara del Núcleo.": ("Ningú no passa a la cambra del Nucli.", "No one enters the Core's chamber."),
+    "La cámara del Núcleo... Nexus, ¿lo estás viendo?": ("La cambra del Nucli... Nexus, ho estàs veient?", "The Core's chamber... Nexus, are you seeing this?"),
+    "Mil años. Cientos de mundos. Nadie había llegado hasta aquí.":
+        ("Mil anys. Centenars de mons. Ningú no havia arribat fins aquí.", "A thousand years. Hundreds of worlds. No one has ever come this far."),
+    "Siempre hay una primera vez.": ("Sempre hi ha una primera vegada.", "There's a first time for everything."),
+    "Xylos está gris. Sin el Núcleo, la colmena se ha quedado callada.":
+        ("Xylos és gris. Sense el Nucli, el rusc s'ha quedat callat.", "Xylos has gone grey. Without the Core, the hive has fallen silent."),
+    "Huérfanos. Atacan a todo lo que se mueve.": ("Orfes. Ataquen tot el que es mou.", "Orphans. They attack anything that moves."),
+    "Busca el origen del eco.": ("Busca l'origen de l'eco.", "Find the source of the echo."),
+    "El eco sale de esa caverna de cristal...": ("L'eco surt d'aquella caverna de cristall...", "The echo is coming from that crystal cavern..."),
+    "Cantad. Cantad todos conmigo.": ("Canteu. Canteu tots amb mi.", "Sing. All of you, sing with me."),
+    "Alguien les está enseñando a pensar como uno solo otra vez.":
+        ("Algú els està ensenyant a pensar com un de sol una altra vegada.", "Someone is teaching them to think as one again."),
+    "Ahí está el capullo. La semilla del Núcleo: la Heredera.":
+        ("Aquí hi ha el capoll. La llavor del Nucli: l'Hereva.", "There's the cocoon. The seed of the Core: the Heiress."),
+    "¿Por qué? Solo quiero que no estén solos.": ("Per què? Només vull que no estiguin sols.", "Why? I only want them not to be alone."),
+    "Si nace, volverá a abrir los portales. No la dejes despertar, Nexus.":
+        ("Si neix, tornarà a obrir els portals. No la deixis despertar, Nexus.", "If she's born, she'll reopen the portals. Don't let her wake, Nexus."),
+    "Cinemáticas antes de cada escenario": ("Cinemàtiques abans de cada escenari", "Cutscenes before every stage"),
+    "Cada escenario empieza con una cinemática corta (Nexus llegando, los enemigos de patrulla, el jefe entre relámpagos o la radio en primer plano) en lugar del texto largo.":
+        ("Cada escenari comença amb una cinemàtica curta (Nexus arribant, els enemics de patrulla, el cap entre llamps o la ràdio en primer pla) en lloc del text llarg.",
+         "Every stage now opens with a short cutscene (Nexus arriving, enemies on patrol, the boss in a flash of lightning or the radio in close-up) instead of the long text."),
+    "Todas las cinemáticas tienen franjas de cine, fundidos entre escenas y subtítulos con la cara de quien habla.":
+        ("Totes les cinemàtiques tenen franges de cine, fosos entre escenes i subtítols amb la cara de qui parla.",
+         "All cutscenes now have cinema bars, fades between scenes and subtitles with the speaker's face."),
+    "Antes de jugar, una ficha de misión con la imagen del escenario, la potencia permitida y las estrellas.":
+        ("Abans de jugar, una fitxa de missió amb la imatge de l'escenari, la potència permesa i les estrelles.",
+         "Before you play, a mission card with the stage picture, the allowed power and the stars."),
+}
+for _es, (_ca, _en) in _CINE_49.items():
+    CA.setdefault(_es, _ca)
+    EN.setdefault(_es, _en)

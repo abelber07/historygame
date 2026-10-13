@@ -114,6 +114,12 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 4.9: cinemáticas antes de cada escenario**
+- Los 18 escenarios empiezan con una **cinemática corta** en lugar de la pantalla de texto: planos con el fondo del escenario y sus enemigos de verdad (con el estilo del sector), dibujados con código en `Intro`. Hay cuatro tipos de plano: **llegada** (Nexus entra corriendo y los enemigos patrullan al fondo), **patrulla** (los enemigos pasan por delante y Nexus espera a cubierto), **jefe** (su silueta entre relámpagos hasta que se revela) y **radio** (primer plano de quien habla, con interferencias). El texto se convierte en frases cortas de diálogo de Reyes, Vega, Nexus, la mente de la colmena y la Heredera, con lluvia, nieve, gas, esporas o cristales según el escenario (`CINE_ESCENARIS` en `dades.py`).
+- **Todas las cinemáticas mejoradas**: franjas negras de cine, fundido a negro entre escenas, viñeta, el título de cada escena aparece y se va, y los subtítulos muestran la cara y el nombre de quien habla. En el portal ahora flotan restos hacia dentro.
+- Después de la cinemática, una **ficha de misión** con la imagen del escenario, la potencia y las armas permitidas, las restricciones y las estrellas.
+- La primera vez que ves una cinemática no se puede saltar; las siguientes, sí.
+
 **Versión 4.8: premios al volver a la sala**
 - Antes, al subir de rango en mitad de un escenario se amontonaban en el centro hasta cuatro avisos (y tres logros a la derecha) encima de la acción. Ahora **los premios no salen mientras juegas**: rangos, Battle Pass, logros, bestiario, maestría, retos diarios, récords y desafíos esperan y se ven **al volver a la sala**, en una cola arriba a la derecha (como mucho **dos tarjetas a la vez**, con su icono, y «+N más» si hay cola). Las tarjetas grandes de rangos y cosméticos siguen saliendo primero, como antes.
 - Los repetidos **se juntan**: varios ascensos seguidos son una tarjeta «¡ASCENSO! ×2», los niveles del pase salen como «Battle Pass 13 → 15», y las monedas se suman.
