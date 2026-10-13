@@ -186,7 +186,7 @@ try:
     if not pygame.mixer.get_init():
         pygame.mixer.init()
     pygame.mixer.set_num_channels(24)
-    pygame.mixer.set_reserved(1)      # canal 0: trets del jugador
+    pygame.mixer.set_reserved(2)      # canal 0: trets del jugador; canal 1: veus de les cinemàtiques
 except pygame.error as err:
     print(f"Àudio no disponible: {err}")
     AUDIO_OK = False
@@ -1110,6 +1110,71 @@ class Audio:
 AUDIO = Audio(float(OPCIONS_INICIALS.get("musica", 0.3)), float(OPCIONS_INICIALS.get("efectes", 0.8)))
 
 
+class Veus:
+    """Veus doblades de les cinemàtiques (ElevenLabs, de moment només en castellà).
+    Al navegador només les de la intro van dins del paquet; la resta es descarreguen en segon pla."""
+
+    IDIOMES = ("es",)
+
+    def __init__(self):
+        self.cache = {}
+        self.actives = bool(OPCIONS_INICIALS.get("veus", True))
+        self.atenuant = False
+
+    @staticmethod
+    def fitxer(clau, idi):
+        return ruta("veu", idi, clau + ".ogg")
+
+    def _so(self, clau):
+        idi = idioma()
+        if idi not in self.IDIOMES:
+            return None
+        k = (idi, clau)
+        if k not in self.cache:
+            f = self.fitxer(clau, idi)
+            if not os.path.exists(f):
+                return None                      # encara no ha arribat: aquesta frase, sense veu
+            try:
+                self.cache[k] = pygame.mixer.Sound(f)
+            except (OSError, pygame.error) as err:
+                print(f"No s'ha pogut carregar la veu {clau}: {err}")
+                self.cache[k] = None
+        return self.cache[k]
+
+    def reproduir(self, clau):
+        """Comença la frase; torna quants segons dura (0 si no hi ha veu)."""
+        self.aturar()
+        if not AUDIO_OK or not self.actives or AUDIO.silenci or not clau:
+            return 0.0
+        so = self._so(clau)
+        if so is None:
+            return 0.0
+        so.set_volume(min(1.0, 0.25 + AUDIO.vol_efectes))
+        pygame.mixer.Channel(1).play(so)
+        if AUDIO.vol_musica > 0:                 # la música baixa mentre parlen
+            pygame.mixer.music.set_volume(AUDIO.vol_musica * 0.35)
+            self.atenuant = True
+        return so.get_length()
+
+    def aturar(self):
+        if not AUDIO_OK:
+            return
+        pygame.mixer.Channel(1).stop()
+        self._restaurar()
+
+    def _restaurar(self):
+        if self.atenuant:
+            pygame.mixer.music.set_volume(0 if AUDIO.silenci else AUDIO.vol_musica)
+            self.atenuant = False
+
+    def actualitzar(self):
+        if self.atenuant and AUDIO_OK and not pygame.mixer.Channel(1).get_busy():
+            self._restaurar()
+
+
+VEUS = Veus()
+
+
 class DescarregaMusica:
     """Al navegador el paquet inicial només porta la música del menú (càrrega molt més ràpida).
     Les altres pistes es descarreguen d'una en una en segon pla, en l'ordre en què es necessiten."""
@@ -1123,6 +1188,14 @@ class DescarregaMusica:
 
     def __init__(self):
         self.cua = [n for n in self.ORDRE if not os.path.exists(ruta("musica", n + ".ogg"))]
+        # veus de les cinemàtiques (fitxers petits): «veu:es/clau»
+        try:
+            with open(ruta("veu", "index.json"), encoding="utf-8") as f:
+                index = json.load(f)
+        except (OSError, ValueError):
+            index = {}
+        self.cua = [f"veu:{idi}/{c}" for idi, claus in index.items() for c in claus
+                    if not os.path.exists(ruta("veu", idi, c + ".ogg"))] + self.cua
         self.fallides = set()
         self.baixades = 0
         self.esperar = lambda: False             # el joc hi posa «estic en una cinemàtica»
@@ -1144,19 +1217,28 @@ class DescarregaMusica:
         while self.cua:
             # durant les cinemàtiques, com a molt dues pistes: escriure fitxers grans en ple dibuix fa saltar
             # la música (les altres esperen que s'acabi)
-            while self.baixades >= 2 and self.esperar() and self.cua and self.cua[0] != AUDIO.musica_actual:
+            while (self.baixades >= 2 and self.esperar() and self.cua and self.cua[0] != AUDIO.musica_actual
+                   and not self.cua[0].startswith("veu:")):
                 await asyncio.sleep(0.3)
             nom = self.cua.pop(0)
-            desti = ruta("musica", nom + ".ogg")
+            if nom.startswith("veu:"):
+                rel = nom[4:]
+                desti = ruta("veu", *rel.split("/")) + ".ogg"
+                url = f"{base}/assets/veu/{rel}.ogg"
+                os.makedirs(os.path.dirname(desti), exist_ok=True)
+            else:
+                desti = ruta("musica", nom + ".ogg")
+                url = f"{base}/assets/musica/{nom}.ogg"
             try:
-                async with plataforma.fopen(f"{base}/assets/musica/{nom}.ogg", "rb") as f:
+                async with plataforma.fopen(url, "rb") as f:
                     dades_ogg = f.read()
                 if len(dades_ogg) < 1000:
                     raise OSError("fitxer buit")
                 with open(desti, "wb") as sortida:
                     sortida.write(dades_ogg)
-                AUDIO.arribada(nom)
-                self.baixades += 1
+                if not nom.startswith("veu:"):
+                    AUDIO.arribada(nom)
+                    self.baixades += 1
             except Exception as err:
                 print(f"No s'ha pogut descarregar la música {nom}: {err}")
                 self.fallides.add(nom)
@@ -5332,8 +5414,9 @@ class Intro:
                  "eco_senyal": "SEIS MESES DESPUÉS", "eco_orfes": "XYLOS", "eco_capoll": "LA CUNA",
                  "hereva_mort": "LA HEREDERA", "eco_lliures": "LOS HUÉRFANOS", "eco_fi": "LA TIERRA"}
 
-    def __init__(self, en_acabar, escenes=None, saltable=True):
+    def __init__(self, en_acabar, escenes=None, saltable=True, veus=None):
         self.en_acabar = en_acabar
+        self.veus = veus or []                   # per escena, la clau de veu de cada frase
         self.escenes = escenes or INTRO
         self.i = 0
         self.saltada = False
@@ -5398,6 +5481,15 @@ class Intro:
             self.durada_linia = max(360, int(self.total / 0.9) + max(170, int(self.total * 2.2)))
         else:
             self.durada_linia = self._durada_de(txt)
+        # veu doblada: la frase dura el que dura la veu (i el text surt al seu ritme)
+        claus = self.veus[self.i] if self.i < len(self.veus) else []
+        segons = VEUS.reproduir(claus[self.linia] if self.linia < len(claus) else None)
+        if segons:
+            per_veu = int(segons * FPS) + 45
+            if len(self.dialeg) == 1:
+                self.durada_linia = max(self.durada_linia, per_veu)
+            else:
+                self.durada_linia = max(per_veu, int(self.total / 0.9) + 40)
 
     def seguent(self):
         if self.sortint:
@@ -5409,10 +5501,12 @@ class Intro:
             self.i += 1
             self.preparar_escena()
         else:
+            VEUS.aturar()
             self.en_acabar()
 
     def saltar(self):
         self.saltada = True
+        VEUS.aturar()
         self.en_acabar()
 
     def actualitzar(self):
@@ -8246,7 +8340,7 @@ class Game:
             "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
                         "completa": PANTALLA.completa, "suau": PANTALLA.suau,
                         "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany,
-                        "fps": getattr(self, "mostrar_fps", False)},
+                        "fps": getattr(self, "mostrar_fps", False), "veus": VEUS.actives},
         })
 
     def esborrar_progres(self):
@@ -8671,7 +8765,7 @@ class Game:
             self.desar_progres()
             despres()
         AUDIO.musica("menu")
-        self.intro = Intro(fi, saltable=self.intro_vista)
+        self.intro = Intro(fi, saltable=self.intro_vista, veus=[[f"intro_{i}"] for i in range(len(INTRO))])
         self.botons = []
         self.canviar_estat("intro")
 
@@ -8793,12 +8887,22 @@ class Game:
         for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
             b.append(Boto((400 + k * 110, 364, 100, 32), nom, lambda v=valor: self.posar_fps(v),
                           VERD if self.mostrar_fps == valor else BLAU, font=F_HUD))
+        for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
+            b.append(Boto((400 + k * 110, 404, 100, 32), nom, lambda v=valor: self.posar_veus(v),
+                          VERD if VEUS.actives == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
         if self.tornada_opcions == self.entrar_menu:
             b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
                           color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
         self.canviar_estat("opcions")
+
+    def posar_veus(self, valor):
+        VEUS.actives = valor
+        if not valor:
+            VEUS.aturar()
+        self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
 
     def posar_fps(self, valor):
         self.mostrar_fps = valor
@@ -8827,7 +8931,7 @@ class Game:
         self.fons_menu.dibuixar(surf)
         text(surf, T("OPCIONES"), F_SUBTITOL, BLANC, (WIDTH // 2, 46))
         files = [("Música", 100), ("Efectos", 140), ("Pantalla", 180), ("Escalado", 220), ("Dificultad", 260),
-                 ("Idioma", 300), ("Números de daño", 340), ("Contador de FPS", 380)]
+                 ("Idioma", 300), ("Números de daño", 340), ("Contador de FPS", 380), ("Voces en cinemáticas", 420)]
         for nom, y in files:
             text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft", max_w=180)
         for l in self.lliscadors:
@@ -9825,7 +9929,14 @@ class Game:
             self.cinematiques_vistes.add(clau)
             self.desar_progres()
             despres()
-        self.intro = Intro(fi, escenes, saltable=clau in self.cinematiques_vistes)
+        if clau.startswith("esc_"):
+            veus, k = [], 0
+            for _, dialeg, _ in CINE_ESCENARIS[(n, e)]:
+                veus.append([f"esc_{n}_{e}_{k + j}" for j in range(len(dialeg))])
+                k += len(dialeg)
+        else:
+            veus = [[f"{clau}_{i}"] for i in range(len(escenes))]
+        self.intro = Intro(fi, escenes, saltable=clau in self.cinematiques_vistes, veus=veus)
         self.botons = []
         self.canviar_estat("intro")
 
@@ -14751,6 +14862,7 @@ class Game:
             if a[2] <= 0:
                 self.avisos.remove(a)
         self.actualitzar_premis()
+        VEUS.actualitzar()
         if self.estat in ("loading", "menu", "selector", "botiga", "guia", "credits", "passi", "arxiu", "opcions",
                           "supervivencia", "logros", "idioma_inicial", "dificultat_inicial", "ajuda"):
             self.fons_menu.actualitzar()

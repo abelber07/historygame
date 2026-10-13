@@ -43,6 +43,8 @@ jobs:
           # Paquet lleuger: només la música del menú hi va dins. La resta el joc la descarrega en segon pla
           # des de assets/musica/ de la mateixa pàgina, quan la necessita.
           find _web/historygame/assets/musica -name "*.ogg" ! -name "menu.ogg" -delete
+          # Veus de les cinemàtiques: només les de la intro dins del paquet; la resta es descarreguen en segon pla.
+          find _web/historygame/assets/veu -name "*.ogg" ! -name "intro_*" -delete
           python -m pygbag --build --no_opt --title "Invasión Alienígena" --icon favicon.png _web/historygame
           cp _web/historygame/build/web/index.html _web/historygame/build/web/historygame.apk _web/historygame/build/web/historygame.tar.gz .
 
