@@ -1152,7 +1152,7 @@ class Veus:
         so.set_volume(min(1.0, 0.25 + AUDIO.vol_efectes))
         pygame.mixer.Channel(1).play(so)
         if AUDIO.vol_musica > 0:                 # la música baixa mentre parlen
-            pygame.mixer.music.set_volume(AUDIO.vol_musica * 0.35)
+            pygame.mixer.music.set_volume(AUDIO.vol_musica * 0.6)
             self.atenuant = True
         return so.get_length()
 
