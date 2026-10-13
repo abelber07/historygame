@@ -2265,3 +2265,44 @@ _PERS_46 = {
 for _es, (_ca, _en) in _PERS_46.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)
+
+
+# --- v4.7: avisos de premis en partida -------------------------------------------------------------------------
+_AVISOS_47 = {
+    "¡TEMPORADA {t}!": ("TEMPORADA {t}!", "SEASON {t}!"),
+    "El Battle Pass vuelve a empezar. Ganas una estrella de prestigio.":
+        ("El Battle Pass torna a començar. Guanyes una estrella de prestigi.", "The Battle Pass starts over. You earn a prestige star."),
+    "HISTORIA DESBLOQUEADA": ("HISTÒRIA DESBLOQUEJADA", "STORY UNLOCKED"),
+    "¡NUEVO SECTOR!": ("SECTOR NOU!", "NEW SECTOR!"),
+    "¡COMPLETADO!": ("COMPLETAT!", "COMPLETED!"),
+    "MAESTRÍA · {a}": ("MESTRIA · {a}", "MASTERY · {a}"),
+    "¡TODAS LAS ARMAS EN ORO!": ("TOTES LES ARMES EN OR!", "EVERY WEAPON IN GOLD!"),
+    "Camuflaje Diamante y título «Maestro de armas»": ("Camuflatge Diamant i títol «Mestre d'armes»",
+                                                       "Diamond camo and the “Weapon Master” title"),
+    "Nueva ficha · {n}": ("Fitxa nova · {n}", "New entry · {n}"),
+    "Historia desbloqueada · {n}": ("Història desbloquejada · {n}", "Story unlocked · {n}"),
+    "¡BESTIARIO COMPLETO!": ("BESTIARI COMPLET!", "BESTIARY COMPLETE!"),
+    "Tarjeta Xenobiología y título «Xenobiólogo»": ("Targeta Xenobiologia i títol «Xenobiòleg»",
+                                                    "Xenobiology card and the “Xenobiologist” title"),
+    "RETO DIARIO": ("REPTE DIARI", "DAILY CHALLENGE"),
+    "Completado · +{x} XP": ("Completat · +{x} XP", "Completed · +{x} XP"),
+    "¡Los tres completados!": ("Tots tres completats!", "All three done!"),
+    "¡DESAFÍO SUPERADO!": ("DESAFIAMENT SUPERAT!", "CHALLENGE BEATEN!"),
+    "+{n} más": ("+{n} més", "+{n} more"),
+    "Avisos en partida": ("Avisos en partida", "In-game notices"),
+    "Discretos": ("Discrets", "Subtle"),
+    "Al final": ("Al final", "At the end"),
+    "Avisos de premios ordenados": ("Avisos de premis ordenats", "Tidier reward notices"),
+    "Los premios que ganas jugando (rangos, Battle Pass, logros, bestiario, maestría, retos) salen en una cola arriba a la derecha, como mucho dos a la vez, y los repetidos se juntan (Ascenso ×2, Battle Pass 13 → 15).":
+        ("Els premis que guanyes jugant (rangs, Battle Pass, assoliments, bestiari, mestria, reptes) surten en una cua a dalt a la dreta, com a molt dos alhora, i els repetits s'ajunten (Ascens ×2, Battle Pass 13 → 15).",
+         "Rewards you earn while playing (ranks, Battle Pass, achievements, bestiary, mastery, challenges) now appear in a queue at the top right, at most two at a time, and repeats are merged (Promotion ×2, Battle Pass 13 → 15)."),
+    "Durante un jefe, los premios esperan. En el centro solo queda un aviso de juego a la vez.":
+        ("Durant un cap, els premis esperen. Al centre només queda un avís de joc alhora.",
+         "During a boss fight, rewards wait. The centre of the screen only shows one gameplay notice at a time."),
+    "Nueva opción «Avisos en partida»: Normal, Discretos (solo un icono con cuántos hay) o Al final.":
+        ("Opció nova «Avisos en partida»: Normal, Discrets (només una icona amb quants n'hi ha) o Al final.",
+         "New “In-game notices” option: Normal, Subtle (just an icon with how many are waiting) or At the end."),
+}
+for _es, (_ca, _en) in _AVISOS_47.items():
+    CA.setdefault(_es, _ca)
+    EN.setdefault(_es, _en)

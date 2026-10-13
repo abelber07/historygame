@@ -7855,6 +7855,7 @@ class Game:
         self.nivell_dificultat = opcions.get("dificultat") if opcions.get("dificultat") in DIFICULTATS else "normal"
         self.numeros_dany = bool(opcions.get("numeros", True))
         self.mostrar_fps = bool(opcions.get("fps", False))
+        self.avisos_partida = opcions.get("avisos") if opcions.get("avisos") in ("normal", "discrets", "final") else "normal"
         self.arena = 0
         self.nivell_enemics = 0
         self.logros = {x for x in d.get("logros", []) if isinstance(x, str)} if isinstance(d.get("logros"), list) else set()
@@ -7862,6 +7863,7 @@ class Game:
         self.estadistiques = {k: v for k, v in est.items() if isinstance(v, int)} if isinstance(est, dict) else {}
         self.plaques = {x for x in d.get("plaques", []) if isinstance(x, str)} if isinstance(d.get("plaques"), list) else set()
         self.avisos_logro = getattr(self, "avisos_logro", [])
+        self.feed = getattr(self, "feed", [])
         self.menu_idioma = False
         self.pagina_logros = 0
         self.konami = []
@@ -7893,7 +7895,8 @@ class Game:
             "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
                         "completa": PANTALLA.completa, "suau": PANTALLA.suau,
                         "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany,
-                        "fps": getattr(self, "mostrar_fps", False)},
+                        "fps": getattr(self, "mostrar_fps", False),
+                        "avisos": getattr(self, "avisos_partida", "normal")},
         })
 
     def esborrar_progres(self):
@@ -7914,8 +7917,120 @@ class Game:
         self.temps_missatge = temps
 
     def avis(self, txt, color=GROC, temps=200):
+        if getattr(self, "estat", None) == "joc":       # jugant: un sol avís al centre (el nou substitueix l'anterior)
+            self.avisos = [[txt, color, temps]]
+            return
         self.avisos.append([txt, color, temps])
         self.avisos = self.avisos[-4:]
+
+    # ----- Avisos de premis (v4.7): una cua a dalt a la dreta ------------------------------------------------------
+    DURADA_PREMI = 200
+    FEED_W = 300
+
+    def premi(self, clau, cap, txt, color, icona=None, monedes=0, fusiona=False, ext=None):
+        """Avisa d'un premi. Amb `fusiona`, s'ajunta amb un de la mateixa mena que encara és a la cua o es mostra
+        (dos ascensos seguits = una targeta «×2»; Battle Pass 13 → 15)."""
+        if fusiona:
+            for av in self.feed:
+                if av["clau"] == clau and av["t"] < self.DURADA_PREMI - 40:
+                    av["n"] += 1
+                    av["txt"], av["monedes"] = txt, av["monedes"] + monedes
+                    av["icona"] = icona or av["icona"]
+                    if ext is not None:
+                        av["ext"][1] = ext
+                    av["t"] = min(av["t"], 16)
+                    return
+        self.feed.append({"clau": clau, "cap": cap, "txt": txt, "color": color, "icona": icona, "monedes": monedes,
+                          "n": 1, "t": 0, "ext": [ext, ext]})
+
+    def retenir_premis(self):
+        """Mentre jugues: en Discretos i Al final esperen a acabar; en Normal, només mentre hi ha un cap."""
+        if self.estat in ("pausa", "revelacio", "narrativa", "loading", "intro"):
+            return True
+        if self.estat != "joc" or self.fase != "jugant":
+            return False
+        if getattr(self, "avisos_partida", "normal") != "normal":
+            return True
+        return bool(self.cap and self.cap in self.enemics)
+
+    def actualitzar_premis(self):
+        if not self.feed or self.retenir_premis():
+            return
+        for av in self.feed[:2]:
+            av["t"] += 1
+        self.feed = [av for av in self.feed if av["t"] < self.DURADA_PREMI]
+
+    def y_premis(self):
+        if self.estat == "joc":
+            return 82 if CONTROL is None or CONTROL.mode != "tactil" else 92
+        return 112 if self.estat == "menu" else 70
+
+    def icona_premi(self, surf, icona, cx, cy):
+        tipus = icona[0] if icona else "estrella"
+        if tipus == "rang":
+            dibuixar_insignia(surf, cx, cy - 2, icona[1], 26)
+        elif tipus == "logro":
+            dibuixar_medalla(surf, cx, cy, 15, icona[1])
+        elif tipus == "arma":
+            ic = ICONES_ARMA[icona[1]][1]
+            surf.blit(ic, ic.get_rect(center=(cx, cy)))
+        elif tipus in ("passi", "colleccio", "diari", "guia", "jugar"):
+            dibuixar_icona_menu(surf, tipus, cx, cy)
+        else:
+            dibuixar_estrella(surf, cx, cy, 12, True)
+
+    def dibuixar_premis(self, surf):
+        if not self.feed or self.estat in ("loading", "revelacio", "narrativa", "intro"):
+            return
+        x0, y0 = WIDTH - 12 - self.FEED_W, self.y_premis()
+        if self.retenir_premis():
+            if self.estat == "pausa" or getattr(self, "avisos_partida", "normal") == "final":
+                return
+            # discret: només una icona amb quants n'hi ha d'esperant
+            caixa = pygame.Rect(WIDTH - 12 - 64, y0, 64, 28)
+            capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
+            capa.fill((8, 10, 24, 190))
+            surf.blit(capa, caixa)
+            k = 0.5 + 0.5 * math.sin(self.t_global * 0.08)
+            pygame.draw.rect(surf, tuple(int(c * (0.6 + 0.4 * k)) for c in GROC), caixa, 2, border_radius=6)
+            dibuixar_trofeu(surf, caixa.x + 18, caixa.centery, 9)
+            text(surf, str(len(self.feed)), F_HUD, BLANC, (caixa.right - 18, caixa.centery))
+            return
+        y = y0
+        for av in self.feed[:2]:
+            t = av["t"]
+            entrada = min(1.0, t / 12) if t < self.DURADA_PREMI - 20 else max(0.0, (self.DURADA_PREMI - t) / 20)
+            caixa = pygame.Rect(0, y, self.FEED_W, 46)
+            caixa.x = int(WIDTH + 4 - (WIDTH + 4 - x0) * (1 - (1 - entrada) ** 2))
+            capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
+            capa.fill((8, 10, 24, 225))
+            surf.blit(capa, caixa)
+            col = av["color"]
+            pygame.draw.rect(surf, col, caixa, 2, border_radius=6)
+            pygame.draw.rect(surf, col, (caixa.x, caixa.y + 6, 4, caixa.h - 12))
+            self.icona_premi(surf, av["icona"], caixa.x + 28, caixa.centery)
+            cap = T(av["cap"])
+            a, b = av["ext"]
+            if av["clau"] == "passi" and a is not None:
+                cap = f"{cap} {a}" + (f" → {b}" if b != a else "")
+            elif av["n"] > 1:
+                cap = f"{cap} ×{av['n']}"
+            dreta = caixa.right - 10
+            if av["monedes"]:
+                rm = text(surf, f"+{av['monedes']}", F_MINI, GROC, (dreta, caixa.y + 13), ancora="midright")
+                dibuixar_moneda(surf, rm.left - 9, rm.centery, 5)
+                dreta = rm.left - 22
+            text(surf, cap, F_MINI, col, (caixa.x + 52, caixa.y + 13), ancora="midleft", max_w=dreta - caixa.x - 52)
+            text(surf, av["txt"], F_TEXT_P, BLANC, (caixa.x + 52, caixa.y + 32), ancora="midleft",
+                 max_w=caixa.right - 10 - caixa.x - 52)
+            y += 52
+        if len(self.feed) > 2:
+            chip = pygame.Rect(WIDTH - 12 - 70, y, 70, 20)
+            capa = pygame.Surface(chip.size, pygame.SRCALPHA)
+            capa.fill((8, 10, 24, 200))
+            surf.blit(capa, chip)
+            pygame.draw.rect(surf, (90, 120, 190), chip, 1, border_radius=4)
+            text(surf, T("+{n} más").format(n=len(self.feed) - 2), F_MINI, (170, 190, 240), chip.center, ombra=False)
 
     # ----- Regles: història, millores, armes ---------------------------------
     def completat(self, index):
@@ -7979,7 +8094,8 @@ class Game:
             for tipus, valor in PASSI[self.passi_reclamat]:
                 if not self.atorgar(tipus, valor):               # ja el tenies (temporada 2 o més): monedes
                     self.monedes += 100 + 10 * self.passi_reclamat
-                self.avis(f"BATTLE PASS {self.passi_reclamat + 1}: {nom_premi(tipus, valor)}", (255, 200, 255), 260)
+                self.premi("passi", "BATTLE PASS", nom_premi(tipus, valor), (255, 170, 255), ("passi",),
+                           fusiona=True, ext=self.passi_reclamat + 1)
             self.passi_reclamat += 1
             AUDIO.so("passi")
         if self.passi_reclamat >= len(PASSI) and self.xp_passi >= ACUM_PASSI[-1]:
@@ -7987,8 +8103,8 @@ class Game:
             self.temporada += 1
             self.passi_reclamat = 0
             self.revelar("temporada", self.temporada)
-            self.avis(T("¡Temporada {t}! El Battle Pass vuelve a empezar. Ganas una estrella de prestigio.").format(
-                t=self.temporada), (190, 140, 255), 320)
+            self.premi("temporada", T("¡TEMPORADA {t}!").format(t=self.temporada),
+                       T("El Battle Pass vuelve a empezar. Ganas una estrella de prestigio."), (190, 140, 255), ("passi",))
         self.revisar_rangs()
 
     def nivell_passi_de(self, tipus, valor):
@@ -8304,41 +8420,49 @@ class Game:
     def entrar_opcions(self, tornada=None):
         self.tornada_opcions = tornada or self.entrar_menu
         self.lliscadors = [
-            Lliscador(400, 97, 320, AUDIO.vol_musica, lambda v: AUDIO.canviar_volums(musica=v), self.desar_progres),
-            Lliscador(400, 141, 320, AUDIO.vol_efectes, lambda v: AUDIO.canviar_volums(efectes=v),
+            Lliscador(400, 93, 320, AUDIO.vol_musica, lambda v: AUDIO.canviar_volums(musica=v), self.desar_progres),
+            Lliscador(400, 133, 320, AUDIO.vol_efectes, lambda v: AUDIO.canviar_volums(efectes=v),
                       lambda: (AUDIO.so("moneda"), self.desar_progres())),
         ]
         b = []
         if WEB:
-            b.append(Boto((400, 172, 320, 36), "Pantalla completa (F11)" if CONTROL.mode == "teclat" else "Pantalla completa",
+            b.append(Boto((400, 164, 320, 32), "Pantalla completa (F11)" if CONTROL.mode == "teclat" else "Pantalla completa",
                           PANTALLA.commutar_completa, BLAU, font=F_HUD))
         else:
-            b.append(Boto((400, 172, 155, 36), "Completa", lambda: self.posar_pantalla(True),
+            b.append(Boto((400, 164, 155, 32), "Completa", lambda: self.posar_pantalla(True),
                           VERD if PANTALLA.completa else BLAU, font=F_HUD))
-            b.append(Boto((565, 172, 155, 36), "Ventana", lambda: self.posar_pantalla(False),
+            b.append(Boto((565, 164, 155, 32), "Ventana", lambda: self.posar_pantalla(False),
                           VERD if not PANTALLA.completa else BLAU, font=F_HUD))
-        b.append(Boto((400, 216, 155, 36), "Suave", lambda: self.posar_suau(True), VERD if PANTALLA.suau else BLAU,
+        b.append(Boto((400, 204, 155, 32), "Suave", lambda: self.posar_suau(True), VERD if PANTALLA.suau else BLAU,
                       font=F_HUD))
-        b.append(Boto((565, 216, 155, 36), "Nítido", lambda: self.posar_suau(False),
+        b.append(Boto((565, 204, 155, 32), "Nítido", lambda: self.posar_suau(False),
                       VERD if not PANTALLA.suau else BLAU, font=F_HUD))
         for k, (ident, d) in enumerate(DIFICULTATS.items()):
-            b.append(Boto((400 + k * 110, 260, 100, 36), d["nom"], lambda i=ident: self.posar_dificultat(i),
+            b.append(Boto((400 + k * 110, 244, 100, 32), d["nom"], lambda i=ident: self.posar_dificultat(i),
                           VERD if self.nivell_dificultat == ident else BLAU, font=F_HUD))
         for k, (ident, nom) in enumerate(IDIOMES.items()):
-            b.append(Boto((400 + k * 110, 304, 100, 36), nom, lambda i=ident: self.posar_idioma(i),
+            b.append(Boto((400 + k * 110, 284, 100, 32), nom, lambda i=ident: self.posar_idioma(i),
                           VERD if idioma() == ident else BLAU, font=F_HUD))
         for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
-            b.append(Boto((450 + k * 110, 350, 100, 32), nom, lambda v=valor: self.posar_numeros(v),
+            b.append(Boto((400 + k * 110, 324, 100, 32), nom, lambda v=valor: self.posar_numeros(v),
                           VERD if self.numeros_dany == valor else BLAU, font=F_HUD))
         for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
-            b.append(Boto((450 + k * 110, 394, 100, 32), nom, lambda v=valor: self.posar_fps(v),
+            b.append(Boto((400 + k * 110, 364, 100, 32), nom, lambda v=valor: self.posar_fps(v),
                           VERD if self.mostrar_fps == valor else BLAU, font=F_HUD))
+        for k, (valor, nom) in enumerate((("normal", "Normal"), ("discrets", "Discretos"), ("final", "Al final"))):
+            b.append(Boto((400 + k * 110, 404, 100, 32), nom, lambda v=valor: self.posar_avisos(v),
+                          VERD if getattr(self, "avisos_partida", "normal") == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
         if self.tornada_opcions == self.entrar_menu:
             b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
                           color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
         self.canviar_estat("opcions")
+
+    def posar_avisos(self, valor):
+        self.avisos_partida = valor
+        self.desar_progres()
+        self.entrar_opcions(self.tornada_opcions)
 
     def posar_fps(self, valor):
         self.mostrar_fps = valor
@@ -8366,10 +8490,10 @@ class Game:
     def dibuixar_opcions(self, surf):
         self.fons_menu.dibuixar(surf)
         text(surf, T("OPCIONES"), F_SUBTITOL, BLANC, (WIDTH // 2, 46))
-        files = [("Música", 104), ("Efectos", 148), ("Pantalla", 190), ("Escalado", 234), ("Dificultad", 278),
-                 ("Idioma", 322), ("Números de daño", 366), ("Contador de FPS", 410)]
+        files = [("Música", 100), ("Efectos", 140), ("Pantalla", 180), ("Escalado", 220), ("Dificultad", 260),
+                 ("Idioma", 300), ("Números de daño", 340), ("Contador de FPS", 380), ("Avisos en partida", 420)]
         for nom, y in files:
-            text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft")
+            text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft", max_w=180)
         for l in self.lliscadors:
             l.dibuixar(surf)
             text(surf, f"{round(l.valor * 100)}%", F_UI, CIAN, (l.rect.right + 30, l.rect.centery), ancora="midleft")
@@ -9168,14 +9292,14 @@ class Game:
         self.xp_nivell += xp
         self.afegir_xp(xp)
         if primera and e == 2:
-            self.avis(T("Historia desbloqueada: {h}").format(h=T(ARXIU[n][0])), CIAN, 260)
+            self.premi("historia", "HISTORIA DESBLOQUEADA", T(ARXIU[n][0]), CIAN, ("guia",))
         if primera and (n, e) == (SECTORS_HISTORIA - 1, 2):
-            self.avis(T("¡Nuevo sector desbloqueado: {s}!").format(s=T(NOMS_SECTORS[SECTOR_DLC])), (140, 255, 230), 400)
+            self.premi("sector", "¡NUEVO SECTOR!", T(NOMS_SECTORS[SECTOR_DLC]), (140, 255, 230), ("jugar",))
         if primera and (n, e) == (SECTOR_DLC, 2):
             for tipus, valor in PREMIS_DLC:
                 self.atorgar(tipus, valor)
-            self.avis(T("¡Ecos de Xylos completado! +{m} monedas").format(
-                m=next((v for t, v in PREMIS_DLC if t == "monedes"), 0)), (140, 255, 230), 400)
+            self.premi("dlc", "¡COMPLETADO!", T("Ecos de Xylos"), (140, 255, 230), ("estrella",),
+                       next((v for t, v in PREMIS_DLC if t == "monedes"), 0))
         self.desar_progres()
 
     # ----- Dibuix -----------------------------------------------------------
@@ -9457,7 +9581,8 @@ class Game:
         self.logros.add(ident)
         logro = LOGRO_PER_ID[ident]
         self.monedes += CATEGORIES_LOGRO[logro["cat"]]["monedes"]
-        self.avisos_logro.append([logro, 0])
+        self.premi("logro:" + ident, "LOGRO DESBLOQUEADO", T(logro["nom"]), CATEGORIES_LOGRO[logro["cat"]]["color"],
+                   ("logro", logro["cat"]), CATEGORIES_LOGRO[logro["cat"]]["monedes"])
         AUDIO.so("passi")
         self.afegir_xp(XP_LOGRO.get(logro["cat"], 0))
         if ident != "plati" and all(l["id"] in self.logros for l in LOGROS if l["id"] != "plati"):
@@ -10998,8 +11123,10 @@ class Game:
             r = RANGS[self.rang_reclamat]
             for tipus, valor in r["premi"]:
                 self.atorgar(tipus, valor)
-            premis = ", ".join(nom_premi(t, v) for t, v in r["premi"])
-            self.avis(T("¡Ascenso a {r}!").format(r=T(r["nom"])) + (f" {premis}" if premis else ""), GROC, 300)
+            premis = ", ".join(nom_premi(t, v) for t, v in r["premi"] if t != "monedes")
+            monedes = sum(v for t, v in r["premi"] if t == "monedes")
+            self.premi("rang", "¡ASCENSO!", T(r["nom"]) + (f" · {premis}" if premis else ""), GROC,
+                       ("rang", self.rang_reclamat), monedes, fusiona=True)
             AUDIO.so("passi")
 
     # ----- Maestria d'armes ------------------------------------------------------------------
@@ -11025,16 +11152,18 @@ class Game:
             self.monedes += 50 * ara
             nom = T(ARMES[ARMA_PER_ID[arma_id]]["nom"])
             camo = next((c for c, d in CAMUFLATGES.items() if d["nivell"] == ara and c not in ("cap", "diamant")), None)
-            txt = T("¡{a}: maestría nivel {n}! +{m} monedas").format(a=nom, n=ara, m=50 * ara)
+            txt = T("Nivel {n}").format(n=ara)
             if camo:
                 txt += " · " + T("Camuflaje {c} desbloqueado").format(c=T(CAMUFLATGES[camo]["nom"]))
                 self.revelar("camo", (arma_id, camo))
-            self.avis(txt, (255, 200, 120), 280)
+            self.premi("mestria:" + arma_id, T("MAESTRÍA · {a}").format(a=nom), txt, (255, 200, 120), ("arma", arma_id),
+                       50 * ara, fusiona=True)
             AUDIO.so("passi")
         if not diamant_abans and self.tot_or():
             self.revelar("camo", (arma_id, "diamant"))
             self.atorgar("titol", "mestre")
-            self.avis(T("¡Todas las armas en oro! Camuflaje Diamante y título «Maestro de armas»"), (150, 230, 255), 360)
+            self.premi("diamant", "¡TODAS LAS ARMAS EN ORO!", T("Camuflaje Diamante y título «Maestro de armas»"),
+                       (150, 230, 255), ("arma", arma_id))
 
     def camo_actual(self, i=None):
         arma = ARMES[self.arma_actual if i is None else i]["id"]
@@ -11063,13 +11192,16 @@ class Game:
         if entrada is None:
             return
         if abans == 0:
-            self.avis(T("Bestiario: nueva ficha · {n}").format(n=T(entrada["nom"])), CIAN, 220)
+            self.premi("bestiari", "BESTIARIO", T("Nueva ficha · {n}").format(n=T(entrada["nom"])), CIAN, ("colleccio",),
+                       fusiona=True)
         elif abans + 1 == entrada["cal"]:
-            self.avis(T("Bestiario: historia desbloqueada · {n}").format(n=T(entrada["nom"])), CIAN, 220)
+            self.premi("bestiari", "BESTIARIO", T("Historia desbloqueada · {n}").format(n=T(entrada["nom"])), CIAN,
+                       ("colleccio",), fusiona=True)
             if self.bestiari_complet():
                 self.atorgar("targeta", "xenobio")
                 self.atorgar("titol", "xenobioleg")
-                self.avis(T("¡Bestiario completo! Tarjeta Xenobiología y título «Xenobiólogo»"), CIAN, 360)
+                self.premi("bestiari_tot", "¡BESTIARIO COMPLETO!", T("Tarjeta Xenobiología y título «Xenobiólogo»"),
+                           CIAN, ("colleccio",))
 
     # ----- Reptes diaris ---------------------------------------------------------------------------
     @staticmethod
@@ -11129,13 +11261,13 @@ class Game:
                 r["fet"] = True
                 self.monedes += PREMI_REPTE[0]
                 self.afegir_xp(PREMI_REPTE[1])
-                self.avis(T("¡Reto diario completado! +{m} monedas · +{x} XP").format(m=PREMI_REPTE[0], x=PREMI_REPTE[1]),
-                          VERD, 280)
+                self.premi("repte", "RETO DIARIO", T("Completado · +{x} XP").format(x=PREMI_REPTE[1]), VERD, ("diari",),
+                           PREMI_REPTE[0], fusiona=True)
                 AUDIO.so("passi")
         if not self.reptes.get("bonus") and self.reptes.get("llista") and all(r["fet"] for r in self.reptes["llista"]):
             self.reptes["bonus"] = True
             self.monedes += PREMI_TOTS_REPTES
-            self.avis(T("¡Los tres retos de hoy! +{m} monedas extra").format(m=PREMI_TOTS_REPTES), VERD, 300)
+            self.premi("reptes_tots", "RETOS DE HOY", T("¡Los tres completados!"), VERD, ("diari",), PREMI_TOTS_REPTES)
 
     def ofertes_del_dia(self):
         """Quatre cosmètics de la botiga que canvien cada dia (només els que encara no tens)."""
@@ -11229,14 +11361,14 @@ class Game:
         if not reg.get("millor") or self.temps_joc < reg["millor"]:
             reg["millor"] = self.temps_joc
             if not primera:
-                self.avis(T("¡Nuevo récord: {t}!").format(t=self.format_temps(self.temps_joc)), GROC, 260)
+                self.premi("record", "¡NUEVO RÉCORD!", self.format_temps(self.temps_joc), GROC, ("estrella",))
         if primera:
             for tipus, valor in d["premi"]:
                 self.atorgar(tipus, valor)
             self.afegir_xp(d["xp"])
             self.xp_nivell += d["xp"]
             premis = ", ".join(nom_premi(t, v) for t, v in d["premi"])
-            self.avis(T("¡Desafío superado! {p}").format(p=premis), GROC, 360)
+            self.premi("desafiament", "¡DESAFÍO SUPERADO!", premis, GROC, ("estrella",))
         else:
             self.afegir_xp(d["xp"] // 4)
             self.xp_nivell += d["xp"] // 4
@@ -13685,7 +13817,7 @@ class Game:
             self._hud_cap(surf)
         # Avisos
         if self.avis_bales and (self.avis_bales // 10) % 2 == 0:
-            text(surf, "¡SIN BALAS! Recoge munición o cambia de arma (Q)", F_HUD, VERMELL, (WIDTH // 2, 110))
+            text(surf, "¡SIN BALAS! Recoge munición o cambia de arma (Q)", F_HUD, VERMELL, (WIDTH // 2, 272), max_w=620)
         if self.fase == "jugant" and self.temps_fase < 120 and self.estat == "joc" and not self.presentacio:
             if self.mode == "tutorial":
                 nom = ""
@@ -13721,7 +13853,7 @@ class Game:
                     text(surf, noms[i], F_TEXT_PP, BLANC if noves[i] else GRIS, (x, y + 40))
                     if guanyades[i]:
                         text(surf, f"+{XP_ESTRELLA} XP", F_MINI, (255, 200, 255), (x, y + 62))
-        self.dibuixar_avisos(surf, 204)
+        self.dibuixar_avisos(surf, 238, ample=620)
         self.radio.dibuixar(surf)
         if self.mode == "tutorial" and self.estat in ("joc", "pausa"):
             self.dibuixar_tutorial(surf)
@@ -14253,9 +14385,7 @@ class Game:
             a[2] -= 1
             if a[2] <= 0:
                 self.avisos.remove(a)
-        for av in self.avisos_logro[:3]:
-            av[1] += 1
-        self.avisos_logro = [av for av in self.avisos_logro if av[1] < 240]
+        self.actualitzar_premis()
         if self.estat in ("loading", "menu", "selector", "botiga", "guia", "credits", "passi", "arxiu", "opcions",
                           "supervivencia", "logros", "idioma_inicial", "dificultat_inicial", "ajuda"):
             self.fons_menu.actualitzar()
@@ -14300,8 +14430,7 @@ class Game:
                 text_bloc(surf, self.missatge, F_HUD, col, (182, HEIGHT - 58, WIDTH - 300 - 194, 50), ombra=True)
             else:
                 text(surf, self.missatge, F_HUD, col, (WIDTH // 2 - 60, HEIGHT - 28), max_w=WIDTH - 360)
-        if self.avisos_logro and self.estat != "loading":
-            self.dibuixar_avisos_logro(surf)
+        self.dibuixar_premis(surf)
         CONTROL.dibuixar(surf, self)
         if getattr(self, "mostrar_fps", False):
             self.dibuixar_fps(surf)
