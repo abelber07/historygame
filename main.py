@@ -5264,11 +5264,12 @@ class Intro:
                  "eco_senyal": "SEIS MESES DESPUÉS", "eco_orfes": "XYLOS", "eco_capoll": "LA CUNA",
                  "hereva_mort": "LA HEREDERA", "eco_lliures": "LOS HUÉRFANOS", "eco_fi": "LA TIERRA"}
 
-    def __init__(self, en_acabar, escenes=None):
+    def __init__(self, en_acabar, escenes=None, saltable=True):
         self.en_acabar = en_acabar
         self.escenes = escenes or INTRO
         self.i = 0
         self.saltada = False
+        self.saltable = saltable                 # la primera vegada no es pot saltar
         self.boto_saltar = Boto((WIDTH - 156, HEIGHT - 40, 140, 30), "Saltar  >>", self.saltar, GRIS_FOSC, font=F_MINI)
         rnd = random.Random(21)
         self.estrelles = [(rnd.uniform(0, WIDTH), rnd.uniform(0, 300), rnd.uniform(0, 6)) for _ in range(160)]
@@ -5864,7 +5865,8 @@ class Intro:
             text(surf, linia[:restants], F_TEXT, BLANC, (caixa.left + 20, y), ancora="topleft")
             restants -= len(linia)
             y += 34
-        self.boto_saltar.dibuixar(surf)
+        if self.saltable:
+            self.boto_saltar.dibuixar(surf)
         n = len(self.escenes)
         for k in range(n):
             pygame.draw.circle(surf, BLANC if k == self.i else GRIS_FOSC, (WIDTH - 30 - (n - 1 - k) * 14, 26), 4)
@@ -7498,7 +7500,7 @@ class Control:
         if g.estat == "menu" and g.menu_idioma:
             return list(g.rects_idioma().values())
         if g.estat == "intro" and getattr(g, "intro", None) is not None:
-            return [g.intro.boto_saltar.rect]
+            return [g.intro.boto_saltar.rect] if g.intro.saltable else []
         rects = [b.rect for b in g.botons if b.actiu]
         if g.estat == "opcions":
             rects += [l.rect.inflate(0, 16) for l in g.lliscadors]
@@ -7817,6 +7819,13 @@ class Game:
         if self.completats[SECTORS_HISTORIA - 1][2]:  # ja havien acabat la història: s'obre el DLC
             self.nivells_desbloquejats[SECTOR_DLC][0] = True
         self.eco_vist = bool(d.get("eco_vist", False))
+        cv = d.get("cinematiques")
+        if isinstance(cv, list):
+            self.cinematiques_vistes = {c for c in cv if c in CINEMATIQUES}
+        else:                                    # partida d'abans: les dels caps que ja has vençut compten com a vistes
+            self.cinematiques_vistes = {c for (n, e), c in CINEMATICA_CAP.items() if self.completats[n][e]}
+            if self.eco_vist:
+                self.cinematiques_vistes.add("eco")
         self.xp = d.get("xp", 0) if isinstance(d.get("xp"), int) else 0
         self.passi_reclamat = d.get("passi", 0) if isinstance(d.get("passi"), int) else 0
         mill = d.get("millores", {})
@@ -7884,6 +7893,7 @@ class Game:
             "intro_vista": self.intro_vista,
             "tutorial_vist": self.tutorial_vist,
             "eco_vist": getattr(self, "eco_vist", False),
+            "cinematiques": sorted(getattr(self, "cinematiques_vistes", ())),
             "novetats_vistes": self.novetats_vistes,
             "estrelles": self.estrelles, "ordre_estrelles": 2,
             "records": self.records,
@@ -8319,7 +8329,7 @@ class Game:
             self.desar_progres()
             despres()
         AUDIO.musica("menu")
-        self.intro = Intro(fi)
+        self.intro = Intro(fi, saltable=self.intro_vista)
         self.botons = []
         self.canviar_estat("intro")
 
@@ -9446,8 +9456,10 @@ class Game:
         def fi():
             if clau == "final" and not self.intro.saltada:
                 self.desbloquejar("fins_final")
+            self.cinematiques_vistes.add(clau)
+            self.desar_progres()
             despres()
-        self.intro = Intro(fi, CINEMATIQUES[clau])
+        self.intro = Intro(fi, CINEMATIQUES[clau], saltable=clau in self.cinematiques_vistes)
         self.botons = []
         self.canviar_estat("intro")
 
@@ -14250,7 +14262,11 @@ class Game:
                 self.sortir_carrega()
             return
         if self.estat == "intro":                  # només es pot saltar amb el botó (o ESC); no s'accelera
-            if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
+            if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_0, pygame.K_KP0):
+                self.intro.saltar()                # sempre, també la primera vegada (no surt enlloc)
+            elif not self.intro.saltable:
+                pass
+            elif ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
                 self.intro.saltar()
             else:
                 self.intro.boto_saltar.gestionar(ev)
