@@ -7855,7 +7855,6 @@ class Game:
         self.nivell_dificultat = opcions.get("dificultat") if opcions.get("dificultat") in DIFICULTATS else "normal"
         self.numeros_dany = bool(opcions.get("numeros", True))
         self.mostrar_fps = bool(opcions.get("fps", False))
-        self.avisos_partida = opcions.get("avisos") if opcions.get("avisos") in ("normal", "discrets", "final") else "normal"
         self.arena = 0
         self.nivell_enemics = 0
         self.logros = {x for x in d.get("logros", []) if isinstance(x, str)} if isinstance(d.get("logros"), list) else set()
@@ -7895,8 +7894,7 @@ class Game:
             "opcions": {"musica": round(AUDIO.vol_musica, 2), "efectes": round(AUDIO.vol_efectes, 2),
                         "completa": PANTALLA.completa, "suau": PANTALLA.suau,
                         "dificultat": self.nivell_dificultat, "idioma": idioma(), "numeros": self.numeros_dany,
-                        "fps": getattr(self, "mostrar_fps", False),
-                        "avisos": getattr(self, "avisos_partida", "normal")},
+                        "fps": getattr(self, "mostrar_fps", False)},
         })
 
     def esborrar_progres(self):
@@ -7944,26 +7942,21 @@ class Game:
                           "n": 1, "t": 0, "ext": [ext, ext]})
 
     def retenir_premis(self):
-        """Mentre jugues: en Discretos i Al final esperen a acabar; en Normal, només mentre hi ha un cap."""
-        if self.estat in ("pausa", "revelacio", "narrativa", "loading", "intro"):
-            return True
-        if self.estat != "joc" or self.fase != "jugant":
-            return False
-        if getattr(self, "avisos_partida", "normal") != "normal":
-            return True
-        return bool(self.cap and self.cap in self.enemics)
+        """Els premis esperen fins que tornes a la sala (menú i les seves pantalles); mai no surten jugant."""
+        return self.estat == "revelacio" or self.estat not in self.ESTATS_MUSICA_MENU
 
     def actualitzar_premis(self):
         if not self.feed or self.retenir_premis():
             return
-        for av in self.feed[:2]:
+        for av in self.feed[:self.premis_visibles()]:
             av["t"] += 1
         self.feed = [av for av in self.feed if av["t"] < self.DURADA_PREMI]
 
     def y_premis(self):
-        if self.estat == "joc":
-            return 82 if CONTROL is None or CONTROL.mode != "tactil" else 92
-        return 112 if self.estat == "menu" else 70
+        return self.rect_destacat().y if self.estat == "menu" else 70
+
+    def premis_visibles(self):
+        return 3 if self.estat == "menu" else 2       # a la sala ocupen el lloc del destacat
 
     def icona_premi(self, surf, icona, cx, cy):
         tipus = icona[0] if icona else "estrella"
@@ -7974,7 +7967,7 @@ class Game:
         elif tipus == "arma":
             ic = ICONES_ARMA[icona[1]][1]
             surf.blit(ic, ic.get_rect(center=(cx, cy)))
-        elif tipus in ("passi", "colleccio", "diari", "guia", "jugar"):
+        elif tipus in ("passi", "colleccio", "diari", "guia", "jugar", "botiga"):
             dibuixar_icona_menu(surf, tipus, cx, cy)
         else:
             dibuixar_estrella(surf, cx, cy, 12, True)
@@ -7982,28 +7975,17 @@ class Game:
     def dibuixar_premis(self, surf):
         if not self.feed or self.estat in ("loading", "revelacio", "narrativa", "intro"):
             return
-        x0, y0 = WIDTH - 12 - self.FEED_W, self.y_premis()
+        x0, y0 = WIDTH - 16 - self.FEED_W, self.y_premis()
         if self.retenir_premis():
-            if self.estat == "pausa" or getattr(self, "avisos_partida", "normal") == "final":
-                return
-            # discret: només una icona amb quants n'hi ha d'esperant
-            caixa = pygame.Rect(WIDTH - 12 - 64, y0, 64, 28)
-            capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
-            capa.fill((8, 10, 24, 190))
-            surf.blit(capa, caixa)
-            k = 0.5 + 0.5 * math.sin(self.t_global * 0.08)
-            pygame.draw.rect(surf, tuple(int(c * (0.6 + 0.4 * k)) for c in GROC), caixa, 2, border_radius=6)
-            dibuixar_trofeu(surf, caixa.x + 18, caixa.centery, 9)
-            text(surf, str(len(self.feed)), F_HUD, BLANC, (caixa.right - 18, caixa.centery))
             return
         y = y0
-        for av in self.feed[:2]:
+        for av in self.feed[:self.premis_visibles()]:
             t = av["t"]
             entrada = min(1.0, t / 12) if t < self.DURADA_PREMI - 20 else max(0.0, (self.DURADA_PREMI - t) / 20)
-            caixa = pygame.Rect(0, y, self.FEED_W, 46)
+            caixa = pygame.Rect(0, y, self.FEED_W, 52)
             caixa.x = int(WIDTH + 4 - (WIDTH + 4 - x0) * (1 - (1 - entrada) ** 2))
             capa = pygame.Surface(caixa.size, pygame.SRCALPHA)
-            capa.fill((8, 10, 24, 225))
+            capa.fill((8, 10, 24, 240))
             surf.blit(capa, caixa)
             col = av["color"]
             pygame.draw.rect(surf, col, caixa, 2, border_radius=6)
@@ -8021,16 +8003,20 @@ class Game:
                 dibuixar_moneda(surf, rm.left - 9, rm.centery, 5)
                 dreta = rm.left - 22
             text(surf, cap, F_MINI, col, (caixa.x + 52, caixa.y + 13), ancora="midleft", max_w=dreta - caixa.x - 52)
-            text(surf, av["txt"], F_TEXT_P, BLANC, (caixa.x + 52, caixa.y + 32), ancora="midleft",
-                 max_w=caixa.right - 10 - caixa.x - 52)
-            y += 52
-        if len(self.feed) > 2:
-            chip = pygame.Rect(WIDTH - 12 - 70, y, 70, 20)
+            zona = pygame.Rect(caixa.x + 52, caixa.y + 22, caixa.right - 10 - caixa.x - 52, 27)
+            txt = T(av["txt"])
+            if F_TEXT_P.size(txt)[0] <= zona.w:
+                text(surf, txt, F_TEXT_P, BLANC, (zona.x, zona.centery), ancora="midleft")
+            else:                                           # dues línies més petites abans que retallar-lo
+                text_bloc(surf, txt, F_TEXT_PP, BLANC, zona, alinea="left", ombra=True, max_linies=2)
+            y += 58
+        if len(self.feed) > self.premis_visibles():
+            chip = pygame.Rect(WIDTH - 16 - 70, y, 70, 20)
             capa = pygame.Surface(chip.size, pygame.SRCALPHA)
             capa.fill((8, 10, 24, 200))
             surf.blit(capa, chip)
             pygame.draw.rect(surf, (90, 120, 190), chip, 1, border_radius=4)
-            text(surf, T("+{n} más").format(n=len(self.feed) - 2), F_MINI, (170, 190, 240), chip.center, ombra=False)
+            text(surf, T("+{n} más").format(n=len(self.feed) - self.premis_visibles()), F_MINI, (170, 190, 240), chip.center, ombra=False)
 
     # ----- Regles: història, millores, armes ---------------------------------
     def completat(self, index):
@@ -8449,20 +8435,12 @@ class Game:
         for k, (valor, nom) in enumerate(((True, "Sí"), (False, "No"))):
             b.append(Boto((400 + k * 110, 364, 100, 32), nom, lambda v=valor: self.posar_fps(v),
                           VERD if self.mostrar_fps == valor else BLAU, font=F_HUD))
-        for k, (valor, nom) in enumerate((("normal", "Normal"), ("discrets", "Discretos"), ("final", "Al final"))):
-            b.append(Boto((400 + k * 110, 404, 100, 32), nom, lambda v=valor: self.posar_avisos(v),
-                          VERD if getattr(self, "avisos_partida", "normal") == valor else BLAU, font=F_HUD))
         b.append(Boto((30, HEIGHT - 62, 140, 42), "< Volver", lambda: self.tornada_opcions(), GRIS_FOSC))
         if self.tornada_opcions == self.entrar_menu:
             b.append(Boto((WIDTH - 210, HEIGHT - 44, 190, 30), "Borrar progreso", self.esborrar_progres,
                           color=VERMELL_FOSC if not self.confirmar_reinici else VERMELL, font=F_MINI))
         self.botons = b
         self.canviar_estat("opcions")
-
-    def posar_avisos(self, valor):
-        self.avisos_partida = valor
-        self.desar_progres()
-        self.entrar_opcions(self.tornada_opcions)
 
     def posar_fps(self, valor):
         self.mostrar_fps = valor
@@ -8491,7 +8469,7 @@ class Game:
         self.fons_menu.dibuixar(surf)
         text(surf, T("OPCIONES"), F_SUBTITOL, BLANC, (WIDTH // 2, 46))
         files = [("Música", 100), ("Efectos", 140), ("Pantalla", 180), ("Escalado", 220), ("Dificultad", 260),
-                 ("Idioma", 300), ("Números de daño", 340), ("Contador de FPS", 380), ("Avisos en partida", 420)]
+                 ("Idioma", 300), ("Números de daño", 340), ("Contador de FPS", 380)]
         for nom, y in files:
             text(surf, T(nom), F_TEXT, BLANC, (210, y), ancora="midleft", max_w=180)
         for l in self.lliscadors:
@@ -9245,8 +9223,8 @@ class Game:
                 seguent = self.entrar_credits_finals
             elif e < 2:
                 seguent = lambda: self.mostrar_narrativa(n, e + 1)  # noqa: E731
-            else:
-                seguent = lambda: self.mostrar_narrativa(n + 1, 0)  # noqa: E731
+            else:                                    # sector acabat: tornes a la sala (botiga, millores...) abans del següent
+                seguent = self.entrar_menu
             if clau in CINEMATICA_CAP:
                 self.veure_cinematica(CINEMATICA_CAP[clau], seguent)
             else:
@@ -9293,6 +9271,10 @@ class Game:
         self.afegir_xp(xp)
         if primera and e == 2:
             self.premi("historia", "HISTORIA DESBLOQUEADA", T(ARXIU[n][0]), CIAN, ("guia",))
+        if e == 2 and n < NUM_SECTORS - 1 and (n, e) != (SECTORS_HISTORIA - 1, 2) and self.mode == "historia":
+            self.premi("sector_fet", T("¡SECTOR {n} COMPLETADO!").format(n=n + 1),
+                       T("Mejora tu equipo en la tienda antes del sector {n}").format(n=n + 2), GROC, ("botiga",))
+            self.feed.insert(0, self.feed.pop())          # el primer que veus en tornar a la sala
         if primera and (n, e) == (SECTORS_HISTORIA - 1, 2):
             self.premi("sector", "¡NUEVO SECTOR!", T(NOMS_SECTORS[SECTOR_DLC]), (140, 255, 230), ("jugar",))
         if primera and (n, e) == (SECTOR_DLC, 2):
@@ -13925,7 +13907,8 @@ class Game:
         # targeta i destacat
         dibuixar_targeta(surf, (WIDTH - 316, 14, 300, 90), self.targeta, self.titol, self.rang_actual(), self.temporada,
                          self.nivell_passi(), self.temporada - 1, self.monedes, self.estrelles_totals())
-        self.dibuixar_destacat(surf, self.rect_destacat())
+        if not self.feed:                            # mentre hi ha premis per veure, ocupen el seu lloc
+            self.dibuixar_destacat(surf, self.rect_destacat())
         estat_so = "M: sonido OFF" if AUDIO.silenci else "M: sonido ON"
         text(surf, pista(estat_so), F_MINI, GRIS, (20, HEIGHT - 20), ancora="midleft")
         self.dibuixar_avisos(surf, 346, x=WIDTH - 166, font=F_MINI, ample=300, pas=20)

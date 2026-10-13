@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.7"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "4.8"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
 SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
 SECTOR_DLC = 5            # índex del sector del DLC
@@ -624,12 +624,12 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
-    {"versio": "4.7", "titol": "Avisos de premios ordenados", "punts": [
-        ("trofeu", "Los premios que ganas jugando (rangos, Battle Pass, logros, bestiario, maestría, retos) salen en una "
-                   "cola arriba a la derecha, como mucho dos a la vez, y los repetidos se juntan (Ascenso ×2, Battle "
-                   "Pass 13 → 15)."),
-        ("jefe", "Durante un jefe, los premios esperan. En el centro solo queda un aviso de juego a la vez."),
-        ("opcions", "Nueva opción «Avisos en partida»: Normal, Discretos (solo un icono con cuántos hay) o Al final."),
+    {"versio": "4.8", "titol": "Premios al volver a la sala", "punts": [
+        ("trofeu", "Los premios ya no salen mientras juegas: los ves al volver a la sala, como mucho dos a la vez y "
+                   "con los repetidos juntos (Ascenso ×2, Battle Pass 13 → 15)."),
+        ("bandera", "Al completar un sector vuelves a la sala: aprovecha para mejorar tu equipo en la tienda antes del "
+                    "siguiente."),
+        ("hud", "En el centro de la pantalla solo queda un aviso de juego a la vez."),
     ]},
     {"versio": "4.6", "titol": "Personalizar renovado", "punts": [
         ("mira", "Personalizar renovado: tu soldado en una peana con el fondo de tu sector y todo ordenado en tres "

@@ -2303,6 +2303,20 @@ _AVISOS_47 = {
         ("Opció nova «Avisos en partida»: Normal, Discrets (només una icona amb quants n'hi ha) o Al final.",
          "New “In-game notices” option: Normal, Subtle (just an icon with how many are waiting) or At the end."),
 }
+_AVISOS_47.update({
+    "¡SECTOR {n} COMPLETADO!": ("SECTOR {n} COMPLETAT!", "SECTOR {n} COMPLETE!"),
+    "Mejora tu equipo en la tienda antes del sector {n}": ("Millora el teu equip a la botiga abans del sector {n}",
+                                                         "Upgrade your gear in the shop before sector {n}"),
+    "Premios al volver a la sala": ("Premis en tornar a la sala", "Rewards back at base"),
+    "Los premios ya no salen mientras juegas: los ves al volver a la sala, como mucho dos a la vez y con los repetidos juntos (Ascenso ×2, Battle Pass 13 → 15).":
+        ("Els premis ja no surten mentre jugues: els veus en tornar a la sala, com a molt dos alhora i amb els repetits junts (Ascens ×2, Battle Pass 13 → 15).",
+         "Rewards no longer pop up while you play: you see them back at base, at most two at a time, with repeats merged (Promotion ×2, Battle Pass 13 → 15)."),
+    "Al completar un sector vuelves a la sala: aprovecha para mejorar tu equipo en la tienda antes del siguiente.":
+        ("En completar un sector tornes a la sala: aprofita per millorar el teu equip a la botiga abans del següent.",
+         "When you complete a sector you return to base: a good moment to upgrade your gear in the shop before the next one."),
+    "En el centro de la pantalla solo queda un aviso de juego a la vez.":
+        ("Al centre de la pantalla només queda un avís de joc alhora.", "The centre of the screen only shows one gameplay notice at a time."),
+})
 for _es, (_ca, _en) in _AVISOS_47.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)

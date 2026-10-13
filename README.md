@@ -114,12 +114,11 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
-**Versión 4.7: avisos de premios ordenados**
-- Antes, al subir de rango en mitad de un escenario se amontonaban en el centro hasta cuatro avisos (y tres logros a la derecha) encima de la acción. Ahora los **premios** (rangos, Battle Pass, logros, bestiario, maestría, retos diarios, récords, desafíos) van a **una cola arriba a la derecha**, debajo del panel del sector y lejos de la radio: como mucho **dos tarjetas a la vez**, con su icono, y «+N más» si hay cola.
+**Versión 4.8: premios al volver a la sala**
+- Antes, al subir de rango en mitad de un escenario se amontonaban en el centro hasta cuatro avisos (y tres logros a la derecha) encima de la acción. Ahora **los premios no salen mientras juegas**: rangos, Battle Pass, logros, bestiario, maestría, retos diarios, récords y desafíos esperan y se ven **al volver a la sala**, en una cola arriba a la derecha (como mucho **dos tarjetas a la vez**, con su icono, y «+N más» si hay cola). Las tarjetas grandes de rangos y cosméticos siguen saliendo primero, como antes.
 - Los repetidos **se juntan**: varios ascensos seguidos son una tarjeta «¡ASCENSO! ×2», los niveles del pase salen como «Battle Pass 13 → 15», y las monedas se suman.
-- **Durante un jefe** los premios esperan (se ve solo un icono con cuántos hay) y salen al acabar.
-- En el **centro** solo queda un aviso de juego a la vez (minigun sobrecalentada, arma bloqueada...), un poco más abajo para no tapar la radio ni los premios.
-- Opción nueva en **Opciones › Avisos en partida**: *Normal*, *Discretos* (mientras juegas solo el icono con el número; las tarjetas salen al terminar) o *Al final* (nada hasta terminar el escenario).
+- **Al completar un sector vuelves a la sala** en lugar de pasar directamente al siguiente (después de la cinemática del jefe, si la hay). La primera tarjeta te recuerda que puedes mejorar el equipo en la tienda antes del sector siguiente.
+- En el **centro** de la pantalla solo queda un aviso de juego a la vez (minigun sobrecalentada, arma bloqueada...), un poco más abajo para no tapar la radio.
 
 **Versión 4.6: Personalizar renovado**
 - **Personalizar** se rehace: a la izquierda, tu soldado en una peana con el fondo del sector por el que vas, el dron flotando a su lado y el nombre, la rareza y el origen de lo que ves; a la derecha, tres grupos (**Soldado**: uniforme, título y tarjeta; **Arma**: aspecto, camuflaje, mira, estela y eliminación; **Extras**: dron y HUD) con su progreso, pestañas y una cuadrícula de tarjetas grandes.
