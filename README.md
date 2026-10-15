@@ -114,6 +114,11 @@ Ganas XP eliminando enemigos y completando escenarios (más XP la primera vez). 
 
 ## Novedades
 
+**Versión 5.0: voces en las cinemáticas**
+- Las cinemáticas están **dobladas al castellano** con voces diseñadas para cada personaje (Reyes, Vega, Nexus, la Mente, la Heredera y el narrador), con etiquetas de emoción. Reyes y Vega suenan por radio, la Mente con coro y eco, y todas llevan una capa de ambiente; la música baja menos mientras hablan. Las voces de la intro van en el paquete y el resto se descarga en segundo plano (`assets/veu/`, clase `Veus`). Opción «Voces en cinemáticas» para quitarlas.
+- Los **logros** vuelven a salir durante la partida (de uno en uno, arriba a la derecha); el resto de premios sigue esperando a la sala.
+- El **primer entrenamiento** ya no se puede saltar; desde la guía, sí.
+
 **Versión 4.9: cinemáticas antes de cada escenario**
 - Los 18 escenarios empiezan con una **cinemática corta** en lugar de la pantalla de texto: planos con el fondo del escenario y sus enemigos de verdad (con el estilo del sector), dibujados con código en `Intro`. Hay cuatro tipos de plano: **llegada** (Nexus entra corriendo y los enemigos patrullan al fondo), **patrulla** (los enemigos pasan por delante y Nexus espera a cubierto), **jefe** (su silueta entre relámpagos hasta que se revela) y **radio** (primer plano de quien habla, con interferencias). El texto se convierte en frases cortas de diálogo de Reyes, Vega, Nexus, la mente de la colmena y la Heredera, con lluvia, nieve, gas, esporas o cristales según el escenario (`CINE_ESCENARIS` en `dades.py`).
 - **Todas las cinemáticas mejoradas**: franjas negras de cine, fundido a negro entre escenas, viñeta, el título de cada escena aparece y se va, y los subtítulos muestran la cara y el nombre de quien habla. En el portal ahora flotan restos hacia dentro.

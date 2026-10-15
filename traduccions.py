@@ -2425,6 +2425,20 @@ _CINE_49 = {
         ("Abans de jugar, una fitxa de missió amb la imatge de l'escenari, la potència permesa i les estrelles.",
          "Before you play, a mission card with the stage picture, the allowed power and the stars."),
 }
+_CINE_49.update({
+    "Voces en las cinemáticas": ("Veus a les cinemàtiques", "Voiced cutscenes"),
+    "VOCES": ("VEUS", "VOICES"),
+    "Voces generadas con ElevenLabs (elevenlabs.io)": ("Veus generades amb ElevenLabs (elevenlabs.io)", "Voices generated with ElevenLabs (elevenlabs.io)"),
+    "Las cinemáticas están dobladas al castellano: Reyes, Vega, Nexus, la Mente, la Heredera y el narrador tienen voz propia, con radio y ambiente de fondo. Se pueden quitar en Opciones.":
+        ("Les cinemàtiques estan doblades al castellà: Reyes, Vega, Nexus, la Ment, l'Hereva i el narrador tenen veu pròpia, amb ràdio i ambient de fons. Es poden treure a Opcions.",
+         "Cutscenes are now voiced in Spanish: Reyes, Vega, Nexus, the Mind, the Heiress and the narrator each have their own voice, with radio and background ambience. You can turn them off in Options."),
+    "Los logros vuelven a salir mientras juegas, de uno en uno; el resto de premios sigue esperando a la sala.":
+        ("Els assoliments tornen a sortir mentre jugues, d'un en un; la resta de premis continua esperant a la sala.",
+         "Achievements show up again while you play, one at a time; other rewards still wait for the lobby."),
+    "El primer entrenamiento ya no se puede saltar; desde la guía, sí.":
+        ("El primer entrenament ja no es pot saltar; des de la guia, sí.",
+         "The first training can no longer be skipped; from the guide, it can."),
+})
 for _es, (_ca, _en) in _CINE_49.items():
     CA.setdefault(_es, _ca)
     EN.setdefault(_es, _en)

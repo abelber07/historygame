@@ -10243,6 +10243,7 @@ class Game:
             ("text", "Fondos, sprites y cinemáticas en pixel art"),
             ("seccio", "MÚSICA"), ("nom", "Abel"),
             ("text", "Temas chiptune creados para el juego y pistas libres de derechos"),
+            ("seccio", "VOCES"), ("text", "Voces generadas con ElevenLabs (elevenlabs.io)"),
             ("seccio", "EFECTOS DE SONIDO"), ("text", "Sonidos libres de derechos"),
             ("seccio", "TIPOGRAFÍAS"), ("text", "Press Start 2P · VT323 (SIL Open Font License)"),
             ("seccio", "HECHO CON"), ("text", "Python · pygame-ce · pygbag"),

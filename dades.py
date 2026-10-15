@@ -9,7 +9,7 @@ Los requisitos de historia ("req") son el índice del escenario que hay que habe
 
 from idiomes import T
 
-VERSIO = "4.9"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
+VERSIO = "5.0"          # versió base; la compilació de Windows hi afegeix el número de compilació (3.4.N)
 NUM_SECTORS = 6           # el sisè és el DLC «Ecos de Xylos» (s'obre en acabar la història)
 SECTORS_HISTORIA = 5      # la història original: el final i els crèdits arriben amb el 5-3
 SECTOR_DLC = 5            # índex del sector del DLC
@@ -695,18 +695,25 @@ DETALL_ARMES = {
 # estrella, cine, musica, enemic, radio, bandera, arma:<id>, millora:<id>
 # ---------------------------------------------------------------------------
 NOVETATS = [
+    {"versio": "5.0", "titol": "Voces en las cinemáticas", "punts": [
+        ("cine", "Las cinemáticas están dobladas al castellano: Reyes, Vega, Nexus, la Mente, la Heredera y el "
+                 "narrador tienen voz propia, con radio y ambiente de fondo. Se pueden quitar en Opciones."),
+        ("trofeu", "Los logros vuelven a salir mientras juegas, de uno en uno; el resto de premios sigue esperando a "
+                   "la sala."),
+        ("llibre", "El primer entrenamiento ya no se puede saltar; desde la guía, sí."),
+    ]},
     {"versio": "4.9", "titol": "Cinemáticas antes de cada escenario", "punts": [
         ("cine", "Cada escenario empieza con una cinemática corta (Nexus llegando, los enemigos de patrulla, el jefe "
                  "entre relámpagos o la radio en primer plano) en lugar del texto largo."),
         ("cine", "Todas las cinemáticas tienen franjas de cine, fundidos entre escenas y subtítulos con la cara de "
                  "quien habla."),
-        ("bandera", "Antes de jugar, una ficha de misión con la imagen del escenario, la potencia permitida y las "
+        ("mira", "Antes de jugar, una ficha de misión con la imagen del escenario, la potencia permitida y las "
                     "estrellas."),
     ]},
     {"versio": "4.8", "titol": "Premios al volver a la sala", "punts": [
         ("trofeu", "Los premios ya no salen mientras juegas: los ves al volver a la sala, como mucho dos a la vez y "
                    "con los repetidos juntos (Ascenso ×2, Battle Pass 13 → 15)."),
-        ("bandera", "Al completar un sector vuelves a la sala: aprovecha para mejorar tu equipo en la tienda antes del "
+        ("estrella", "Al completar un sector vuelves a la sala: aprovecha para mejorar tu equipo en la tienda antes del "
                     "siguiente."),
         ("hud", "En el centro de la pantalla solo queda un aviso de juego a la vez."),
     ]},
