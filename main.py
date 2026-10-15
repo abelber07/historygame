@@ -8391,10 +8391,22 @@ class Game:
         """Els premis esperen fins que tornes a la sala (menú i les seves pantalles); mai no surten jugant."""
         return self.estat == "revelacio" or self.estat not in self.ESTATS_MUSICA_MENU
 
+    @staticmethod
+    def premi_en_joc(av):
+        """Els logros sí que surten mentre jugues (d'un en un); la resta de premis espera a la sala."""
+        return av["clau"].startswith("logro:")
+
+    def premis_mostrats(self):
+        if self.retenir_premis():
+            if self.estat not in ("joc", "pausa"):
+                return []
+            return [av for av in self.feed if self.premi_en_joc(av)][:1]
+        return self.feed[:self.premis_visibles()]
+
     def actualitzar_premis(self):
-        if not self.feed or self.retenir_premis():
+        if not self.feed or (self.retenir_premis() and self.estat != "joc"):
             return
-        for av in self.feed[:self.premis_visibles()]:
+        for av in self.premis_mostrats():
             av["t"] += 1
         self.feed = [av for av in self.feed if av["t"] < self.DURADA_PREMI]
 
@@ -8422,10 +8434,11 @@ class Game:
         if not self.feed or self.estat in ("loading", "revelacio", "narrativa", "intro"):
             return
         x0, y0 = WIDTH - 16 - self.FEED_W, self.y_premis()
-        if self.retenir_premis():
+        mostrats = self.premis_mostrats()
+        if not mostrats:
             return
         y = y0
-        for av in self.feed[:self.premis_visibles()]:
+        for av in mostrats:
             t = av["t"]
             entrada = min(1.0, t / 12) if t < self.DURADA_PREMI - 20 else max(0.0, (self.DURADA_PREMI - t) / 20)
             caixa = pygame.Rect(0, y, self.FEED_W, 52)
@@ -8456,7 +8469,7 @@ class Game:
             else:                                           # dues línies més petites abans que retallar-lo
                 text_bloc(surf, txt, F_TEXT_PP, BLANC, zona, alinea="left", ombra=True, max_linies=2)
             y += 58
-        if len(self.feed) > self.premis_visibles():
+        if not self.retenir_premis() and len(self.feed) > self.premis_visibles():
             chip = pygame.Rect(WIDTH - 16 - 70, y, 70, 20)
             capa = pygame.Surface(chip.size, pygame.SRCALPHA)
             capa.fill((8, 10, 24, 200))
@@ -8852,6 +8865,8 @@ class Game:
             Boto((WIDTH // 2 - 120, 304, 240, 50), "Opciones", lambda: self.entrar_opcions(self.pausar), BLAU),
             Boto((WIDTH // 2 - 120, 366, 240, 50), "Menú", self.entrar_menu, GRIS_FOSC),
         ]
+        if self.mode == "tutorial" and not self.tutorial_vist:
+            self.botons.pop()                           # el primer entrenament s'acaba sencer
         self.canviar_estat("pausa")
 
     # ----- Opciones ---------------------------------------------------------
@@ -8947,7 +8962,7 @@ class Game:
         peu(surf, T("F11: pantalla completa  ·  M: silenciar"), GRIS, F_TEXT_PP)
 
     def reprendre(self):
-        self.botons = [self.boto_saltar_tutorial()] if self.mode == "tutorial" else []
+        self.botons = self.botons_tutorial()
         self.canviar_estat("joc")
         self.esperar_alliberar = True
 
@@ -8983,7 +8998,7 @@ class Game:
             DESCARREGUES.prioritzar(nom + "_furia")          # al navegador: la segona fase del cap, just després
             DESCARREGUES.prioritzar(nom)
         self.preparar_nivell()
-        self.botons = [self.boto_saltar_tutorial()] if self.mode == "tutorial" else []
+        self.botons = self.botons_tutorial()
         self.canviar_estat("joc")
 
     def variant_enemics(self):
@@ -10371,6 +10386,10 @@ class Game:
 
     def boto_saltar_tutorial(self):
         return Boto((WIDTH - 176, HEIGHT - 44, 160, 32), "Saltar tutorial", self.acabar_tutorial, GRIS_FOSC, font=F_MINI)
+
+    def botons_tutorial(self):
+        """La primera vegada l'entrenament no es pot saltar; després (des de la guia), sí."""
+        return [self.boto_saltar_tutorial()] if self.mode == "tutorial" and self.tutorial_vist else []
 
     def acabar_tutorial(self):
         self.mode = "historia"
@@ -14756,6 +14775,10 @@ class Game:
             if self.konami == [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
                                pygame.K_LEFT, pygame.K_RIGHT, pygame.K_b, pygame.K_a]:
                 self.desbloquejar("konami")
+        if (self.estat == "joc" and self.mode == "tutorial" and ev.type == pygame.KEYDOWN
+                and ev.key in (pygame.K_0, pygame.K_KP0)):
+            self.acabar_tutorial()                          # sense rastre a la pantalla
+            return
         if self.estat == "joc" and self.presentacio:            # saltar la presentació del cap
             if ((ev.type == pygame.KEYDOWN and ev.key in (pygame.K_SPACE, pygame.K_RETURN))
                     or (ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1)):
@@ -14775,7 +14798,7 @@ class Game:
                     self.jugador.demanar_salt()
                 elif ev.key in (pygame.K_p, pygame.K_ESCAPE) and self.fase == "jugant":
                     self.pausar()
-                elif ev.key == pygame.K_g:
+                elif ev.key == pygame.K_g and not (self.mode == "tutorial" and not self.tutorial_vist):
                     self.entrar_menu()
                 elif ev.key == pygame.K_q:
                     self.seguent_arma(1)
